@@ -1,0 +1,30 @@
+{
+  "name": "friendszone",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Async social coordination: shared calendars with privacy, hangout requests, RSVPs, and secondhand exchanges.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --build --force",
+    "typecheck:web": "npm run typecheck --workspace @friendszone/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:api": "npm run typecheck && node apps/api/dist/index.js",
+    "dev:web": "npm run dev --workspace @friendszone/web",
+    "build:web": "npm run typecheck && npm run build --workspace @friendszone/web",
+    "verify": "npm run typecheck && npm run typecheck:web && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^3.0.0"
+  }
+}

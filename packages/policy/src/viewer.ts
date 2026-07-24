@@ -1,0 +1,50 @@
+import type { CircleId, RelationshipKind, UserId } from '@friendszone/contracts';
+
+/**
+ * Everything the policy engine is allowed to know about who is asking.
+ *
+ * This type is the engine's entire input surface, and keeping it this small is
+ * the point. The engine performs no I/O: it cannot look up a friendship, cannot
+ * query the database, cannot be tricked by a stale cache it fetched itself. The
+ * caller assembles this context from trusted sources and passes it in, which
+ * makes every decision a pure function of explicit inputs and therefore
+ * exhaustively testable.
+ */
+export interface ViewerContext {
+  /** `null` for unauthenticated callers. Never a placeholder or sentinel id. */
+  readonly viewerId: UserId | null;
+
+  /**
+   * The viewer's relationship *to the owner of the resource being accessed*.
+   * Callers must recompute this per owner. Reusing a context across owners is
+   * the most likely way to introduce a privilege-escalation bug here.
+   */
+  readonly relationship: RelationshipKind;
+
+  /**
+   * Circles belonging to the resource owner that the viewer is a member of.
+   * Empty for non-friends. The viewer never learns these ids exist; they are an
+   * input to the decision, not part of any response.
+   */
+  readonly sharedCircleIds: readonly CircleId[];
+}
+
+/** The context for a caller we know nothing about. Maximum restriction. */
+export const ANONYMOUS_VIEWER: ViewerContext = Object.freeze({
+  viewerId: null,
+  relationship: 'NONE',
+  sharedCircleIds: Object.freeze([]),
+});
+
+export const isSelf = (viewer: ViewerContext, ownerId: UserId): boolean =>
+  viewer.viewerId !== null && viewer.viewerId === ownerId;
+
+/**
+ * Compile-time exhaustiveness guard. Every `switch` over a union in this
+ * package ends with a call to this in the default branch, so adding a new
+ * relationship kind, audience, or action breaks the build rather than silently
+ * falling through to whatever the last branch happened to be.
+ */
+export function assertNever(value: never, context: string): never {
+  throw new Error(`Unhandled variant in ${context}: ${JSON.stringify(value)}`);
+}

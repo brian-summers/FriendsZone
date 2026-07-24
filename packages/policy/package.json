@@ -1,0 +1,26 @@
+{
+  "name": "@friendszone/policy",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The security kernel: pure authorization decisions and calendar visibility projection.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@friendszone/contracts": "*",
+    "zod": "^3.24.1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@friendszone/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP edge. Owns transport, authentication, and error shaping. Owns no authorization logic.",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "node --watch dist/index.js",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@friendszone/contracts": "*",
+    "@friendszone/policy": "*",
+    "fastify": "^5.2.0",
+    "zod": "^3.24.1"
+  }
+}

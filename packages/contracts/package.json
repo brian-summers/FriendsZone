@@ -1,0 +1,21 @@
+{
+  "name": "@friendszone/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Single source of truth for Friendszone domain types, validated at runtime with Zod.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  }
+}
