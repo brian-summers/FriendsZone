@@ -65,7 +65,7 @@ export interface RouteDefinition<
   BSchema extends z.ZodTypeAny | undefined = z.ZodTypeAny | undefined,
   TResult = unknown,
 > {
-  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  readonly method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   readonly url: string;
   readonly authz: AuthzSpec;
   readonly params: PSchema;

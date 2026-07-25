@@ -101,6 +101,13 @@ FULL   → TITLE + { description?, location?, attendeeIds }
 > default. `projection.test.ts` asserts the exact key set at `TITLE` and will
 > fail if anyone widens it without deciding to.
 
+**Owner-only fields.** A few `FULL` fields — `sharedAs`, `shareRules`,
+`ownVisibilityCeiling` — exist so the owner can see and edit their own event's
+sharing. They are populated **only** in the owner branch of `projectCalendar`,
+never on a non-owner's `FULL` view (which is only reached by attendees or
+explicit grants). `projection.test.ts` asserts all three are absent for
+non-owners. When you add such a field, follow the pattern and extend that test.
+
 ## 5. Calendar-level rules
 
 `projectCalendar()` applies four rules that individual events cannot express:

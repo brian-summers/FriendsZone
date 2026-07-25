@@ -964,6 +964,40 @@ button.chip.hold:hover {
   color: var(--ink);
 }
 
+/* ── Sharing editor (per-event & defaults) ─────────────────────────── */
+.share-editor { display: flex; flex-direction: column; gap: var(--space-md); }
+.share-row { padding: var(--space-sm) 0; border-bottom: 1px solid var(--rule); }
+.share-row:last-child { border-bottom: 0; }
+.share-row-head { margin-bottom: var(--space-xs); }
+
+/* Ordinal level slider: an ordered lattice deserves an ordered control. */
+.level-slider {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.level-slider button {
+  background: var(--surface);
+  border: 0;
+  border-right: 1px solid var(--rule);
+  padding: 0.4rem 0.3rem;
+  font-size: 0.75rem;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: background var(--motion-quick) var(--ease), color var(--motion-quick) var(--ease);
+}
+.level-slider button:last-child { border-right: 0; }
+.level-slider button:hover { background: var(--sunken); color: var(--ink); }
+.level-slider button.on {
+  background: var(--verdigris);
+  color: var(--on-verdigris);
+  font-weight: 600;
+}
+.share-consequence { font-size: 0.75rem; color: var(--ink3); margin: var(--space-xs) 0 0; }
+.share-consequence .warn { color: var(--amber); }
+
 /* ── Notifications (Recent updates) ────────────────────────────────── */
 .updates { margin-bottom: var(--space-lg); }
 .update-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }

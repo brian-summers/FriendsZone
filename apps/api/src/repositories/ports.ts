@@ -69,8 +69,14 @@ export interface CalendarPort {
    */
   update(event: CalendarEvent): Promise<CalendarEvent>;
 
+  /** Remove an event. No-op if it is already gone. */
+  remove(eventId: EventId): Promise<void>;
+
   /** The owner's baseline sharing policy, used for events with no own rules. */
   sharingDefaults(ownerId: UserId): Promise<SharingDefaults>;
+
+  /** Replace the owner's baseline sharing policy. */
+  setSharingDefaults(ownerId: UserId, defaults: SharingDefaults): Promise<SharingDefaults>;
 }
 
 export interface NotificationPort {

@@ -181,6 +181,10 @@ export function projectCalendar(args: {
           details.push({
             ...projection.view,
             sharedAs: widestSharedLevel(event, ownerDefaults),
+            // Owner-only: the event's own rules, so the sharing editor can load
+            // and change them. Never sent to anyone but the owner.
+            shareRules: event.shareRules.map((r) => ({ ...r })),
+            ownVisibilityCeiling: event.visibilityCeiling,
           });
         } else {
           details.push(projection.view);

@@ -102,10 +102,20 @@ export class MemoryCalendar implements CalendarPort {
     return event;
   }
 
+  async remove(eventId: EventId): Promise<void> {
+    const index = this.#events.findIndex((e) => e.id === eventId);
+    if (index !== -1) this.#events.splice(index, 1);
+  }
+
   async sharingDefaults(ownerId: UserId): Promise<SharingDefaults> {
     // A user with no configured policy gets the conservative one. The fallback
     // must never be "share everything" — an absent row is not consent.
     return this.#defaults.get(ownerId) ?? CONSERVATIVE_SHARING_DEFAULTS;
+  }
+
+  async setSharingDefaults(ownerId: UserId, defaults: SharingDefaults): Promise<SharingDefaults> {
+    this.#defaults.set(ownerId, defaults);
+    return defaults;
   }
 }
 

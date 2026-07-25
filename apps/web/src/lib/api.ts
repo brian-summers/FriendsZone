@@ -4,12 +4,15 @@ import type {
   CancelHangoutInput,
   CreateEventInput,
   CreateHangoutInput,
+  EventFullView,
   EventView,
   HangoutDecision,
   HangoutRequest,
   Notification,
   PublicProfile,
   RescheduleHangoutInput,
+  SharingDefaults,
+  UpdateEventInput,
   UpdateHangoutInput,
 } from '@friendszone/contracts';
 
@@ -60,7 +63,7 @@ async function get<T>(path: string, actorId: string | null, signal?: AbortSignal
 }
 
 async function send<T>(
-  method: 'POST' | 'PATCH',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   actorId: string | null,
   payload: unknown,
@@ -88,6 +91,10 @@ const post = <T>(path: string, actorId: string | null, payload: unknown) =>
   send<T>('POST', path, actorId, payload);
 const patch = <T>(path: string, actorId: string | null, payload: unknown) =>
   send<T>('PATCH', path, actorId, payload);
+const put = <T>(path: string, actorId: string | null, payload: unknown) =>
+  send<T>('PUT', path, actorId, payload);
+const del = <T>(path: string, actorId: string | null) =>
+  send<T>('DELETE', path, actorId, {});
 
 const window_ = (start: Date, end: Date): string =>
   `start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`;
@@ -130,6 +137,18 @@ export const api = {
 
   createEvent: (input: CreateEventInput, actorId: string | null) =>
     post<EventView>('/v1/events', actorId, input),
+
+  updateEvent: (id: string, input: UpdateEventInput, actorId: string | null) =>
+    patch<EventFullView>(`/v1/events/${id}`, actorId, input),
+
+  deleteEvent: (id: string, actorId: string | null) =>
+    del<{ deleted: true }>(`/v1/events/${id}`, actorId),
+
+  sharingDefaults: (actorId: string | null, signal?: AbortSignal) =>
+    get<SharingDefaults>('/v1/me/sharing-defaults', actorId, signal),
+
+  setSharingDefaults: (input: SharingDefaults, actorId: string | null) =>
+    put<SharingDefaults>('/v1/me/sharing-defaults', actorId, input),
 
   // ── Hangout requests ──────────────────────────────────────────────
   createHangout: (input: CreateHangoutInput, actorId: string | null) =>

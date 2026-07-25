@@ -86,6 +86,28 @@ export const CreateEventInput = z.object({
 export type CreateEventInput = z.infer<typeof CreateEventInput>;
 
 /**
+ * What a client may change about an event it owns. Every field optional — a
+ * PATCH touches only what it names. Still no `ownerId`: ownership does not move.
+ * The sharing editor is just this input carrying new `shareRules` and
+ * `visibilityCeiling`.
+ */
+export const UpdateEventInput = z
+  .object({
+    timeRange: TimeRange.optional(),
+    title: ShortText.optional(),
+    description: LongText.optional(),
+    location: ShortText.optional(),
+    status: EventStatus.optional(),
+    visibilityCeiling: VisibilityLevel.optional(),
+    shareRules: z.array(ShareRule).max(50).optional(),
+    openToConflict: z.boolean().optional(),
+  })
+  .refine((r) => Object.values(r).some((v) => v !== undefined), {
+    message: 'nothing to update',
+  });
+export type UpdateEventInput = z.infer<typeof UpdateEventInput>;
+
+/**
  * When a user is open to *receiving* hangout requests, expressed in their own
  * timezone. This is not availability in the free/busy sense — it is consent to
  * be asked. A friend can propose a time inside these windows without it feeling
@@ -159,6 +181,15 @@ export const EventFullView = z.object({
    * FULL view never carries it. It is a summary for the owner, never a grant.
    */
   sharedAs: VisibilityLevel.optional(),
+
+  /**
+   * The event's own sharing rules and ceiling, so the owner can *edit* them.
+   * Owner-only, exactly like `sharedAs` — a non-owner must never learn how an
+   * event is shared, only what they personally received. Populated solely in
+   * the owner branch of `projectCalendar`; asserted absent for others.
+   */
+  shareRules: z.array(ShareRule).optional(),
+  ownVisibilityCeiling: VisibilityLevel.optional(),
 });
 export type EventFullView = z.infer<typeof EventFullView>;
 

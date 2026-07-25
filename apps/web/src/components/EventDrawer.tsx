@@ -4,6 +4,8 @@ import { api } from '../lib/api.js';
 import { formatDayOfWeek, formatRange } from '../lib/time.js';
 import { encodingFor } from '../lib/visibility.js';
 import { HangoutManage } from './HangoutManage.js';
+import { SharingEditor } from './SharingEditor.js';
+import { EventEditForm } from './EventEditForm.js';
 
 interface Props {
   event: EventView;
@@ -38,6 +40,7 @@ export function EventDrawer({
   onResolved,
 }: Props) {
   const [hangout, setHangout] = useState<HangoutRequest | null>(null);
+  const [panel, setPanel] = useState<'none' | 'edit' | 'share'>('none');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -153,6 +156,49 @@ export function EventDrawer({
               <strong>{shownAs.label}</strong>. {shownAs.meaning}
             </div>
           )}
+
+          {/* Plain events you own can be edited, re-shared, or deleted here. */}
+          {isOwn &&
+            event.visibility === 'FULL' &&
+            event.originHangoutRequestId === undefined &&
+            event.status !== 'CANCELLED' && (
+              <div className="manage">
+                {panel === 'none' && (
+                  <>
+                    <p className="manage-label">Manage this event</p>
+                    <div className="manage-actions">
+                      <button type="button" className="icon-btn" onClick={() => setPanel('share')}>
+                        Change who sees this
+                      </button>
+                      <button type="button" className="icon-btn" onClick={() => setPanel('edit')}>
+                        Edit or delete
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {panel === 'share' && (
+                  <SharingEditor
+                    eventId={event.id}
+                    title={event.title}
+                    initialRules={event.shareRules ?? []}
+                    actorId={actorId}
+                    onClose={() => setPanel('none')}
+                    onSaved={onResolved}
+                  />
+                )}
+
+                {panel === 'edit' && (
+                  <EventEditForm
+                    event={event}
+                    weekStart={weekStart}
+                    actorId={actorId}
+                    onDone={onResolved}
+                    onCancel={() => setPanel('none')}
+                  />
+                )}
+              </div>
+            )}
 
           {manageable && hangout !== null && event.status !== 'CANCELLED' && (
             <HangoutManage

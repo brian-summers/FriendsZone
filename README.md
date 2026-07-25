@@ -38,17 +38,17 @@ real authenticator exists yet.
 | Managing hangouts | Real. From the calendar: **edit, reschedule, or cancel** (with an optional heads-up to the other party) |
 | Open to conflict | Real. Mark an event flexible so friends can request that time anyway — it shows as "open", not busy |
 | Creating events | Real. `+ New event` writes through `POST /v1/events`; the owner is the session, never the request |
-| Event details | Real. Click any event; your own show a who-can-see-this summary |
+| Editing & deleting events | Real. Click your event → **Edit or delete**; change title, time, open-to-conflict, or remove it |
+| Per-event sharing editor | Real. Click your event → **Change who sees this** — audiences as rows, an ordinal level slider, consequences in plain words |
+| Sharing defaults | Real, editable in **Settings** — the control most people actually live with |
 | Sharing checkup | Real. Server-rendered previews of what each person sees |
-| Settings | Real theme control; sharing defaults shown read-only |
-| Per-event sharing editor | Not built — creation-time presets and the read-only checkup cover the ground so far |
 | Things | Placeholder route. Gated on moderation shipping first |
 
 ## Quick start
 
 ```bash
 npm install
-npm run verify        # typecheck + 178 tests
+npm run verify        # typecheck + 190 tests
 ```
 
 Run it. Two terminals:

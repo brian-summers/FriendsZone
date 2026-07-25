@@ -22,6 +22,7 @@ export type Action =
   | 'profile:read'
   | 'friends:list'
   | 'notifications:read'
+  | 'sharing:manage'
   | 'calendar:view'
   | 'calendar:preview'
   | 'event:create'
@@ -50,6 +51,7 @@ const ACTION_REGISTRY: Record<Action, true> = {
   'profile:read': true,
   'friends:list': true,
   'notifications:read': true,
+  'sharing:manage': true,
   'calendar:view': true,
   'calendar:preview': true,
   'event:create': true,
@@ -102,6 +104,7 @@ export type PolicyRequest =
   | { action: 'profile:read'; subjectId: UserId }
   | { action: 'friends:list'; ownerId: UserId }
   | { action: 'notifications:read' }
+  | { action: 'sharing:manage' }
   | { action: 'calendar:view'; ownerId: UserId }
   | { action: 'calendar:preview'; ownerId: UserId }
   | { action: 'event:create'; ownerId: UserId }
@@ -195,6 +198,14 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
     case 'notifications:read': {
       // Inherently self-scoped: the route only ever queries the actor's own
       // notifications, so authentication is the whole gate.
+      return viewer.viewerId === null
+        ? deny(request.action, 'ANONYMOUS')
+        : allow(request.action);
+    }
+
+    case 'sharing:manage': {
+      // Reading and writing your *own* sharing defaults. The route always
+      // targets the actor, so authentication is the whole gate.
       return viewer.viewerId === null
         ? deny(request.action, 'ANONYMOUS')
         : allow(request.action);

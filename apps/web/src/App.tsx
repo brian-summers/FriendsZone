@@ -239,7 +239,7 @@ export function App() {
           )}
 
           {match?.pattern === '/settings' && (
-            <SettingsScreen me={me} theme={theme} onTheme={setTheme} />
+            <SettingsScreen me={me} actorId={actorId} theme={theme} onTheme={setTheme} />
           )}
         </main>
       </div>

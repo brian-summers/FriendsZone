@@ -81,6 +81,14 @@ describe('can', () => {
         reason: 'ANONYMOUS',
       });
     });
+
+    it('lets any authenticated user manage their own sharing, but not anon', () => {
+      expect(decide(asOwner(), { action: 'sharing:manage' }).allowed).toBe(true);
+      expect(decide(asAnonymous(), { action: 'sharing:manage' })).toMatchObject({
+        allowed: false,
+        reason: 'ANONYMOUS',
+      });
+    });
   });
 
   describe('calendar', () => {

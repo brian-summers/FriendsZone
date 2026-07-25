@@ -25,6 +25,7 @@ someone will inevitably re-propose.
 | [0011](0011-tentative-holds.md) | Pending hangouts appear as participant-scoped tentative holds | Accepted |
 | [0012](0012-hangout-lifecycle.md) | Hangouts stay editable after acceptance; notifications are records | Accepted |
 | [0013](0013-floating-and-open-to-conflict.md) | Floating hangouts and open-to-conflict events | Accepted |
+| [0014](0014-event-editing-and-sharing-editor.md) | Events are editable; the per-event and default sharing editors are real | Accepted |
 
 ## Template
 

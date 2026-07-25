@@ -28,9 +28,13 @@ src/
     SettingsScreen.tsx     theme, sharing defaults (read-only), honest status
   components/
     WeekGrid.tsx           the calendar grid
-    EventDrawer.tsx        one event's details; who-can-see-this for your own
+    EventDrawer.tsx        one event's details; edit / share / delete your own
+    EventEditForm.tsx      edit or delete a plain event (PATCH/DELETE /v1/events)
+    SharingEditor.tsx      change who sees an event (PATCH shareRules) — inline panel
+    HangoutManage.tsx      edit / reschedule / cancel a hangout in place
+    HoldDrawer.tsx         accept / decline / withdraw a tentative hold
     NewEventDialog.tsx     create an event via POST /v1/events
-    RequestTimeDialog.tsx  propose times to a friend via POST /v1/hangouts
+    RequestTimeDialog.tsx  propose fixed or floating times via POST /v1/hangouts
     SharingCheckup.tsx     "what does Bob see of my week?"
     Placeholder.tsx        honest stubs (Things, not-found)
   lib/
@@ -70,13 +74,15 @@ permissive `Access-Control-Allow-Origin` that can leak into production.
 - **Hangout requests are 1:1.** Proposing to a group needs a different
   resolution flow ([ADR 0010](../../docs/adr/0010-hangout-resolution.md)); the
   composer takes a single friend.
-- **The per-event sharing editor is not built.** You choose sharing when you
-  *create* an event (a short preset list, `lib/sharePresets.ts`), and you can
-  preview any friend's view, but you cannot yet change an existing event's
-  sharing or edit your defaults. This is the next screen.
-- **No edit/delete/reschedule** of events, and no optimistic updates — a
-  successful mutation refetches. Requests can be withdrawn or declined but not
-  edited after sending.
+- **The sharing editor covers Friends and Everyone, not circles.** The client
+  has no circle roster yet, so the per-event editor and Settings edit those two
+  audiences; any circle-specific grants on an event are preserved untouched
+  ([ADR 0014](../../docs/adr/0014-event-editing-and-sharing-editor.md)).
+- **The sharing editor has no live preview of the *pending* edit.** It shows
+  plain-language consequences and the calendar reflects the result on save; a
+  "what Bob would see if you save this" preview needs a project-with-unsaved-
+  rules endpoint (deferred).
+- **No optimistic updates** — a successful mutation refetches the week.
 - **Category colours are derived from the owner id**, because event categories
   are not modelled yet. Hue is deliberately independent of the visibility
   channels, so this cannot misrepresent who can see something.

@@ -1,13 +1,17 @@
 import {
   CreateEventInput,
+  EventId,
   Instant,
   isHangoutExpired,
+  SharingDefaults,
+  UpdateEventInput,
   UserId,
   type CalendarEvent,
   type CalendarView,
-  type EventId,
+  type EventFullView,
   type EventView,
   type HangoutHold,
+  type SharingDefaults as SharingDefaultsType,
   type TimeRange,
 } from '@friendszone/contracts';
 import {
@@ -73,6 +77,28 @@ export const buildCalendarRoutes = (repos: Repositories) => {
       (r) => !isHangoutExpired(r, now),
     );
     return deriveHangoutHolds({ ownerId, viewer, requests: pending, window });
+  };
+
+  /**
+   * Project a stored event as its own owner — a FULL view carrying every
+   * owner-only field (sharedAs, the raw rules, the ceiling). The one shape a
+   * create/update response should return, so the client can immediately edit
+   * what it just wrote.
+   */
+  const ownerFullView = (
+    stored: CalendarEvent,
+    ownerDefaults: SharingDefaultsType,
+  ): EventFullView => {
+    const projection = projectEvent(stored, 'FULL');
+    if (projection.kind !== 'DETAIL' || projection.view.visibility !== 'FULL') {
+      throw new Error('event did not project to a full owner view');
+    }
+    return {
+      ...projection.view,
+      sharedAs: widestSharedLevel(stored, ownerDefaults),
+      shareRules: stored.shareRules.map((r) => ({ ...r })),
+      ownVisibilityCeiling: stored.visibilityCeiling,
+    };
   };
 
   return [
@@ -233,19 +259,117 @@ export const buildCalendarRoutes = (repos: Repositories) => {
       };
 
       const stored = await repos.calendar.create(event);
+      // Return it as the owner would see it — FULL, with its editable rules.
+      return ownerFullView(stored, await repos.calendar.sharingDefaults(actorId));
+    },
+  }),
 
-      // Project it back through the same engine, as its owner, so the wire
-      // shape is a normal EventView. The owner always resolves to FULL.
-      const ownerDefaults = await repos.calendar.sharingDefaults(actorId);
-      const level = resolveEventVisibility(stored, viewer, ownerDefaults);
-      const projection = projectEvent(stored, level);
-      if (projection.kind !== 'DETAIL' || projection.view.visibility !== 'FULL') {
-        // Unreachable: an owner sees their own event at FULL. Fail loudly
-        // rather than inventing a response if that invariant ever breaks.
-        throw new Error('created event did not project to a full owner view');
+  /**
+   * Edit an event you own — including its sharing rules (the per-event sharing
+   * editor is just this route carrying new `shareRules`/`visibilityCeiling`).
+   *
+   * Ownership is the gate (`event:modify`), and a hangout-origin event is
+   * refused: it is managed through its hangout so the two copies never drift.
+   */
+  defineRoute({
+    method: 'PATCH',
+    url: '/v1/events/:id',
+    authz: { kind: 'POLICY', action: 'event:modify' },
+    params: z.object({ id: EventId }),
+    query: z.object({}),
+    body: UpdateEventInput,
+    handler: async (ctx): Promise<EventFullView> => {
+      const actorId = ctx.actorId;
+      if (actorId === null) throw new PolicyDeniedError('event:modify', 'ANONYMOUS');
+
+      const existing = await repos.calendar.eventById(ctx.params.id);
+      // Unknown id and not-yours collapse to the same 404 upstream.
+      if (existing === null) throw new PolicyDeniedError('event:modify', 'NOT_OWNER');
+
+      const viewer = await ctx.viewerFor(existing.ownerId);
+      assertAllowed(can(viewer, { action: 'event:modify', event: { ownerId: existing.ownerId } }));
+
+      if (existing.originHangoutRequestId !== undefined) {
+        // Manage hangout events through their hangout, not here.
+        throw new PolicyDeniedError('event:modify', 'WRONG_STATE');
       }
-      // Attach the same who-can-see-this annotation a calendar read would carry.
-      return { ...projection.view, sharedAs: widestSharedLevel(stored, ownerDefaults) };
+
+      const now = new Date().toISOString();
+      const updated: CalendarEvent = {
+        ...existing,
+        updatedAt: now,
+        ...(ctx.body.timeRange !== undefined ? { timeRange: ctx.body.timeRange } : {}),
+        ...(ctx.body.title !== undefined ? { title: ctx.body.title } : {}),
+        ...(ctx.body.description !== undefined ? { description: ctx.body.description } : {}),
+        ...(ctx.body.location !== undefined ? { location: ctx.body.location } : {}),
+        ...(ctx.body.status !== undefined ? { status: ctx.body.status } : {}),
+        ...(ctx.body.visibilityCeiling !== undefined
+          ? { visibilityCeiling: ctx.body.visibilityCeiling }
+          : {}),
+        ...(ctx.body.shareRules !== undefined ? { shareRules: ctx.body.shareRules } : {}),
+        ...(ctx.body.openToConflict !== undefined
+          ? { openToConflict: ctx.body.openToConflict }
+          : {}),
+      };
+
+      const stored = await repos.calendar.update(updated);
+      return ownerFullView(stored, await repos.calendar.sharingDefaults(actorId));
+    },
+  }),
+
+  /** Delete an event you own. Hangout events are cancelled via their hangout. */
+  defineRoute({
+    method: 'DELETE',
+    url: '/v1/events/:id',
+    authz: { kind: 'POLICY', action: 'event:modify' },
+    params: z.object({ id: EventId }),
+    query: z.object({}),
+    body: z.object({}),
+    handler: async (ctx): Promise<{ deleted: true }> => {
+      const actorId = ctx.actorId;
+      if (actorId === null) throw new PolicyDeniedError('event:modify', 'ANONYMOUS');
+
+      const existing = await repos.calendar.eventById(ctx.params.id);
+      if (existing === null) throw new PolicyDeniedError('event:modify', 'NOT_OWNER');
+
+      const viewer = await ctx.viewerFor(existing.ownerId);
+      assertAllowed(can(viewer, { action: 'event:modify', event: { ownerId: existing.ownerId } }));
+
+      if (existing.originHangoutRequestId !== undefined) {
+        throw new PolicyDeniedError('event:modify', 'WRONG_STATE');
+      }
+
+      await repos.calendar.remove(existing.id);
+      return { deleted: true };
+    },
+  }),
+
+  /** Read your own baseline sharing policy. */
+  defineRoute({
+    method: 'GET',
+    url: '/v1/me/sharing-defaults',
+    authz: { kind: 'POLICY', action: 'sharing:manage' },
+    params: z.object({}),
+    query: z.object({}),
+    handler: async (ctx): Promise<SharingDefaultsType> => {
+      if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
+      assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
+      return repos.calendar.sharingDefaults(ctx.actorId);
+    },
+  }),
+
+  /** Replace your own baseline sharing policy — the most-used privacy control. */
+  defineRoute({
+    method: 'PUT',
+    url: '/v1/me/sharing-defaults',
+    authz: { kind: 'POLICY', action: 'sharing:manage' },
+    params: z.object({}),
+    query: z.object({}),
+    body: SharingDefaults,
+    handler: async (ctx): Promise<SharingDefaultsType> => {
+      if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
+      assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
+      return repos.calendar.setSharingDefaults(ctx.actorId, ctx.body);
     },
   }),
   ];

@@ -126,12 +126,14 @@ which is when they get skipped.
 ## Current state
 
 **Built and tested:** contracts, policy engine, HTTP edge (reads *and* validated
-writes), the full **hangout lifecycle** (propose fixed *or* floating → tentative
-holds on both calendars → accept books both → edit / reschedule / cancel in
-place, with optional notification records and lazy expiry), open-to-conflict
-events, route-perimeter invariants, in-memory adapters, design tokens with
-CI-gated contrast, and a navigable client where the **calendar is the single
-pane of glass** — everything but settings happens there. 178 tests.
+writes), full **event CRUD** (create / edit / delete, with a real **per-event
+sharing editor** and editable **sharing defaults**), the full **hangout
+lifecycle** (propose fixed *or* floating → tentative holds on both calendars →
+accept books both → edit / reschedule / cancel in place, with optional
+notification records and lazy expiry), open-to-conflict events, route-perimeter
+invariants, in-memory adapters, design tokens with CI-gated contrast, and a
+navigable client where the **calendar is the single pane of glass** —
+everything but settings happens there. 190 tests.
 
 Decisions worth knowing before touching hangouts or the calendar:
 - [ADR 0010](docs/adr/0010-hangout-resolution.md): accepting a hangout is a

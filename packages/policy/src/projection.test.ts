@@ -358,8 +358,30 @@ describe('projectCalendar', () => {
         expect(view.details).toHaveLength(1);
         const only = view.details[0];
         expect(only?.visibility).toBe('FULL');
-        expect(only && only.visibility === 'FULL' ? 'sharedAs' in only : false).toBe(false);
+        // None of the owner-only fields leak to a non-owner.
+        for (const field of ['sharedAs', 'shareRules', 'ownVisibilityCeiling']) {
+          expect(only && field in only).toBe(false);
+        }
       }
+    });
+
+    it('gives the owner the event’s own rules to edit', () => {
+      const own = event({
+        shareRules: [rule({ kind: 'FRIENDS' }, 'TITLE')],
+        visibilityCeiling: 'FULL',
+      });
+      const view = call({
+        ownerId: ALICE,
+        events: [own],
+        viewer: asOwner(),
+        ownerDefaults: defaults(),
+        window: DAY,
+      });
+      const d = view.details[0];
+      expect(d?.visibility === 'FULL' ? d.shareRules : undefined).toEqual([
+        { audience: { kind: 'FRIENDS' }, level: 'TITLE' },
+      ]);
+      expect(d?.visibility === 'FULL' ? d.ownVisibilityCeiling : undefined).toBe('FULL');
     });
   });
 });
