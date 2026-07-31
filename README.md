@@ -38,7 +38,11 @@ real authenticator exists yet.
 | Managing hangouts | Real. From the calendar: **edit, reschedule, or cancel** (with an optional heads-up to the other party) |
 | Open to conflict | Real. Mark an event flexible so friends can request that time anyway — it shows as "open", not busy |
 | Creating events | Real. `+ New event` writes through `POST /v1/events`; the owner is the session, never the request |
-| Editing & deleting events | Real. Click your event → **Edit or delete**; change title, time, open-to-conflict, or remove it |
+| Creating by drag | Real. **Drag a free slot** on your week to open the New Event dialog pre-filled; the drag may span days |
+| Drag on a friend's week | Real. **Drag their free time** to open the request composer pre-filled — same gesture, routed to a hangout request |
+| Multi-day events | Real. Events may run past midnight; they draw as a continuous band across the columns they cover |
+| Overlapping plans | Real. Events overlap by default and lay out side-by-side; tick **Block this time** to make one exclusive (a hard `busy` block) |
+| Editing & deleting events | Real. Click your event → **Edit or delete**; change title, time, exclusivity, or remove it |
 | Per-event sharing editor | Real. Click your event → **Change who sees this** — audiences as rows, an ordinal level slider, consequences in plain words |
 | Sharing defaults | Real, editable in **Settings** — the control most people actually live with |
 | Sharing checkup | Real. Server-rendered previews of what each person sees |
@@ -48,7 +52,7 @@ real authenticator exists yet.
 
 ```bash
 npm install
-npm run verify        # typecheck + 190 tests
+npm run verify        # typecheck + 208 tests
 ```
 
 Run it. Two terminals:
@@ -117,5 +121,6 @@ Start with [docs/README.md](docs/README.md), or jump to:
 - [Design system](docs/design/design-system.md) and [interface design](docs/design/interface.md)
 - [Roadmap and feature weighting](docs/product/roadmap.md)
 - [Decision records](docs/adr/)
+- [Deploy on Cloudflare](docs/playbooks/deploy-on-cloudflare.md)
 
 Contributing, including for AI agents: [CLAUDE.md](CLAUDE.md).

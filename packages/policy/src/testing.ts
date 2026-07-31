@@ -76,7 +76,11 @@ export const event = (overrides: Partial<CalendarEvent> = {}): CalendarEvent => 
     visibilityCeiling: 'FULL',
     shareRules: [],
     attendeeIds: [],
-    openToConflict: false,
+    // The fixture defaults to *exclusive* so tests that reason about `busy`
+    // exercise a hard commitment. The product default is the opposite —
+    // non-exclusive/overlappable — which the "overlap by default" tests set
+    // explicitly.
+    exclusive: true,
     createdAt: '2026-02-01T00:00:00.000Z',
     updatedAt: '2026-02-01T00:00:00.000Z',
     ...overrides,

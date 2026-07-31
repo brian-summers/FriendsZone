@@ -35,7 +35,7 @@ export function EventEditForm({ event, weekStart, actorId, onDone, onCancel }: P
   const [dayIndex, setDayIndex] = useState(initialDay);
   const [fromHour, setFromHour] = useState(start.getHours());
   const [toHour, setToHour] = useState(Math.max(end.getHours(), start.getHours() + 1));
-  const [openToConflict, setOpenToConflict] = useState(event.openToConflict);
+  const [exclusive, setExclusive] = useState(event.exclusive);
   const [busy, setBusy] = useState<'save' | 'delete' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,8 +99,8 @@ export function EventEditForm({ event, weekStart, actorId, onDone, onCancel }: P
       </label>
 
       <label className="check-field compact">
-        <input type="checkbox" checked={openToConflict} onChange={(e) => setOpenToConflict(e.target.checked)} />
-        <span>Open to conflict — friends can request this time</span>
+        <input type="checkbox" checked={exclusive} onChange={(e) => setExclusive(e.target.checked)} />
+        <span>Block this time — exclusive, no overlaps</span>
       </label>
 
       {error !== null && <p className="field-error" role="alert">{error}</p>}
@@ -140,7 +140,7 @@ export function EventEditForm({ event, weekStart, actorId, onDone, onCancel }: P
                     {
                       title: title.trim(),
                       timeRange: range(),
-                      openToConflict,
+                      exclusive,
                       ...(location.trim() ? { location: location.trim() } : {}),
                     },
                     actorId,

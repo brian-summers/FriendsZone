@@ -26,6 +26,8 @@ someone will inevitably re-propose.
 | [0012](0012-hangout-lifecycle.md) | Hangouts stay editable after acceptance; notifications are records | Accepted |
 | [0013](0013-floating-and-open-to-conflict.md) | Floating hangouts and open-to-conflict events | Accepted |
 | [0014](0014-event-editing-and-sharing-editor.md) | Events are editable; the per-event and default sharing editors are real | Accepted |
+| [0015](0015-overlap-by-default-and-drag-to-create.md) | Overlap by default (exclusive opt-out); drag-to-create | Accepted |
+| [0016](0016-cross-calendar-drag-and-multi-day-events.md) | Drag on any calendar (friend's → request); multi-day events | Accepted |
 
 ## Template
 

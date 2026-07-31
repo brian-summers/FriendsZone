@@ -160,10 +160,13 @@ describe('identity and preview endpoints', () => {
   });
 
   const win = () => {
+    // Reach back a week so the current week's Monday-anchored seed events are in
+    // range whatever weekday the suite runs on.
     const start = new Date();
     start.setUTCHours(0, 0, 0, 0);
+    start.setUTCDate(start.getUTCDate() - 7);
     const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + 7);
+    end.setUTCDate(end.getUTCDate() + 21);
     return `start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`;
   };
 

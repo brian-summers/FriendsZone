@@ -174,21 +174,23 @@ request. Consequences:
 If you change the participation rule, update this section and
 [ADR 0011](../adr/0011-tentative-holds.md) in the same commit.
 
-## 7a. Open blocks — occupied but negotiable
+## 7a. Open blocks — occupied but overlappable
 
-An event marked **open to conflict** (`CalendarEvent.openToConflict`) is real
-and visible under the ordinary rules above, but it does not *block time*. Its
-occupancy is reported in `CalendarView.openBlocks`, never in `busy`, and it is
-absent from the free/busy (`availability`) response's `busy` entirely.
+Events **overlap by default**. A non-exclusive event (`CalendarEvent.exclusive
+=== false`, the default) is real and visible under the ordinary rules above, but
+it does not *block time*. Its occupancy is reported in `CalendarView.openBlocks`,
+never in `busy`, and it is absent from the free/busy (`availability`) response's
+`busy` entirely. Only an event explicitly made **exclusive** (`exclusive: true`
+— the opt-out) lands in `busy`; accepted hangouts are exclusive.
 
 The privacy gating is unchanged: an open block only reaches a viewer who could
 already see the underlying event at ≥ `BUSY`, so it discloses nothing a hard
 busy block would not have. The point is purely that the time reads as *open to
-requests* rather than as a wall — see
-[ADR 0013](../adr/0013-floating-and-open-to-conflict.md).
+requests / overlappable* rather than as a wall — see
+[ADR 0015](../adr/0015-overlap-by-default-and-drag-to-create.md).
 
 **`openBlocks` must never be folded into `busy`.** Doing so would let anyone
-mark your negotiable time as unavailable. A route test enforces this.
+mark your overlappable time as unavailable. A route test enforces this.
 
 ## 8. Known gaps
 

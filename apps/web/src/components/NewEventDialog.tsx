@@ -1,27 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CreateEventInput, EventView } from '@friendszone/contracts';
+import type { CreateEventInput, EventView, TimeRange } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
-import { addDays, formatDayOfWeek } from '../lib/time.js';
+import { addDays, dayTimeToIso, formatDayOfWeek } from '../lib/time.js';
 import { SHARE_PRESETS, presetById } from '../lib/sharePresets.js';
 import { encodingFor } from '../lib/visibility.js';
 
 interface Props {
   weekStart: Date;
   actorId: string;
-  /** Preselect a day/hour when opened from an empty grid slot. */
-  initial?: { dayIndex: number; hour: number } | undefined;
+  /** Preselect a day and time range, e.g. from a drag on the calendar. */
+  initialRange?: TimeRange | undefined;
   onClose: () => void;
   onCreated: (event: EventView) => void;
 }
 
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // 07:00–22:00
+/** 07:00–23:00 in 30-minute steps, as minutes-of-day. */
+const START_OPTIONS = Array.from({ length: 32 }, (_, i) => 7 * 60 + i * 30); // 420…1350
+const END_OPTIONS = Array.from({ length: 33 }, (_, i) => 7 * 60 + i * 30); // 420…1380
 
-/** Build a local ISO instant for a day within the displayed week. */
-function instant(weekStart: Date, dayIndex: number, hour: number): string {
-  const d = addDays(weekStart, dayIndex);
-  d.setHours(hour, 0, 0, 0);
-  return d.toISOString();
-}
+const clampDay = (i: number): number => Math.max(0, Math.min(6, i));
+
+const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+const dayIndexOf = (weekStart: Date, d: Date): number =>
+  Math.round(
+    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - weekStart.getTime()) /
+      86_400_000,
+  );
 
 /**
  * Create an event.
@@ -29,15 +34,24 @@ function instant(weekStart: Date, dayIndex: number, hour: number): string {
  * The sharing choice is a preset rather than a rule builder — see
  * `lib/sharePresets.ts` for why. The form defaults to "Friends see I'm busy",
  * the conservative option, so the safe choice is the one requiring no thought.
+ * A drag on the calendar opens this with the day and time pre-filled.
  */
-export function NewEventDialog({ weekStart, actorId, initial, onClose, onCreated }: Props) {
+export function NewEventDialog({ weekStart, actorId, initialRange, onClose, onCreated }: Props) {
+  const initStart = initialRange ? new Date(initialRange.start) : null;
+  const initEnd = initialRange ? new Date(initialRange.end) : null;
+
   const [title, setTitle] = useState('');
-  const [dayIndex, setDayIndex] = useState(initial?.dayIndex ?? 0);
-  const [startHour, setStartHour] = useState(initial?.hour ?? 18);
-  const [endHour, setEndHour] = useState((initial?.hour ?? 18) + 1);
+  const [startDay, setStartDay] = useState(
+    initStart ? clampDay(dayIndexOf(weekStart, initStart)) : 0,
+  );
+  const [endDay, setEndDay] = useState(
+    initEnd ? clampDay(dayIndexOf(weekStart, initEnd)) : initStart ? clampDay(dayIndexOf(weekStart, initStart)) : 0,
+  );
+  const [fromMin, setFromMin] = useState(initStart ? initStart.getHours() * 60 + initStart.getMinutes() : 18 * 60);
+  const [toMin, setToMin] = useState(initEnd ? initEnd.getHours() * 60 + initEnd.getMinutes() : 19 * 60);
   const [location, setLocation] = useState('');
   const [presetId, setPresetId] = useState('busy');
-  const [openToConflict, setOpenToConflict] = useState(false);
+  const [exclusive, setExclusive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +71,11 @@ export function NewEventDialog({ weekStart, actorId, initial, onClose, onCreated
     [weekStart],
   );
 
-  const valid = title.trim().length > 0 && endHour > startHour;
+  // Compare as absolute minutes-from-week-start, so an event may end on a later
+  // day than it starts (a weekend trip, an overnight) and still validate.
+  const startTotal = startDay * 1440 + fromMin;
+  const endTotal = endDay * 1440 + toMin;
+  const valid = title.trim().length > 0 && endTotal > startTotal;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,14 +87,14 @@ export function NewEventDialog({ weekStart, actorId, initial, onClose, onCreated
     const input: CreateEventInput = {
       title: title.trim(),
       timeRange: {
-        start: instant(weekStart, dayIndex, startHour),
-        end: instant(weekStart, dayIndex, endHour),
+        start: dayTimeToIso(weekStart, startDay, fromMin),
+        end: dayTimeToIso(weekStart, endDay, toMin),
       },
       status: 'CONFIRMED',
       visibilityCeiling: preset.ceiling,
       shareRules: preset.rules,
       attendeeIds: [],
-      openToConflict,
+      exclusive,
       ...(location.trim() ? { location: location.trim() } : {}),
     };
 
@@ -119,8 +137,16 @@ export function NewEventDialog({ weekStart, actorId, initial, onClose, onCreated
 
           <div className="field-row">
             <label className="field">
-              <span>Day</span>
-              <select value={dayIndex} onChange={(e) => setDayIndex(Number(e.target.value))}>
+              <span>Starts</span>
+              <select
+                value={startDay}
+                onChange={(e) => {
+                  const d = Number(e.target.value);
+                  setStartDay(d);
+                  // Keep the end from falling before the start when the start moves.
+                  if (d > endDay) setEndDay(d);
+                }}
+              >
                 {days.map((d, i) => (
                   <option key={d.toISOString()} value={i}>
                     {formatDayOfWeek(d)} {d.getDate()}
@@ -130,28 +156,46 @@ export function NewEventDialog({ weekStart, actorId, initial, onClose, onCreated
             </label>
             <label className="field">
               <span>From</span>
-              <select value={startHour} onChange={(e) => setStartHour(Number(e.target.value))}>
-                {HOURS.map((h) => (
-                  <option key={h} value={h}>
-                    {String(h).padStart(2, '0')}:00
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>To</span>
-              <select value={endHour} onChange={(e) => setEndHour(Number(e.target.value))}>
-                {HOURS.concat([23]).map((h) => (
-                  <option key={h} value={h}>
-                    {String(h).padStart(2, '0')}:00
+              <select value={fromMin} onChange={(e) => setFromMin(Number(e.target.value))}>
+                {START_OPTIONS.map((m) => (
+                  <option key={m} value={m}>
+                    {fmtMin(m)}
                   </option>
                 ))}
               </select>
             </label>
           </div>
 
-          {endHour <= startHour && (
-            <p className="field-error">The end time has to be after the start.</p>
+          <div className="field-row">
+            <label className="field">
+              <span>Ends</span>
+              <select value={endDay} onChange={(e) => setEndDay(Number(e.target.value))}>
+                {days.map((d, i) => (
+                  <option key={d.toISOString()} value={i}>
+                    {formatDayOfWeek(d)} {d.getDate()}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>To</span>
+              <select value={toMin} onChange={(e) => setToMin(Number(e.target.value))}>
+                {END_OPTIONS.map((m) => (
+                  <option key={m} value={m}>
+                    {fmtMin(m)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {endTotal <= startTotal && (
+            <p className="field-error">The end has to be after the start.</p>
+          )}
+          {endDay > startDay && endTotal > startTotal && (
+            <p className="hint-note">
+              Spans {endDay - startDay === 1 ? 'into the next day' : `${endDay - startDay} days`}.
+            </p>
           )}
 
           <label className="field">
@@ -194,14 +238,14 @@ export function NewEventDialog({ weekStart, actorId, initial, onClose, onCreated
           <label className="check-field">
             <input
               type="checkbox"
-              checked={openToConflict}
-              onChange={(e) => setOpenToConflict(e.target.checked)}
+              checked={exclusive}
+              onChange={(e) => setExclusive(e.target.checked)}
             />
             <span>
-              <strong>Open to conflict</strong>
+              <strong>Block this time</strong>
               <small>
-                Friends can still request this time. It shows as “open”, not busy — good for
-                flexible plans you’d happily move.
+                By default events can overlap and friends may request the time. Tick this to make it
+                exclusive — a hard block that shows as busy and nothing can overlap.
               </small>
             </span>
           </label>

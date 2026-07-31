@@ -247,6 +247,42 @@ button { font: inherit; color: inherit; }
 }
 .day:last-child { border-right: 0; }
 .day.weekend { background: color-mix(in srgb, var(--sunken) 45%, transparent); }
+.day.selectable { cursor: cell; touch-action: none; }
+
+/* Drag-to-create selection rectangle. */
+.drag-sel {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  z-index: 5;
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--verdigris);
+  background: color-mix(in srgb, var(--verdigris) 20%, transparent);
+  pointer-events: none;
+}
+.drag-sel-label {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--verdigris);
+  font-weight: 600;
+}
+
+/* Multi-day spans: square the edge that runs off the top or bottom of a column
+   into an adjacent day, so a spanning event reads as one continuous band across
+   the columns it touches rather than as separate chips that happen to line up. */
+.chip.spans-before,
+.drag-sel.spans-before {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.chip.spans-after,
+.drag-sel.spans-after {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
 
 .hourlines {
   position: absolute;
@@ -339,8 +375,8 @@ button.chip { cursor: pointer; display: block; width: calc(100% - 4px); }
 
 .chip.cancelled .ttl { text-decoration: line-through; opacity: 0.7; }
 
-/* Open to conflict — occupied but negotiable. A soft brass outline, distinct
-   from the hard hatched BUSY wall. */
+/* Non-exclusive (overlappable) time — occupied but negotiable. A soft brass
+   outline, distinct from the hard hatched BUSY wall. */
 .chip.v-OPEN {
   z-index: 1;
   border: 1px dashed color-mix(in srgb, var(--brass) 60%, transparent);

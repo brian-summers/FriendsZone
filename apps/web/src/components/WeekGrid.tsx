@@ -1,15 +1,20 @@
-import type { CalendarView, EventView, HangoutHold } from '@friendszone/contracts';
+import { useState } from 'react';
+import type { CalendarView, EventView, HangoutHold, TimeRange } from '@friendszone/contracts';
 import {
-  DAY_END_HOUR,
   GRID_HEIGHT,
   HOURS,
   HOUR_PX,
   addDays,
   formatDayOfWeek,
   formatRange,
+  formatTime,
   isSameDay,
+  layoutColumns,
   nowOffset,
-  place,
+  placeSpan,
+  rangeFromDrag,
+  yToMinutes,
+  type Segment,
 } from '../lib/time.js';
 import { encodingFor, hueFor } from '../lib/visibility.js';
 
@@ -25,6 +30,23 @@ interface Props {
   onChipActivate?: ((event: EventView) => void) | undefined;
   /** Clicking a tentative hold opens it, to accept/decline/withdraw in place. */
   onHoldActivate?: ((hold: HangoutHold) => void) | undefined;
+  /**
+   * Dragging (or clicking) in free space selects a time and calls this with the
+   * range. What that means is the caller's business: on your own calendar it
+   * opens the New Event dialog; on a friend's it opens the request composer.
+   * A drag may span day columns, so the range is not confined to one day.
+   */
+  onRangeSelect?: ((range: TimeRange) => void) | undefined;
+  /** Legend caption for the select gesture, e.g. "add an event" vs "request time". */
+  rangeSelectHint?: string | undefined;
+}
+
+/** An in-progress drag, as (day, minute) endpoints that may cross columns. */
+interface Drag {
+  fromDay: number;
+  fromMin: number;
+  toDay: number;
+  toMin: number;
 }
 
 /**
@@ -41,13 +63,106 @@ interface Props {
  *    reads only `busy`. Here the hatched busy layer sits underneath and the
  *    detail chip covers it, which reads correctly: this time is taken, and
  *    here is what it is.
+ *
+ * Every interval is placed with `placeSpan`, which returns one segment per day
+ * it touches — so an event that crosses midnight draws as a continuous band
+ * across the columns it covers rather than being clamped into its start day.
  */
-export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActivate }: Props) {
+export function WeekGrid({
+  view,
+  weekStart,
+  ownerId,
+  onChipActivate,
+  onHoldActivate,
+  onRangeSelect,
+  rangeSelectHint,
+}: Props) {
   const today = new Date();
   const hue = hueFor(ownerId);
   const busyEncoding = encodingFor('BUSY');
 
+  const [drag, setDrag] = useState<Drag | null>(null);
+
+  // Which day column, and how far down it, a pointer sits over. Uses real
+  // hit-testing so a drag can cross columns even while the pointer is captured
+  // to the origin column. Returns null where the environment can't hit-test
+  // (jsdom), letting the move handler fall back to vertical-only tracking.
+  const resolvePoint = (
+    e: React.PointerEvent<HTMLDivElement>,
+  ): { dayIndex: number; min: number } | null => {
+    const under = document.elementFromPoint?.(e.clientX, e.clientY) as HTMLElement | null;
+    const dayEl = under?.closest?.('.day') as HTMLElement | null;
+    if (!dayEl || dayEl.dataset.day === undefined) return null;
+    const rect = dayEl.getBoundingClientRect();
+    return { dayIndex: Number(dayEl.dataset.day), min: yToMinutes(e.clientY - rect.top) };
+  };
+
+  const onDayPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (onRangeSelect === undefined) return;
+    // A click that lands on an event (or anything interactive) is not a drag.
+    if ((e.target as HTMLElement).closest('.chip')) return;
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const day = Number(el.dataset.day);
+    const min = yToMinutes(e.clientY - rect.top);
+    // Capture so move/up track even if the pointer leaves the column. Guarded
+    // because jsdom (and very old browsers) may not implement it.
+    el.setPointerCapture?.(e.pointerId);
+    setDrag({ fromDay: day, fromMin: min, toDay: day, toMin: min });
+  };
+
+  const onDayPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (drag === null) return;
+    const point = resolvePoint(e);
+    if (point !== null) {
+      setDrag((d) => (d === null ? d : { ...d, toDay: point.dayIndex, toMin: point.min }));
+      return;
+    }
+    // No hit-testing available: track vertically within the origin column.
+    const rect = e.currentTarget.getBoundingClientRect();
+    const min = yToMinutes(e.clientY - rect.top);
+    setDrag((d) => (d === null ? d : { ...d, toMin: min }));
+  };
+
+  const finishDrag = () => {
+    if (drag === null) return;
+    const range = rangeFromDrag(
+      { day: drag.fromDay, min: drag.fromMin },
+      { day: drag.toDay, min: drag.toMin },
+      weekStart,
+    );
+    setDrag(null);
+    onRangeSelect?.(range);
+  };
+
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // Split every interval into per-day segments once, up front. A multi-day
+  // interval appears in each column it touches; a same-day one appears once.
+  const busySegs = view.busy.flatMap((block, i) =>
+    placeSpan(block.start, block.end, weekStart).map((seg) => ({ block, seg, i })),
+  );
+  const openSegs = view.openBlocks.flatMap((block, i) =>
+    placeSpan(block.start, block.end, weekStart).map((seg) => ({ block, seg, i })),
+  );
+  const holdSegs = view.holds.flatMap((hold) =>
+    placeSpan(hold.timeRange.start, hold.timeRange.end, weekStart).map((seg) => ({ hold, seg })),
+  );
+  const detailSegs = view.details.flatMap((event) =>
+    placeSpan(event.timeRange.start, event.timeRange.end, weekStart).map((seg) => ({ event, seg })),
+  );
+
+  // The live drag rectangle, itself placed per day so a cross-day selection is
+  // drawn across the columns it spans.
+  const dragRange =
+    drag === null
+      ? null
+      : rangeFromDrag(
+          { day: drag.fromDay, min: drag.fromMin },
+          { day: drag.toDay, min: drag.toMin },
+          weekStart,
+        );
+  const dragSegs = dragRange === null ? [] : placeSpan(dragRange.start, dragRange.end, weekStart);
 
   return (
     <div className="cal-scroll">
@@ -75,11 +190,28 @@ export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActiv
           const isToday = isSameDay(day, today);
           const marker = isToday ? nowOffset(today) : null;
 
+          // This day's detail segments, laid out in side-by-side columns by
+          // their extent *within this day*, so overlaps pack correctly and a
+          // multi-day event columns against what it shares the day with.
+          const dayDetailSegs = detailSegs.filter((d) => d.seg.dayIndex === dayIndex);
+          const spans = layoutColumns(
+            dayDetailSegs.map((d) => ({ start: d.seg.clipStart, end: d.seg.clipEnd })),
+          );
+
+          const dragSeg = dragSegs.find((s) => s.dayIndex === dayIndex);
+
           return (
             <div
               key={day.toISOString()}
-              className={`day${dayIndex >= 5 ? ' weekend' : ''}`}
+              className={`day${dayIndex >= 5 ? ' weekend' : ''}${
+                onRangeSelect ? ' selectable' : ''
+              }`}
               style={{ height: GRID_HEIGHT }}
+              data-day={dayIndex}
+              onPointerDown={onDayPointerDown}
+              onPointerMove={onDayPointerMove}
+              onPointerUp={finishDrag}
+              onPointerCancel={() => setDrag(null)}
             >
               <div className="hourlines" aria-hidden="true">
                 {HOURS.map((hour) => (
@@ -91,105 +223,100 @@ export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActiv
                 <div className="nowline" style={{ top: marker }} aria-hidden="true" />
               )}
 
+              {dragSeg && dragRange && <DragSelection seg={dragSeg} range={dragRange} />}
+
               {/* Busy layer — opaque, hatched, carries no identity. */}
-              {view.busy.map((block, i) => {
-                const p = place(block.start, block.end, weekStart);
-                if (p.dayIndex !== dayIndex) return null;
-                return (
+              {busySegs
+                .filter((b) => b.seg.dayIndex === dayIndex)
+                .map(({ block, seg, i }) => (
                   <div
-                    key={`busy-${i}`}
-                    className="chip v-BUSY"
-                    style={{ top: p.top, height: p.height }}
+                    key={`busy-${i}-${dayIndex}`}
+                    className={`chip v-BUSY${spanClass(seg)}`}
+                    style={{ top: seg.top, height: seg.height }}
                     role="img"
                     aria-label={`Unavailable, ${formatRange(block.start, block.end)}`}
                   >
                     <span className="lvl">
                       {busyEncoding.glyph} {busyEncoding.label}
                     </span>
-                    {p.height > 34 && (
+                    {seg.height > 34 && (
                       <span className="meta">{formatRange(block.start, block.end)}</span>
                     )}
                   </div>
-                );
-              })}
+                ))}
 
               {/* Open blocks — the owner is occupied but flagged the time
                   negotiable, so it reads as "open", not a hard busy wall. */}
-              {view.openBlocks.map((block, i) => {
-                const p = place(block.start, block.end, weekStart);
-                if (p.dayIndex !== dayIndex) return null;
-                return (
+              {openSegs
+                .filter((o) => o.seg.dayIndex === dayIndex)
+                .map(({ block, seg, i }) => (
                   <div
-                    key={`open-${i}`}
-                    className="chip v-OPEN"
-                    style={{ top: p.top, height: p.height }}
+                    key={`open-${i}-${dayIndex}`}
+                    className={`chip v-OPEN${spanClass(seg)}`}
+                    style={{ top: seg.top, height: seg.height }}
                     role="img"
                     aria-label={`Open to plans, ${formatRange(block.start, block.end)}`}
                   >
                     <span className="lvl">◇ Open</span>
-                    {p.height > 34 && (
+                    {seg.height > 34 && (
                       <span className="meta">{formatRange(block.start, block.end)}</span>
                     )}
                   </div>
-                );
-              })}
+                ))}
 
               {/* Tentative holds — pending hangout slots the viewer is party to.
                   Painted before firm events so a real commitment reads on top
                   when they overlap; on free time the hold shows in full. */}
-              {view.holds.map((hold) => {
-                const p = place(hold.timeRange.start, hold.timeRange.end, weekStart);
-                if (p.dayIndex !== dayIndex) return null;
+              {holdSegs
+                .filter((h) => h.seg.dayIndex === dayIndex)
+                .map(({ hold, seg }) => {
+                  const roleLabel =
+                    hold.role === 'INVITEE' ? 'a friend asked you' : 'you proposed this';
+                  const ariaLabel = `${hold.title}, ${formatRange(
+                    hold.timeRange.start,
+                    hold.timeRange.end,
+                  )}, tentative — ${roleLabel}. Open to respond.`;
 
-                const roleLabel =
-                  hold.role === 'INVITEE' ? 'a friend asked you' : 'you proposed this';
-                const ariaLabel = `${hold.title}, ${formatRange(
-                  hold.timeRange.start,
-                  hold.timeRange.end,
-                )}, tentative — ${roleLabel}. Open to respond.`;
+                  const holdInner = (
+                    <>
+                      <span className="lvl">⧗ Pending</span>
+                      <span className="ttl">{hold.title}</span>
+                      {seg.height > 44 && (
+                        <span className="meta">
+                          {formatRange(hold.timeRange.start, hold.timeRange.end)}
+                        </span>
+                      )}
+                    </>
+                  );
+                  const holdStyle = { top: seg.top, height: seg.height };
+                  const key = `${hold.requestId}-${hold.slotIndex}-${dayIndex}`;
 
-                const holdInner = (
-                  <>
-                    <span className="lvl">⧗ Pending</span>
-                    <span className="ttl">{hold.title}</span>
-                    {p.height > 44 && (
-                      <span className="meta">
-                        {formatRange(hold.timeRange.start, hold.timeRange.end)}
-                      </span>
-                    )}
-                  </>
-                );
-                const holdStyle = { top: p.top, height: p.height };
-
-                return onHoldActivate ? (
-                  <button
-                    key={`${hold.requestId}-${hold.slotIndex}`}
-                    type="button"
-                    className="chip hold"
-                    style={holdStyle}
-                    onClick={() => onHoldActivate(hold)}
-                    aria-label={ariaLabel}
-                  >
-                    {holdInner}
-                  </button>
-                ) : (
-                  <div
-                    key={`${hold.requestId}-${hold.slotIndex}`}
-                    className="chip hold"
-                    style={holdStyle}
-                    role="img"
-                    aria-label={ariaLabel}
-                  >
-                    {holdInner}
-                  </div>
-                );
-              })}
+                  return onHoldActivate ? (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`chip hold${spanClass(seg)}`}
+                      style={holdStyle}
+                      onClick={() => onHoldActivate(hold)}
+                      aria-label={ariaLabel}
+                    >
+                      {holdInner}
+                    </button>
+                  ) : (
+                    <div
+                      key={key}
+                      className={`chip hold${spanClass(seg)}`}
+                      style={holdStyle}
+                      role="img"
+                      aria-label={ariaLabel}
+                    >
+                      {holdInner}
+                    </div>
+                  );
+                })}
 
               {/* Detail layer — only what this viewer was granted. */}
-              {view.details.map((event) => {
-                const p = place(event.timeRange.start, event.timeRange.end, weekStart);
-                if (p.dayIndex !== dayIndex) return null;
-
+              {dayDetailSegs.map(({ event, seg }, k) => {
                 const enc = encodingFor(event.visibility);
                 const cancelled = event.status === 'CANCELLED';
                 const label = `${event.title}, ${formatRange(
@@ -218,7 +345,7 @@ export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActiv
                       {enc.glyph} {enc.label}
                     </span>
                     <span className="ttl">{event.title}</span>
-                    {p.height > 46 && (
+                    {seg.height > 46 && (
                       <span className="meta">
                         {formatRange(event.timeRange.start, event.timeRange.end)}
                         {event.visibility === 'FULL' && event.location ? ` · ${event.location}` : ''}
@@ -239,12 +366,19 @@ export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActiv
                 const tentative = event.status === 'TENTATIVE';
                 const className = `chip v-${enc.level}${cancelled ? ' cancelled' : ''}${
                   tentative ? ' tentative' : ''
-                }`;
-                const style = { top: p.top, height: p.height };
+                }${spanClass(seg)}`;
+
+                // Side-by-side column position within this day's overlap cluster.
+                const span = spans[k] ?? { col: 0, cols: 1 };
+                const gap = 2;
+                const width = `calc((100% - 4px) / ${span.cols} - ${gap}px)`;
+                const left = `calc(2px + (100% - 4px) * ${span.col} / ${span.cols})`;
+                const style = { top: seg.top, height: seg.height, left, width, right: 'auto' as const };
+                const key = `${event.id}-${dayIndex}`;
 
                 return onChipActivate ? (
                   <button
-                    key={event.id}
+                    key={key}
                     type="button"
                     className={className}
                     style={style}
@@ -255,7 +389,7 @@ export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActiv
                   </button>
                 ) : (
                   <div
-                    key={event.id}
+                    key={key}
                     className={className}
                     style={style}
                     role="img"
@@ -284,7 +418,28 @@ export function WeekGrid({ view, weekStart, ownerId, onChipActivate, onHoldActiv
             {view.holds.length} pending {view.holds.length === 1 ? 'slot' : 'slots'} — tap to respond
           </span>
         )}
+        {onRangeSelect && (
+          <span className="legend-note">
+            Drag a free slot to {rangeSelectHint ?? 'add an event'}
+          </span>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Squared, continuation-marked edges where a segment runs off into another day. */
+function spanClass(seg: Segment): string {
+  return `${seg.continuesBefore ? ' spans-before' : ''}${seg.continuesAfter ? ' spans-after' : ''}`;
+}
+
+/** The translucent rectangle shown while dragging out a new time. */
+function DragSelection({ seg, range }: { seg: Segment; range: { start: string; end: string } }) {
+  const label = `${formatTime(range.start)}–${formatTime(range.end)}`;
+  return (
+    <div className={`drag-sel${spanClass(seg)}`} style={{ top: seg.top, height: seg.height }} aria-hidden="true">
+      {/* Label only on the first segment, so a multi-day selection isn't repeated. */}
+      {!seg.continuesBefore && <span className="drag-sel-label">{label}</span>}
     </div>
   );
 }

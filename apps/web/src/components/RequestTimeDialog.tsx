@@ -15,6 +15,8 @@ interface Props {
   /** The friend's busy blocks *as you can see them* — for the free/busy hint. */
   friendBusy: BusyBlock[];
   actorId: string;
+  /** Preselect the first proposed slot, e.g. from a drag on their calendar. */
+  initialRange?: TimeRange | undefined;
   onClose: () => void;
   onSent: () => void;
 }
@@ -26,6 +28,36 @@ interface SlotDraft {
 }
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // 07:00–22:00
+
+/**
+ * Turn a dragged ISO range into the dialog's hour-granular, single-day slot.
+ * The drag can snap to the half hour and can even cross midnight; a request
+ * slot can do neither, so we floor the start hour, round the end hour up, and
+ * collapse any multi-day drag to the remainder of its start day.
+ */
+function seedSlot(range: TimeRange, weekStart: Date): SlotDraft {
+  const start = new Date(range.start);
+  const end = new Date(range.end);
+  const dayIndex = Math.max(
+    0,
+    Math.min(
+      6,
+      Math.round(
+        (new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime() -
+          weekStart.getTime()) /
+          86_400_000,
+      ),
+    ),
+  );
+  const fromHour = Math.min(22, Math.max(7, Math.floor(start.getHours() + start.getMinutes() / 60)));
+  const sameDay =
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate();
+  const endHour = sameDay ? Math.ceil(end.getHours() + end.getMinutes() / 60) : 23;
+  const toHour = Math.min(23, Math.max(fromHour + 1, endHour));
+  return { dayIndex, fromHour, toHour };
+}
 
 /**
  * Propose times to a friend.
@@ -41,6 +73,7 @@ export function RequestTimeDialog({
   weekStart,
   friendBusy,
   actorId,
+  initialRange,
   onClose,
   onSent,
 }: Props) {
@@ -48,7 +81,9 @@ export function RequestTimeDialog({
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [location, setLocation] = useState('');
-  const [slots, setSlots] = useState<SlotDraft[]>([{ dayIndex: 3, fromHour: 19, toHour: 20 }]);
+  const [slots, setSlots] = useState<SlotDraft[]>(
+    initialRange ? [seedSlot(initialRange, weekStart)] : [{ dayIndex: 3, fromHour: 19, toHour: 20 }],
+  );
   // Floating: a standing invitation over the next N weeks, each of a set length.
   const [floatWeeks, setFloatWeeks] = useState(2);
   const [floatMinutes, setFloatMinutes] = useState(60);

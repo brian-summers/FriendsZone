@@ -251,7 +251,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
         visibilityCeiling: ctx.body.visibilityCeiling,
         shareRules: ctx.body.shareRules,
         attendeeIds: ctx.body.attendeeIds,
-        openToConflict: ctx.body.openToConflict,
+        exclusive: ctx.body.exclusive,
         createdAt: now,
         updatedAt: now,
         ...(ctx.body.description !== undefined ? { description: ctx.body.description } : {}),
@@ -307,9 +307,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
           ? { visibilityCeiling: ctx.body.visibilityCeiling }
           : {}),
         ...(ctx.body.shareRules !== undefined ? { shareRules: ctx.body.shareRules } : {}),
-        ...(ctx.body.openToConflict !== undefined
-          ? { openToConflict: ctx.body.openToConflict }
-          : {}),
+        ...(ctx.body.exclusive !== undefined ? { exclusive: ctx.body.exclusive } : {}),
       };
 
       const stored = await repos.calendar.update(updated);

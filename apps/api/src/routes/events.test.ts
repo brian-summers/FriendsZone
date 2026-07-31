@@ -81,19 +81,20 @@ describe('event editing', () => {
     expect(bobView.body).toContain('Therapy');
   });
 
-  it('edits title, time, and open-to-conflict', async () => {
+  it('edits title, time, and the exclusive flag', async () => {
     const ev = await create({ title: 'Draft', timeRange: futureSlot() });
+    expect(ev.exclusive).toBe(false); // events overlap by default
     const moved = futureSlot(4);
     const res = await app.inject({
       method: 'PATCH',
       url: `/v1/events/${ev.id}`,
       headers: as(ALICE),
-      payload: { title: 'Final', timeRange: moved, openToConflict: true },
+      payload: { title: 'Final', timeRange: moved, exclusive: true },
     });
     const body = res.json();
     expect(body.title).toBe('Final');
     expect(body.timeRange.start).toBe(moved.start);
-    expect(body.openToConflict).toBe(true);
+    expect(body.exclusive).toBe(true);
   });
 
   it('refuses to edit an event you do not own', async () => {

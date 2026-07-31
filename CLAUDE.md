@@ -126,14 +126,17 @@ which is when they get skipped.
 ## Current state
 
 **Built and tested:** contracts, policy engine, HTTP edge (reads *and* validated
-writes), full **event CRUD** (create / edit / delete, with a real **per-event
-sharing editor** and editable **sharing defaults**), the full **hangout
-lifecycle** (propose fixed *or* floating → tentative holds on both calendars →
-accept books both → edit / reschedule / cancel in place, with optional
-notification records and lazy expiry), open-to-conflict events, route-perimeter
-invariants, in-memory adapters, design tokens with CI-gated contrast, and a
-navigable client where the **calendar is the single pane of glass** —
-everything but settings happens there. 190 tests.
+writes), full **event CRUD** (create — by dialog *or* by dragging a slot — edit,
+delete, with a real **per-event sharing editor** and editable **sharing
+defaults**), the full **hangout lifecycle** (propose fixed *or* floating →
+tentative holds on both calendars → accept books both → edit / reschedule /
+cancel in place, with optional notification records and lazy expiry),
+**overlap-by-default** events (`exclusive` opt-out; overlapping events lay out in
+columns), **multi-day events** (draw as a band across the columns they span) and
+**drag-to-select on any calendar** (your own → create; a friend's → request time),
+route-perimeter invariants, in-memory adapters, design tokens with
+CI-gated contrast, and a navigable client where the **calendar is the single
+pane of glass** — everything but settings happens there. 208 tests.
 
 Decisions worth knowing before touching hangouts or the calendar:
 - [ADR 0010](docs/adr/0010-hangout-resolution.md): accepting a hangout is a
@@ -145,8 +148,17 @@ Decisions worth knowing before touching hangouts or the calendar:
   `deriveHangoutHolds`. Shown only when both the calendar owner and the viewer
   are parties; never counted as busy; invisible to third parties.
 - [ADR 0013](docs/adr/0013-floating-and-open-to-conflict.md): floating hangouts
-  (book occurrences on demand within a period) and open-to-conflict events
-  (occupy `openBlocks`, never `busy` — do not fold one into the other).
+  (book occurrences on demand within a period).
+- [ADR 0015](docs/adr/0015-overlap-by-default-and-drag-to-create.md): events
+  **overlap by default** (`exclusive` opt-out routes to `busy`, else
+  `openBlocks` — never fold one into the other); accepted hangouts are exclusive;
+  overlapping events lay out in columns; drag a free slot to create.
+- [ADR 0016](docs/adr/0016-cross-calendar-drag-and-multi-day-events.md): the drag
+  gesture works on **any** calendar — your own creates an event, a friend's opens
+  a hangout request (the grid never writes to a calendar itself). Every interval
+  is placed by `placeSpan` (one segment per day it touches), so **multi-day
+  events** draw as a continuous band. If you touch grid geometry, `placeSpan` is
+  the one placement helper.
 - Notifications are **records, not pushes** ([ADR 0012](docs/adr/0012-hangout-lifecycle.md)) —
   written for the recipient to find, never delivered in real time.
 

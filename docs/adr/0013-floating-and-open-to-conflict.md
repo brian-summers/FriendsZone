@@ -1,6 +1,9 @@
 # 0013. Floating hangouts and open-to-conflict events
 
-**Status:** Accepted
+**Status:** Accepted — the open-to-conflict polarity is revised by
+[ADR 0015](0015-overlap-by-default-and-drag-to-create.md) (events overlap by
+default; `openToConflict` became `exclusive`, an opt-out). Floating hangouts
+stand as written.
 **Date:** 2026-07-22
 
 ## Context

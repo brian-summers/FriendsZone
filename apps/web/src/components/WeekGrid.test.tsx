@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CalendarView, HangoutHold } from '@friendszone/contracts';
 import { WeekGrid } from './WeekGrid.js';
 
@@ -148,5 +148,86 @@ describe('WeekGrid', () => {
     render(<WeekGrid view={withHold} weekStart={base} ownerId={OWNER} />);
     expect(screen.queryAllByRole('button')).toHaveLength(0);
     expect(document.querySelector('.chip.hold')).not.toBeNull();
+  });
+
+  it('lays overlapping events out in separate columns', () => {
+    const base = weekStart();
+    const overlapping: CalendarView = {
+      ...view(base),
+      busy: [],
+      details: [
+        {
+          visibility: 'TITLE',
+          id: 'cccccccc-cccc-4ccc-8ccc-00000000000a',
+          ownerId: OWNER,
+          timeRange: { start: at(base, 2, 9), end: at(base, 2, 11) },
+          title: 'Co-working',
+          status: 'CONFIRMED',
+          exclusive: false,
+        },
+        {
+          visibility: 'TITLE',
+          id: 'cccccccc-cccc-4ccc-8ccc-00000000000b',
+          ownerId: OWNER,
+          timeRange: { start: at(base, 2, 10), end: at(base, 2, 11) },
+          title: 'Sync',
+          status: 'CONFIRMED',
+          exclusive: false,
+        },
+      ],
+    } as unknown as CalendarView;
+
+    render(<WeekGrid view={overlapping} weekStart={base} ownerId={OWNER} />);
+    const a = screen.getByRole('img', { name: /Co-working/ }) as HTMLElement;
+    const b = screen.getByRole('img', { name: /Sync/ }) as HTMLElement;
+    // Two columns → each half-width, at different left offsets. (The browser
+    // normalises the calc(); half-width shows up as the 0.5 factor.)
+    expect(a.style.left).not.toEqual(b.style.left);
+    expect(a.style.width).toContain('0.5');
+  });
+
+  it('draws a multi-day event as a band across the columns it spans', () => {
+    const base = weekStart();
+    const spanning: CalendarView = {
+      ...view(base),
+      busy: [],
+      details: [
+        {
+          visibility: 'TITLE',
+          id: 'cccccccc-cccc-4ccc-8ccc-00000000000c',
+          ownerId: OWNER,
+          // Tue 20:00 → Thu 09:00: covers Tue, all of Wed, and Thu morning.
+          timeRange: { start: at(base, 1, 20), end: at(base, 3, 9) },
+          title: 'Cabin weekend',
+          status: 'CONFIRMED',
+          exclusive: true,
+        },
+      ],
+    } as unknown as CalendarView;
+
+    render(<WeekGrid view={spanning} weekStart={base} ownerId={OWNER} />);
+    const chips = screen.getAllByRole('img', { name: /Cabin weekend/ });
+    expect(chips).toHaveLength(3); // one segment per day touched
+    // The band is squared where it runs off into the next/previous day.
+    expect(chips.some((c) => c.className.includes('spans-after'))).toBe(true);
+    expect(chips.some((c) => c.className.includes('spans-before'))).toBe(true);
+  });
+
+  it('selects a time on drag and reports the range', () => {
+    const base = weekStart();
+    const onRangeSelect = vi.fn();
+    render(
+      <WeekGrid view={view(base)} weekStart={base} ownerId={OWNER} onRangeSelect={onRangeSelect} />,
+    );
+    // Day columns carry data-day; grab Wednesday (index 2).
+    const day = document.querySelector('.day[data-day="2"]') as HTMLElement;
+    expect(day).not.toBeNull();
+    fireEvent.pointerDown(day, { clientY: 44, pointerId: 1 });
+    fireEvent.pointerMove(day, { clientY: 176, pointerId: 1 });
+    fireEvent.pointerUp(day, { clientY: 176, pointerId: 1 });
+
+    expect(onRangeSelect).toHaveBeenCalledTimes(1);
+    const range = onRangeSelect.mock.calls[0]![0] as { start: string; end: string };
+    expect(Date.parse(range.end)).toBeGreaterThan(Date.parse(range.start));
   });
 });

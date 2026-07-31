@@ -4,7 +4,7 @@
       "Bash",
       "PowerShell",
       "Skill(artifact-design)",
-      "Skill(artifact-design:*)"
+      "WebFetch(domain:developers.cloudflare.com)"
     ]
   }
 }

@@ -49,11 +49,15 @@ export const CalendarEvent = z.object({
   attendeeIds: z.array(UserId).max(200),
 
   /**
-   * "Open to conflict": the owner is on this event but signals the time is
-   * negotiable, so friends may request it anyway. Such an event does not count
-   * as a hard commitment — it contributes to `openBlocks`, not `busy`.
+   * Whether this event **exclusively blocks** its time.
+   *
+   * Events overlap by default (`exclusive: false`) — useful for layered plans
+   * that share a block, and it means friends may request the time anyway. Such
+   * an event contributes to `openBlocks`, not `busy`. Opting *out* of overlap
+   * (`exclusive: true`) makes it a hard commitment: it goes to `busy`, and no
+   * one can request over it.
    */
-  openToConflict: z.boolean(),
+  exclusive: z.boolean(),
 
   /** Set when the event was created by accepting a hangout request. */
   originHangoutRequestId: HangoutRequestId.optional(),
@@ -81,7 +85,8 @@ export const CreateEventInput = z.object({
   visibilityCeiling: VisibilityLevel.default('FULL'),
   shareRules: z.array(ShareRule).max(50).default([]),
   attendeeIds: z.array(UserId).max(200).default([]),
-  openToConflict: z.boolean().default(false),
+  /** Default false: events overlap unless you opt out by blocking the time. */
+  exclusive: z.boolean().default(false),
 });
 export type CreateEventInput = z.infer<typeof CreateEventInput>;
 
@@ -100,7 +105,7 @@ export const UpdateEventInput = z
     status: EventStatus.optional(),
     visibilityCeiling: VisibilityLevel.optional(),
     shareRules: z.array(ShareRule).max(50).optional(),
-    openToConflict: z.boolean().optional(),
+    exclusive: z.boolean().optional(),
   })
   .refine((r) => Object.values(r).some((v) => v !== undefined), {
     message: 'nothing to update',
@@ -147,7 +152,7 @@ export const EventTitleView = z.object({
   timeRange: TimeRange,
   title: ShortText,
   status: EventStatus,
-  openToConflict: z.boolean(),
+  exclusive: z.boolean(),
 });
 export type EventTitleView = z.infer<typeof EventTitleView>;
 
@@ -161,7 +166,7 @@ export const EventFullView = z.object({
   location: ShortText.optional(),
   status: EventStatus,
   attendeeIds: z.array(UserId),
-  openToConflict: z.boolean(),
+  exclusive: z.boolean(),
 
   /**
    * Set when this event came from a hangout. Only ever reaches the FULL view,
@@ -238,9 +243,10 @@ export type HangoutHold = z.infer<typeof HangoutHold>;
  * are deliberately *not* in `busy`, because a pending ask is not a commitment
  * and must not make the owner look unavailable.
  *
- * `openBlocks` are times the owner is technically occupied but has flagged as
- * open to conflict — visible as "busy, but open to plans", and requestable.
- * They are kept out of `busy` so they never register as a hard conflict.
+ * `openBlocks` are times the owner is occupied by a *non-exclusive* event —
+ * overlappable, and requestable. They are kept out of `busy` so they never
+ * register as a hard conflict. Since events overlap by default, most occupied
+ * time lands here; only events explicitly made exclusive land in `busy`.
  *
  * There is deliberately no `hiddenCount`. Reporting how much was withheld is
  * itself a disclosure.

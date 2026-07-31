@@ -46,7 +46,7 @@ describe('projectEvent', () => {
     const projection = projectEvent(event(), 'TITLE');
     if (projection.kind !== 'DETAIL') throw new Error('expected a detail projection');
     expect(Object.keys(projection.view).sort()).toEqual(
-      ['id', 'openToConflict', 'ownerId', 'status', 'timeRange', 'title', 'visibility'].sort(),
+      ['exclusive', 'id', 'ownerId', 'status', 'timeRange', 'title', 'visibility'].sort(),
     );
   });
 
@@ -284,19 +284,20 @@ describe('projectCalendar', () => {
     expect(outOfCircle.busy).toEqual([]);
   });
 
-  describe('open to conflict', () => {
-    it('routes an open-to-conflict event to openBlocks, not busy', () => {
+  describe('overlap by default (exclusive flag)', () => {
+    it('routes a non-exclusive event to openBlocks and an exclusive one to busy', () => {
       const view = call({
         ownerId: ALICE,
         events: [
-          event({ timeRange: hours(9, 10), openToConflict: false }),
-          event({ timeRange: hours(14, 15), openToConflict: true }),
+          event({ timeRange: hours(9, 10), exclusive: true }), // hard block
+          event({ timeRange: hours(14, 15), exclusive: false }), // overlappable
         ],
         viewer: asOwner(),
         ownerDefaults: defaults(),
         window: DAY,
       });
       expect(view.busy).toHaveLength(1);
+      expect(view.busy[0]).toMatchObject({ start: hours(9, 10).start });
       expect(view.openBlocks).toHaveLength(1);
       expect(view.openBlocks[0]).toMatchObject({ start: hours(14, 15).start });
     });
@@ -304,13 +305,13 @@ describe('projectCalendar', () => {
     it('carries the flag onto the detail view', () => {
       const view = call({
         ownerId: ALICE,
-        events: [event({ openToConflict: true, shareRules: [rule({ kind: 'FRIENDS' }, 'TITLE')] })],
+        events: [event({ exclusive: false, shareRules: [rule({ kind: 'FRIENDS' }, 'TITLE')] })],
         viewer: asFriend(),
         ownerDefaults: defaults(),
         window: DAY,
       });
-      expect(view.details[0]).toMatchObject({ openToConflict: true });
-      // And it stays out of hard busy for the friend too.
+      expect(view.details[0]).toMatchObject({ exclusive: false });
+      // A non-exclusive event never registers as a hard busy block.
       expect(view.busy).toEqual([]);
       expect(view.openBlocks).toHaveLength(1);
     });

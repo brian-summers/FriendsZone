@@ -1,0 +1,30 @@
+{
+  // Cloudflare Worker that serves the built web client as static assets.
+  //
+  // This is an *assets-only* Worker: there is no `main` script. The Fastify API
+  // in apps/api does NOT run here — it is a Node server that refuses to boot in
+  // production by design (see docs/adr/0006-authentication-deferred.md), so the
+  // deployed site is the static front-end only. See
+  // docs/playbooks/deploy-on-cloudflare.md for the full picture and the API path.
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // Must match the Worker's name in the Cloudflare dashboard, or a Workers Build
+  // fails. Also the *.workers.dev subdomain and the target for friends-zone.app.
+  "name": "friends-zone",
+
+  // Past 2025-04-01, so SPA navigation requests are served straight from assets
+  // without invoking a Worker (there isn't one) — the cheap, fast path.
+  "compatibility_date": "2026-07-25",
+
+  "assets": {
+    // Vite builds the client here (root is apps/web, default outDir is dist).
+    "directory": "./apps/web/dist",
+    // The client uses History-API routing (/, /people/:id, …). Serve index.html
+    // for any path that isn't a built file so a deep link or hard refresh works.
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

@@ -4,6 +4,7 @@ import type {
   EventView,
   HangoutHold,
   PublicProfile,
+  TimeRange,
 } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
 import { addDays, formatWeekLabel, startOfWeek } from '../lib/time.js';
@@ -43,9 +44,9 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
 
   const [openEvent, setOpenEvent] = useState<EventView | null>(null);
   const [openHold, setOpenHold] = useState<HangoutHold | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<boolean | TimeRange>(false);
   const [checkupOpen, setCheckupOpen] = useState(false);
-  const [requesting, setRequesting] = useState(false);
+  const [requesting, setRequesting] = useState<boolean | TimeRange>(false);
   const [sentToast, setSentToast] = useState(false);
 
   const isOwn = ownerId === actorId;
@@ -144,6 +145,17 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
           ownerId={ownerId}
           onChipActivate={(event) => setOpenEvent(event)}
           onHoldActivate={(hold) => setOpenHold(hold)}
+          // On your own calendar a drag creates an event; on a friend's it
+          // proposes that time to them. Same gesture, whichever calendar's rules
+          // apply — a friend's grid never lets you write to their calendar.
+          onRangeSelect={
+            isOwn
+              ? (range) => setCreating(range)
+              : ownerProfile
+                ? (range) => setRequesting(range)
+                : undefined
+          }
+          rangeSelectHint={isOwn ? 'add an event' : 'request that time'}
         />
       )}
 
@@ -176,6 +188,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
         <NewEventDialog
           weekStart={weekStart}
           actorId={actorId}
+          initialRange={typeof creating === 'object' ? creating : undefined}
           onClose={() => setCreating(false)}
           onCreated={(created) => {
             setCreating(false);
@@ -215,6 +228,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
           weekStart={weekStart}
           friendBusy={view.busy}
           actorId={actorId}
+          initialRange={typeof requesting === 'object' ? requesting : undefined}
           onClose={() => setRequesting(false)}
           onSent={() => {
             setRequesting(false);

@@ -65,7 +65,8 @@ function participantEvent(
     visibilityCeiling: 'FULL',
     shareRules: [],
     attendeeIds: participants,
-    openToConflict: false,
+    // A booked hangout is a firm commitment — it exclusively blocks its slot.
+    exclusive: true,
     originHangoutRequestId: request.id,
     createdAt: now,
     updatedAt: now,

@@ -82,6 +82,8 @@ interface Draft {
   day: number;
   from: number;
   to: number;
+  /** End day, when the event runs past midnight into a later day. Defaults to `day`. */
+  toDay?: number;
   title: string;
   location?: string;
   description?: string;
@@ -89,7 +91,8 @@ interface Draft {
   rules?: ShareRule[];
   attendeeIds?: UserId[];
   status?: CalendarEvent['status'];
-  openToConflict?: boolean;
+  /** Hard block (busy). Omitted = overlappable (the product default). */
+  exclusive?: boolean;
 }
 
 function build(base: Date, d: Draft): CalendarEvent {
@@ -97,13 +100,13 @@ function build(base: Date, d: Draft): CalendarEvent {
   return {
     id: nextId(),
     ownerId: d.ownerId,
-    timeRange: { start: at(base, d.day, d.from), end: at(base, d.day, d.to) },
+    timeRange: { start: at(base, d.day, d.from), end: at(base, d.toDay ?? d.day, d.to) },
     title: d.title,
     status: d.status ?? 'CONFIRMED',
     visibilityCeiling: d.ceiling ?? 'FULL',
     shareRules: d.rules ?? [],
     attendeeIds: d.attendeeIds ?? [],
-    openToConflict: d.openToConflict ?? false,
+    exclusive: d.exclusive ?? false,
     createdAt: now,
     updatedAt: now,
     ...(d.description !== undefined ? { description: d.description } : {}),
@@ -116,7 +119,8 @@ export function createDemoSeed(now = new Date()): MemorySeed {
 
   const drafts: Draft[] = [
     // ── Alice ────────────────────────────────────────────────────────────
-    // No rules → falls back to her defaults (friends see BUSY only).
+    // No rules → falls back to her defaults (friends see BUSY only). Exclusive:
+    // a real appointment she can't be pulled away from.
     {
       ownerId: ALICE,
       day: 0,
@@ -125,8 +129,9 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       title: 'Dentist',
       location: '400 Elm St, Suite 210',
       description: 'Back left molar, second visit',
+      exclusive: true,
     },
-    // Ceiling HIDDEN: nobody but Alice, whatever her defaults say.
+    // Ceiling HIDDEN: nobody but Alice, whatever her defaults say. Exclusive.
     {
       ownerId: ALICE,
       day: 1,
@@ -135,6 +140,7 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       title: 'Therapy',
       location: 'Rowan & Associates',
       ceiling: 'HIDDEN',
+      exclusive: true,
     },
     {
       ownerId: ALICE,
@@ -196,16 +202,46 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       status: 'CANCELLED',
       rules: [rule({ kind: 'FRIENDS' }, 'TITLE')],
     },
-    // Open to conflict: Alice is at a co-working session but happy to be pulled
-    // away — friends may request this time anyway. It shows as "open", not busy.
+    // Overlap by default (non-exclusive): a broad co-working block that other
+    // things layer inside. It shows as "open", not busy, and is requestable.
     {
       ownerId: ALICE,
       day: 3,
       from: 13,
-      to: 16,
-      title: 'Co-working (flexible)',
-      openToConflict: true,
+      to: 17,
+      title: 'Co-working',
       rules: [rule({ kind: 'FRIENDS' }, 'TITLE')],
+    },
+    // …with two calls layered inside that same block — the multi-layer case.
+    {
+      ownerId: ALICE,
+      day: 3,
+      from: 14,
+      to: 15,
+      title: 'Sync with Priya',
+      rules: [rule({ kind: 'FRIENDS' }, 'BUSY')],
+    },
+    {
+      ownerId: ALICE,
+      day: 3,
+      from: 15,
+      to: 16,
+      title: 'Review call',
+      rules: [rule({ kind: 'FRIENDS' }, 'BUSY')],
+    },
+    // A trip that runs past midnight — the multi-day case. It draws as one
+    // continuous band from Saturday afternoon across into Sunday. Exclusive,
+    // so it's a real block on both days, and shared with friends by title.
+    {
+      ownerId: ALICE,
+      day: 5,
+      from: 16,
+      toDay: 6,
+      to: 12,
+      title: 'Cabin weekend',
+      location: 'Pinecrest',
+      rules: [rule({ kind: 'FRIENDS' }, 'TITLE')],
+      exclusive: true,
     },
 
     // ── Bob ──────────────────────────────────────────────────────────────

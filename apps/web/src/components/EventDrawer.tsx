@@ -103,12 +103,18 @@ export function EventDrawer({
             </div>
           )}
 
-          {event.visibility === 'FULL' && event.openToConflict && (
-            <div className="consequence" style={{ borderLeftColor: 'var(--brass)' }}>
-              <span className="level-tag">Open to plans</span> You’re marked flexible here — friends
-              can request this time anyway.
-            </div>
-          )}
+          {event.visibility === 'FULL' &&
+            (event.exclusive ? (
+              <div className="consequence">
+                <span className="level-tag">🔒 Blocks this time</span> Exclusive — nothing overlaps
+                it, and friends can’t request the slot.
+              </div>
+            ) : (
+              <div className="consequence" style={{ borderLeftColor: 'var(--brass)' }}>
+                <span className="level-tag">◇ Overlappable</span> Other things can share this block,
+                and friends may request the time.
+              </div>
+            ))}
 
           <dl className="detail-list">
             {event.visibility === 'FULL' && event.location && (

@@ -52,7 +52,7 @@ export function projectEvent(event: CalendarEvent, level: VisibilityLevel): Even
           timeRange: event.timeRange,
           title: event.title,
           status: event.status,
-          openToConflict: event.openToConflict,
+          exclusive: event.exclusive,
         },
       };
 
@@ -67,7 +67,7 @@ export function projectEvent(event: CalendarEvent, level: VisibilityLevel): Even
           title: event.title,
           status: event.status,
           attendeeIds: [...event.attendeeIds],
-          openToConflict: event.openToConflict,
+          exclusive: event.exclusive,
           ...(event.description !== undefined ? { description: event.description } : {}),
           ...(event.location !== undefined ? { location: event.location } : {}),
           ...(event.originHangoutRequestId !== undefined
@@ -155,9 +155,11 @@ export function projectCalendar(args: {
     if (event.status === 'CANCELLED' && !isOwner) continue;
     if (!overlaps(event.timeRange, window)) continue;
 
-    // An open-to-conflict event occupies time but does not *block* it: its time
-    // goes to openBlocks (soft, requestable) rather than busy (hard).
-    const occupies = event.openToConflict ? openRanges : busyRanges;
+    // Events overlap by default: a non-exclusive event occupies time but does
+    // not *block* it, so its time goes to openBlocks (soft, requestable,
+    // overlappable). Only an event explicitly made exclusive hard-blocks and
+    // lands in busy.
+    const occupies = event.exclusive ? busyRanges : openRanges;
 
     const level = resolveEventVisibility(event, viewer, ownerDefaults);
     const projection = projectEvent(event, level);

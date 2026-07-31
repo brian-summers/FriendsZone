@@ -19,12 +19,15 @@
     "dev:api": "npm run typecheck && node apps/api/dist/index.js",
     "dev:web": "npm run dev --workspace @friendszone/web",
     "build:web": "npm run typecheck && npm run build --workspace @friendszone/web",
-    "verify": "npm run typecheck && npm run typecheck:web && npm run test"
+    "verify": "npm run typecheck && npm run typecheck:web && npm run test",
+    "deploy": "npm run build:web && wrangler deploy",
+    "preview:cf": "npm run build:web && wrangler dev"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "wrangler": "^4.34.0"
   }
 }
