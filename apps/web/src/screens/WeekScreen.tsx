@@ -11,6 +11,7 @@ import { addDays, formatWeekLabel, startOfWeek } from '../lib/time.js';
 import { WeekGrid } from '../components/WeekGrid.js';
 import { EventDrawer } from '../components/EventDrawer.js';
 import { NewEventDialog } from '../components/NewEventDialog.js';
+import { SlotFinder } from '../components/SlotFinder.js';
 import { SharingCheckup } from '../components/SharingCheckup.js';
 import { RequestTimeDialog } from '../components/RequestTimeDialog.js';
 import { HoldDrawer } from '../components/HoldDrawer.js';
@@ -48,6 +49,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
   const [checkupOpen, setCheckupOpen] = useState(false);
   const [requesting, setRequesting] = useState<boolean | TimeRange>(false);
   const [sentToast, setSentToast] = useState(false);
+  const [finding, setFinding] = useState(false);
 
   const isOwn = ownerId === actorId;
   const weekStart = useMemo(() => startOfWeek(new Date(), weekOffset), [weekOffset]);
@@ -111,6 +113,11 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
           {!isOwn && ownerProfile && (
             <button type="button" className="accent" onClick={() => setRequesting(true)}>
               Request time
+            </button>
+          )}
+          {isOwn && people.length > 0 && (
+            <button type="button" onClick={() => setFinding(true)}>
+              Find a time
             </button>
           )}
           {isOwn && people.length > 0 && (
@@ -180,6 +187,21 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
             setOpenEvent(null);
             setReloadNonce((n) => n + 1);
             onActivity();
+          }}
+        />
+      )}
+
+      {finding && (
+        <SlotFinder
+          actorId={actorId}
+          people={people}
+          onClose={() => setFinding(false)}
+          onPick={(slot) => {
+            // Straight into the New Event dialog, pre-filled. Inviting is the
+            // existing per-friend Request time flow — hangouts resolve 1:1
+            // (ADR 0010), so there is no multi-party invite to offer here.
+            setFinding(false);
+            setCreating(slot);
           }}
         />
       )}

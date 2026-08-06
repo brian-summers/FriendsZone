@@ -20,6 +20,12 @@ const testConfig: Config = {
   DATABASE_URL: 'postgres://localhost:5432/test',
   SESSION_SECRET: 'x'.repeat(48),
   PUBLIC_ORIGIN: 'http://localhost:5173',
+  MODERATOR_IDS: [],
+  REPORTS_EMAIL: 'reports@friends-zone.app',
+  // Off here: these suites hammer `app.inject` and would otherwise trip buckets
+  // in tests that are about something else. `rate-limit.test.ts` turns it on.
+  RATE_LIMIT_ENABLED: false,
+  TRUSTED_PROXY_HOPS: 0,
 };
 
 const calendarUrl = (ownerId: string, window = DAY) =>
@@ -370,12 +376,37 @@ describe('POST /v1/events', () => {
 });
 
 describe('authenticator', () => {
-  it('refuses to construct in production, since no real one exists yet', async () => {
-    await expect(
-      createServer({
-        config: { ...testConfig, NODE_ENV: 'production' },
-        repos: createMemoryRepositories(),
-      }),
-    ).rejects.toThrow(/No production authenticator/);
+  /**
+   * This block used to assert that the server **refused to boot** in
+   * production, because no real authenticator existed
+   * ([ADR 0006](../../../docs/adr/0006-authentication-deferred.md)).
+   *
+   * One now does ([ADR 0024](../../../docs/adr/0024-authentication.md)), so the
+   * refusal is gone — that was the entire point of it. The *property* it
+   * protected is not gone, and is asserted here and in `auth.test.ts`: in
+   * production the development header does nothing at all.
+   */
+  it('boots in production, now that a real authenticator exists', async () => {
+    const app = await createServer({
+      config: { ...testConfig, NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://friends-zone.app' },
+      repos: createMemoryRepositories(createDemoSeed()),
+    });
+    await app.ready();
+    expect((await app.inject({ method: 'GET', url: '/healthz' })).statusCode).toBe(200);
+  });
+
+  it('ignores the development header in production', async () => {
+    const app = await createServer({
+      config: { ...testConfig, NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://friends-zone.app' },
+      repos: createMemoryRepositories(createDemoSeed()),
+    });
+    await app.ready();
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: { 'x-dev-actor-id': ALICE },
+    });
+    expect(res.statusCode).toBe(401);
   });
 });

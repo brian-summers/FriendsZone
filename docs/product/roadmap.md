@@ -110,6 +110,10 @@ projection engine already does exactly this.
 
 **Cost: S. Verdict: build. Highest value-to-effort ratio in this document.**
 
+**Built** — [ADR 0021](../adr/0021-sharing-presets.md). Three presets, no one-tap
+`FULL`, and "never chose" is a distinct state. The sharing checkup shipped
+earlier.
+
 ### Recurring events
 
 **The honest assessment: this is the most expensive feature in the product, and

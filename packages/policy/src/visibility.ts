@@ -1,4 +1,5 @@
 import {
+  atLeast,
   maxVisibility,
   minVisibility,
   type Audience,
@@ -123,4 +124,25 @@ export function widestSharedLevel(
   }
 
   return minVisibility(widest, event.visibilityCeiling);
+}
+
+/**
+ * Does this owner's baseline sharing reach this viewer at all?
+ *
+ * The honest denominator behind "4 of 6 friends share availability with you"
+ * (ADR 0008). Exported as its own named concept rather than by making
+ * `grantedLevel` public: callers should be asking this question, not helping
+ * themselves to the rule evaluator and drawing their own conclusions.
+ *
+ * Deliberately reads *defaults* only. Per-event rules can widen access for a
+ * particular event, but "do they share availability with me" is a property of
+ * how someone has configured their calendar, not of what happens to be on it
+ * this week — and answering from events would make the reply wobble as their
+ * week changed.
+ */
+export function sharesAvailabilityWith(
+  ownerDefaults: SharingDefaults,
+  viewer: ViewerContext,
+): boolean {
+  return atLeast(grantedLevel(ownerDefaults.rules, viewer), 'BUSY');
 }

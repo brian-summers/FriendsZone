@@ -173,6 +173,14 @@ button { font: inherit; color: inherit; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
+/* The week grid scrolls itself (.cal-scroll) so .cal-head can stay sticky and
+   the drag geometry has one stable scroll container — which is why .main clips
+   instead of scrolling. Every other screen has no inner scroller, so .main has
+   to be the one that scrolls, or its content is simply cut off at the fold.
+   Scrolling here rather than on .inbox/.settings keeps the scrollbar at the
+   window edge instead of floating at the edge of a centred max-width column. */
+.main-scroll { overflow-y: auto; }
+
 /* ── Week header ───────────────────────────────────────────────────── */
 .week-bar {
   display: flex;
@@ -1062,3 +1070,807 @@ button.chip.hold:hover {
   .sidebar { display: none; }
   .cal { min-width: 40rem; }
 }
+
+/* ── Things ────────────────────────────────────────────────────────── */
+
+.things { padding: var(--space-lg); max-width: 60rem; margin: 0 auto; width: 100%; }
+
+.things-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+.things-head h2 { margin: 0 0 var(--space-2xs); font-size: 1.25rem; }
+.things-head .accent { margin-left: auto; white-space: nowrap; }
+
+.things-blurb { margin: 0; color: var(--ink2); max-width: 38rem; font-size: 0.9375rem; }
+
+.things-error {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--madder);
+  border-radius: var(--radius-control);
+  color: var(--madder);
+  font-size: 0.875rem;
+}
+
+.things-empty { color: var(--ink3); padding: var(--space-xl) 0; text-align: center; }
+
+.things-section { margin-bottom: var(--space-xl); }
+.things-section-title {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+.things-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-md);
+}
+
+.thing {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+/* Settled listings stay legible rather than being greyed into unreadability —
+   an item you were declined for is still information you may want. */
+.thing-settled { background: var(--sunken); }
+
+.thing-photos { display: flex; gap: var(--space-2xs); overflow-x: auto; }
+.thing-photo {
+  width: 100%;
+  max-height: 11rem;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  background: var(--sunken);
+}
+.thing-photos .thing-photo + .thing-photo { width: 4rem; height: 4rem; flex-shrink: 0; }
+
+.thing-top { display: flex; align-items: baseline; gap: var(--space-xs); }
+.thing-title { margin: 0; font-size: 1rem; font-weight: 600; flex: 1; }
+
+/* The mode is named in words as well as coloured — the same four-channel rule
+   the calendar follows. Colour alone must never carry a meaning. */
+.mode-pill {
+  font-size: 0.6875rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--rule);
+  color: var(--ink2);
+  white-space: nowrap;
+}
+.mode-first_come { border-color: var(--hue-moss); color: var(--hue-moss); }
+.mode-lottery { border-color: var(--hue-plum); color: var(--hue-plum); }
+.mode-owner_selects { border-color: var(--hue-slate); color: var(--hue-slate); }
+
+.thing-owner { margin: 0; font-size: 0.8125rem; color: var(--ink3); }
+.thing-desc { margin: 0; font-size: 0.875rem; color: var(--ink2); line-height: 1.5; }
+
+.thing-meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  color: var(--ink3);
+}
+.thing-free { color: var(--verdigris); font-weight: 600; }
+.thing-deadline { color: var(--brass); }
+.thing-status { text-transform: capitalize; font-weight: 600; }
+
+.thing-actions { margin-top: var(--space-2xs); }
+.thing-message {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  margin-bottom: var(--space-xs);
+  resize: vertical;
+}
+
+.thing-buttons { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+.thing-buttons button,
+.thing-actions button {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  color: var(--ink2);
+  font-size: 0.8125rem;
+}
+.thing-buttons button:hover:not(:disabled),
+.thing-actions button:hover:not(:disabled) {
+  border-color: var(--verdigris);
+  color: var(--ink);
+}
+.thing-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.your-claim {
+  margin: var(--space-2xs) 0 0;
+  font-size: 0.8125rem;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-control);
+  background: var(--sunken);
+  color: var(--ink2);
+}
+.your-claim-accepted { color: var(--verdigris); font-weight: 600; }
+.your-claim-declined { color: var(--ink3); }
+
+.thing-owner-controls { margin-top: var(--space-2xs); display: grid; gap: var(--space-xs); }
+
+.claim-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.claim-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.8125rem;
+  flex-wrap: wrap;
+}
+.claim-who { flex: 1; display: flex; flex-direction: column; }
+.claim-who small { color: var(--ink3); font-style: italic; }
+.claim-status { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.claim-accepted { color: var(--verdigris); font-weight: 700; }
+.claim-declined, .claim-cancelled { color: var(--ink3); }
+.claim-pending { color: var(--brass); }
+.claim-buttons { display: flex; gap: var(--space-2xs); }
+
+.things-gate {
+  margin: var(--space-xl) 0 0;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--rule);
+  color: var(--ink3);
+  font-size: 0.8125rem;
+}
+
+/* ── Offer form ────────────────────────────────────────────────────── */
+
+.offer-form {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+  display: grid;
+  gap: var(--space-sm);
+}
+.offer-form h3 { margin: 0; font-size: 1rem; }
+
+.offer-form .field { display: grid; gap: var(--space-2xs); }
+.offer-form .field > span,
+.offer-form .field-label,
+.offer-form legend {
+  font-size: 0.8125rem;
+  color: var(--ink2);
+  font-weight: 600;
+}
+.offer-form input[type='text'],
+.offer-form input:not([type]),
+.offer-form input[type='datetime-local'],
+.offer-form textarea,
+.offer-form select {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  width: 100%;
+}
+.offer-form textarea { resize: vertical; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+
+.mode-choice { border: 0; padding: 0; margin: 0; display: grid; gap: var(--space-2xs); }
+.mode-option {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs);
+  cursor: pointer;
+}
+.mode-option span { display: flex; flex-direction: column; }
+.mode-option small { color: var(--ink3); font-size: 0.75rem; }
+.mode-on { border-color: var(--verdigris); background: var(--sunken); }
+
+.deadline-toggle {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  font-size: 0.8125rem;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.deadline-toggle small { color: var(--ink3); }
+
+@media (max-width: 34rem) {
+  .field-row { grid-template-columns: 1fr; }
+}
+
+/* ── Reporting ─────────────────────────────────────────────────────── */
+
+.thing-report { margin-top: var(--space-2xs); }
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink3);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn:hover { color: var(--madder); }
+
+.report-dialog { max-width: 30rem; display: grid; gap: var(--space-sm); }
+.report-dialog h3 { margin: 0; font-size: 1rem; }
+
+/* The promise the product makes to someone in a bad moment. Styled to be read,
+   not skimmed past — it is the reason people file at all. */
+.report-reassure {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--verdigris);
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.report-dialog .field { display: grid; gap: var(--space-2xs); }
+.report-dialog .field > span { font-size: 0.8125rem; color: var(--ink2); font-weight: 600; }
+.report-dialog select,
+.report-dialog textarea {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  width: 100%;
+}
+.report-dialog textarea { resize: vertical; }
+
+/* ── Moderation ────────────────────────────────────────────────────── */
+
+.moderation { padding: var(--space-lg); max-width: 72rem; margin: 0 auto; width: 100%; }
+
+.mod-head { margin-bottom: var(--space-lg); }
+.mod-head h2 { margin: 0 0 var(--space-2xs); font-size: 1.25rem; }
+
+.mod-layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 20rem) 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.mod-queue { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+
+.mod-row {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  color: var(--ink2);
+}
+.mod-row:hover { border-color: var(--verdigris); color: var(--ink); }
+.mod-row-on { border-color: var(--verdigris); background: var(--sunken); color: var(--ink); }
+
+.mod-row-top { display: flex; align-items: baseline; gap: var(--space-xs); }
+.mod-reason { font-weight: 600; font-size: 0.875rem; flex: 1; }
+.mod-row-sub { font-size: 0.75rem; color: var(--ink3); }
+
+/* Status carries a word as well as a colour, like every other state in the app. */
+.mod-status {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mod-open { color: var(--madder); }
+.mod-awaiting_info { color: var(--brass); }
+.mod-upheld { color: var(--verdigris); }
+.mod-dismissed { color: var(--ink3); }
+
+.mod-case {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: var(--space-md);
+  display: grid;
+  gap: var(--space-sm);
+}
+.mod-case-head { display: flex; align-items: baseline; gap: var(--space-xs); }
+.mod-case-head h3 { margin: 0; font-size: 1rem; flex: 1; }
+
+.mod-block { display: grid; gap: var(--space-2xs); }
+.mod-block h4 {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+}
+.mod-block h4 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+.mod-quote {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--sunken);
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  color: var(--ink2);
+  white-space: pre-wrap;
+}
+
+.mod-photos { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+.mod-photos img {
+  max-width: 12rem;
+  max-height: 12rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--rule);
+}
+
+/* Two columns, never merged into one conversation — a single time-sorted list
+   is how a moderator quotes the reporter into a message meant for the subject. */
+.mod-threads { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+
+.mod-thread {
+  display: grid;
+  gap: var(--space-2xs);
+  align-content: start;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-sm);
+}
+.mod-thread h4 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.mod-thread textarea {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.8125rem;
+  resize: vertical;
+  width: 100%;
+}
+.mod-thread button {
+  justify-self: start;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  color: var(--ink2);
+  font-size: 0.8125rem;
+}
+.mod-thread button:hover:not(:disabled) { border-color: var(--verdigris); color: var(--ink); }
+.mod-thread button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.mod-messages { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.mod-messages li {
+  display: grid;
+  gap: 1px;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-control);
+  font-size: 0.8125rem;
+}
+.msg-mod { background: var(--sunken); }
+.msg-them { border: 1px solid var(--rule); }
+.msg-who { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink3); }
+.msg-body { color: var(--ink2); white-space: pre-wrap; }
+.msg-when { font-size: 0.625rem; color: var(--ink3); }
+
+.mod-dispose textarea {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+  width: 100%;
+}
+
+@media (max-width: 60rem) {
+  .mod-layout { grid-template-columns: 1fr; }
+  .mod-threads { grid-template-columns: 1fr; }
+}
+
+/* ── The handoff ───────────────────────────────────────────────────── */
+
+.handoff {
+  margin-top: var(--space-xs);
+  padding: var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--sunken);
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.handoff-title {
+  margin: 0;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+  font-weight: 700;
+}
+
+.handoff-none { margin: 0; font-size: 0.8125rem; color: var(--ink3); }
+
+/* The one moment the product asks someone to meet a person. Marked in brass —
+   a caution, not an alarm; the point is to be read, not to frighten. */
+.handoff-safety {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--brass);
+  background: var(--surface);
+  color: var(--ink2);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.handoff-compose { display: grid; gap: var(--space-xs); }
+.handoff-compose .field { display: grid; gap: var(--space-2xs); }
+.handoff-compose .field > span {
+  font-size: 0.75rem;
+  color: var(--ink2);
+  font-weight: 600;
+}
+.handoff-compose input,
+.handoff-compose select,
+.handoff-compose textarea {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.8125rem;
+  width: 100%;
+}
+.handoff-compose textarea { resize: vertical; }
+
+.handoff-card {
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  border-left: 3px solid var(--rule);
+}
+/* State is carried by a word in .handoff-state as well as this edge colour. */
+.handoff-proposed { border-left-color: var(--brass); }
+.handoff-scheduled { border-left-color: var(--verdigris); }
+.handoff-completed { border-left-color: var(--ink3); }
+
+.handoff-when { margin: 0; font-weight: 600; font-size: 0.875rem; }
+.handoff-where { margin: 0; font-size: 0.875rem; color: var(--ink2); }
+.handoff-note { margin: 0; font-size: 0.8125rem; color: var(--ink3); font-style: italic; }
+.handoff-state { margin: 0; font-size: 0.75rem; color: var(--ink3); }
+
+.handoff-report { margin-top: var(--space-2xs); }
+
+/* ── Slot finder ───────────────────────────────────────────────────── */
+
+.slotfinder { max-width: 34rem; display: grid; gap: var(--space-sm); }
+.slotfinder h3 { margin: 0; font-size: 1rem; }
+.slotfinder .field { display: grid; gap: var(--space-2xs); }
+.slotfinder .field > span,
+.slotfinder .field-label { font-size: 0.8125rem; color: var(--ink2); font-weight: 600; }
+.slotfinder select {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.slot-people { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.slot-person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: var(--ink2);
+}
+.slot-person-on { border-color: var(--verdigris); background: var(--sunken); color: var(--ink); }
+
+.slot-results { display: grid; gap: var(--space-xs); }
+
+/* The honest denominator. Deliberately prominent and above the answers — it is
+   the feature being truthful about its own limits, not a disclaimer to bury.
+   See docs/adr/0008-slot-finder-on-projections.md. */
+.slot-denominator {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--brass);
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.slot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2xs);
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.slot-option {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  color: var(--ink2);
+  font-size: 0.875rem;
+}
+.slot-option:hover { border-color: var(--verdigris); color: var(--ink); }
+.slot-day { flex: 1; font-weight: 600; }
+.slot-time { color: var(--ink3); font-size: 0.8125rem; }
+
+/* ── Sharing presets ───────────────────────────────────────────────── */
+
+/* The onboarding note. A card, shown once, never a modal — a privacy prompt
+   that pesters is one people learn to dismiss unread (ADR 0021). */
+.onboard-note {
+  margin: 0 0 var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--verdigris);
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.preset-list { display: grid; gap: var(--space-2xs); margin-bottom: var(--space-sm); }
+
+.preset-card {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  color: var(--ink2);
+}
+.preset-card:hover { border-color: var(--verdigris); color: var(--ink); }
+.preset-card strong { font-size: 0.875rem; color: var(--ink); }
+.preset-card small { font-size: 0.8125rem; color: var(--ink3); line-height: 1.4; }
+
+/* Selection is carried by the border, the fill, *and* aria-pressed — never by
+   colour alone, like every other state in the product. */
+.preset-on { border-color: var(--verdigris); background: var(--sunken); }
+.preset-on strong::after {
+  content: ' ✓';
+  color: var(--verdigris);
+}
+
+/* ── Danger zone ───────────────────────────────────────────────────── */
+
+/* Bordered in madder and placed after the ordinary settings — visible, not
+   hidden, because a legal-obligation control people cannot find is not one. */
+.danger-card { border-color: var(--madder); }
+.danger-card h2 { color: var(--madder); }
+
+.danger-card .field { display: grid; gap: var(--space-2xs); margin: var(--space-sm) 0; }
+.danger-card .field > span { font-size: 0.8125rem; color: var(--ink2); font-weight: 600; }
+.danger-card input {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  width: 100%;
+  max-width: 20rem;
+}
+
+.danger-btn {
+  background: var(--surface);
+  border: 1px solid var(--madder);
+  border-radius: var(--radius-control);
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  color: var(--madder);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.danger-btn:hover:not(:disabled) { background: var(--madder); color: var(--on-verdigris); }
+.danger-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Circles ───────────────────────────────────────────────────────── */
+
+.circle-list { display: grid; gap: var(--space-xs); margin-bottom: var(--space-sm); }
+
+.circle-card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-sm);
+  display: grid;
+  gap: var(--space-2xs);
+}
+.circle-head { display: flex; align-items: baseline; gap: var(--space-xs); }
+.circle-head strong { flex: 1; font-size: 0.9375rem; }
+
+.circle-members { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.circle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: var(--ink3);
+}
+.circle-chip-on { border-color: var(--verdigris); background: var(--sunken); color: var(--ink); }
+
+.circle-new { display: grid; gap: var(--space-xs); }
+.circle-new input {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  max-width: 20rem;
+}
+
+/* ── Friends ───────────────────────────────────────────────────────── */
+
+.friends-group { margin-bottom: var(--space-md); }
+.friends-group:last-child { margin-bottom: 0; }
+.friends-group h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink2);
+  margin: 0 0 var(--space-2xs);
+}
+
+.friends-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.friends-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.875rem;
+}
+/* The name takes the slack so actions stay right-aligned as rows wrap. */
+.friends-list li > span:first-child { flex: 1; min-width: 0; }
+
+.row-actions { display: flex; gap: var(--space-2xs); flex-wrap: wrap; }
+
+.friends-group input[type='search'] {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.875rem;
+  max-width: 20rem;
+}
+.friends-group input[type='search']:focus { border-color: var(--verdigris); }
+
+.friends-list button { font-size: 0.8125rem; }
+.friends-list button.subtle {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  color: var(--ink2);
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+.friends-list button.subtle:hover { border-color: var(--ink3); color: var(--ink); }
+/* `--madder` rather than a literal red: every colour in this file is a token. */
+.friends-list button.subtle.danger { color: var(--madder); }
+.friends-list button.subtle.danger:hover { border-color: var(--madder); color: var(--madder); }
+
+/* ── Sign in ───────────────────────────────────────────────────────── */
+
+.signin {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+  background: var(--ground);
+}
+
+.signin-card {
+  width: 100%;
+  max-width: 24rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.signin-wordmark { font-size: 1.75rem; margin: 0; }
+.signin-blurb { margin: 0; color: var(--ink2); font-size: 0.875rem; line-height: 1.5; }
+
+.signin-seg { justify-self: stretch; }
+.signin-seg button { flex: 1; }
+
+.signin-form { display: grid; gap: var(--space-sm); }
+.signin-form .field { display: grid; gap: var(--space-2xs); }
+.signin-form .field > span { font-size: 0.8125rem; color: var(--ink2); font-weight: 600; }
+.signin-form input {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-xs);
+  font: inherit;
+  font-size: 0.9375rem;
+  width: 100%;
+}
+
+.signin-submit { justify-self: stretch; padding: 0.5rem; font-size: 0.9375rem; }
+
+.signin-foot { margin: 0; text-align: center; }

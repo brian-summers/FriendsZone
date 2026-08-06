@@ -16,3 +16,9 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.claude/
+.editorconfig
+
+# Durable store (ADR 0025). Holds password and session hashes — keep it out of
+# backups that are less protected than a database would be.
+.data/

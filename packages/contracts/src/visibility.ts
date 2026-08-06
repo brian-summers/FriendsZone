@@ -79,7 +79,92 @@ export const SharingDefaults = z.object({
 });
 export type SharingDefaults = z.infer<typeof SharingDefaults>;
 
-/** Friends see that you are busy, and nothing else. Strangers see nothing. */
-export const CONSERVATIVE_SHARING_DEFAULTS: SharingDefaults = Object.freeze({
-  rules: [{ audience: { kind: 'FRIENDS' }, level: 'BUSY' }],
+// ── Account-level presets ─────────────────────────────────────────────
+//
+// Almost nobody changes defaults, so the default *is* the privacy control.
+// These are the short list of choices a person can hold in their head; the
+// lattice underneath stays available per event and through custom rules.
+// See docs/adr/0021-sharing-presets.md.
+
+export const SharingPresetName = z.enum(['PRIVATE', 'BUSY_TO_FRIENDS', 'OPEN_TO_FRIENDS']);
+export type SharingPresetName = z.infer<typeof SharingPresetName>;
+
+/** What the stored rules resolve to, including "none of the above". */
+export const SharingPresetOrCustom = z.enum([...SharingPresetName.options, 'CUSTOM']);
+export type SharingPresetOrCustom = z.infer<typeof SharingPresetOrCustom>;
+
+/**
+ * The presets, ordered most private first so scanning down reads as
+ * "revealing progressively more".
+ *
+ * **There is deliberately no `FULL` preset and no `PUBLIC` preset.** `FULL`
+ * shares description, location, and guests; as a choice about one event that is
+ * fine, and the per-event editor offers it. As an account default it is a
+ * standing grant over every event you will ever create — the stalking abuse case
+ * written as a settings row. Widening past `TITLE` stays possible and costs a
+ * deliberate act (ADR 0021).
+ */
+export const SHARING_PRESETS: Readonly<
+  Record<SharingPresetName, { rules: ShareRule[]; consequence: string }>
+> = Object.freeze({
+  PRIVATE: {
+    rules: [],
+    consequence: 'Nobody sees anything on your calendar.',
+  },
+  BUSY_TO_FRIENDS: {
+    rules: [{ audience: { kind: 'FRIENDS' }, level: 'BUSY' }],
+    consequence: 'Friends see that you’re busy — no name, place, or guests.',
+  },
+  OPEN_TO_FRIENDS: {
+    rules: [{ audience: { kind: 'FRIENDS' }, level: 'TITLE' }],
+    consequence: 'Friends see what it’s called, but not where or with whom.',
+  },
 });
+
+/**
+ * Friends see that you are busy, and nothing else. Strangers see nothing.
+ *
+ * The same value as the `BUSY_TO_FRIENDS` preset, defined once: the fallback
+ * for a user who has never chosen and the preset they would pick must never
+ * drift into disagreeing.
+ */
+export const CONSERVATIVE_SHARING_DEFAULTS: SharingDefaults = Object.freeze({
+  rules: SHARING_PRESETS.BUSY_TO_FRIENDS.rules,
+});
+
+/**
+ * Which preset these rules are, or `CUSTOM`.
+ *
+ * Order-insensitive, so a stored rule set that happens to be serialised
+ * differently is still recognised. Returns `CUSTOM` rather than rounding to the
+ * nearest preset — someone who composed something specific should be told their
+ * configuration is specific, not shown a preset they did not choose.
+ */
+export function presetOf(defaults: SharingDefaults): SharingPresetOrCustom {
+  const canonical = (rules: readonly ShareRule[]): string =>
+    rules
+      .map((r) => `${r.audience.kind}:${'circleId' in r.audience ? r.audience.circleId : ''}:${r.level}`)
+      .sort()
+      .join('|');
+
+  const mine = canonical(defaults.rules);
+  for (const name of SharingPresetName.options) {
+    if (canonical(SHARING_PRESETS[name].rules) === mine) return name;
+  }
+  return 'CUSTOM';
+}
+
+/**
+ * Your sharing defaults, as the settings screen reads them.
+ *
+ * `chosen: false` means no explicit choice has ever been saved — the user is
+ * running on the conservative fallback. The flag makes that state legible; it
+ * does not make it less safe, and the fallback stays `BUSY_TO_FRIENDS` because
+ * an absent row is not consent to share more.
+ */
+export const SharingDefaultsView = z.object({
+  rules: z.array(ShareRule).max(50),
+  preset: SharingPresetOrCustom,
+  chosen: z.boolean(),
+});
+export type SharingDefaultsView = z.infer<typeof SharingDefaultsView>;

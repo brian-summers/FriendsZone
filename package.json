@@ -19,15 +19,14 @@
     "dev:api": "npm run typecheck && node apps/api/dist/index.js",
     "dev:web": "npm run dev --workspace @friendszone/web",
     "build:web": "npm run typecheck && npm run build --workspace @friendszone/web",
-    "verify": "npm run typecheck && npm run typecheck:web && npm run test",
-    "deploy": "npm run build:web && wrangler deploy",
-    "preview:cf": "npm run build:web && wrangler dev"
+    "verify": "npm run typecheck && npm run typecheck:web && npm run test"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@types/node": "^22.10.2",
+    "@types/pg": "^8.20.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
-    "vitest": "^3.0.0",
-    "wrangler": "^4.34.0"
+    "vitest": "^3.0.0"
   }
 }

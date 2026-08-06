@@ -33,7 +33,7 @@ A `ShareRule` pairs an audience with a level. Audiences are:
 | Audience | Matches when |
 |---|---|
 | `SELF` | Never matches a non-owner. Owner access is decided earlier. |
-| `FRIENDS` | The viewer is an accepted, mutual friend. |
+| `FRIENDS` | The viewer is an accepted, mutual friend. **`PENDING` does not match** — asking to be someone's friend must not be enough to read their calendar. |
 | `CIRCLE(id)` | The viewer is an accepted friend **and** a member of that circle. |
 | `PUBLIC` | Always, including unauthenticated callers. |
 
@@ -44,6 +44,13 @@ it. Every audience here requires an affirmative match.
 `CIRCLE` re-checks friendship at read time rather than trusting the roster.
 Unfriending someone does not scrub them from circle membership lists, so the
 roster alone would leave an ex-friend holding a valid key.
+
+Now that unfriending is reachable from the product
+([ADR 0028](../adr/0028-friend-requests-and-blocking.md)), that re-check is
+load-bearing rather than theoretical, and
+`social.test.ts` exercises it end to end: an ex-friend still on a circle roster
+sees nothing of an event shared to that circle — not the location, not the
+title, not that the hour is occupied.
 
 ## 3. The algorithm
 
@@ -132,6 +139,30 @@ information — "they freed up that evening" — and it is not the viewer's to h
 correct for a client that reads only `busy`, and stops a client treating a
 titled event as free time.
 
+## 5a. Defaults, and the three presets
+
+Almost nobody changes defaults, so `SharingDefaults` *is* the privacy control for
+most users on most events. Three named presets are offered
+([ADR 0021](../adr/0021-sharing-presets.md)):
+
+| Preset | Rules | A friend sees |
+|---|---|---|
+| `PRIVATE` | none | Nothing |
+| `BUSY_TO_FRIENDS` | `FRIENDS → BUSY` | That you're busy |
+| `OPEN_TO_FRIENDS` | `FRIENDS → TITLE` | What it's called |
+
+- ❌ **No preset grants `FULL`, and none reaches `PUBLIC`.** `FULL` carries
+  location and the attendee list; as an account default that is a standing grant
+  over every event you will ever create, which is the stalking abuse case as a
+  settings row. Both stay reachable per event and through custom rules, at the
+  cost of a deliberate act. `visibility.test.ts` asserts this over every preset.
+- ✅ **`CONSERVATIVE_SHARING_DEFAULTS` and `BUSY_TO_FRIENDS` are the same value**,
+  defined once. If they drifted, an unconfigured user and a user who picked
+  "Busy to friends" would be sharing different amounts.
+- ✅ **An absent row is not consent.** The fallback for someone who has never
+  chosen stays `BUSY_TO_FRIENDS`; `chosen: false` makes that state *legible*
+  without making it less safe.
+
 ## 6. Prohibited disclosures
 
 Reviewers should treat any of these in a diff as a blocking finding.
@@ -141,7 +172,17 @@ Reviewers should treat any of these in a diff as a blocking finding.
   four keys and a test asserts it.
 - ❌ **Distinguishable errors.** A blocked viewer, a stranger, and a nonexistent
   user must receive byte-identical responses. Asserted in both
-  `projection.test.ts` and `server.test.ts`.
+  `projection.test.ts` and `server.test.ts`, and again at the social perimeter:
+  a friend request to someone who blocked you and a friend request to an id
+  nobody holds return the same status *and* the same body.
+- ❌ **Anything that answers "who blocked me" or "was I declined".** There is no
+  endpoint for either, and neither has a client-side tell — no "no results, you
+  may have been blocked" hint, no declined state in an outbox. A declined
+  request is deleted, so there is nothing to leak
+  ([ADR 0028](../adr/0028-friend-requests-and-blocking.md)).
+- ❌ **A search result page whose length depends on blocks.** Search
+  over-fetches and then filters, so a caller cannot infer a block from a page
+  that came back one short.
 - ❌ **Ids in busy blocks.**
 - ❌ **Unbounded windows.** Capped at 62 days: an unbounded range is a
   bulk-export request wearing a calendar's clothes.
@@ -149,6 +190,89 @@ Reviewers should treat any of these in a diff as a blocking finding.
   `cache-control: no-store`.
 - ❌ **Event data in logs.** Titles, locations, and descriptions never reach a
   log line. Log the structured `DenyReason`, never the resource.
+
+## 6a. Listings — the lattice does not apply
+
+Listings are governed by the **audience model alone**, not by the four-level
+lattice. There is no `BUSY` equivalent for a chair: either you are in the
+audience and you see the item, or you are not and it does not exist for you.
+`projectListing` returns `ListingView | null`, and the `null` is what makes an
+out-of-audience listing indistinguishable from one that was never created.
+
+What crosses the boundary, and what never does:
+
+| Field | Owner | In-audience viewer | Everyone else |
+|---|---|---|---|
+| `title`, `description`, `condition`, `photoKeys`, `status` | ✅ | ✅ | — |
+| `claimMode`, `claimsCloseAt` | ✅ | ✅ | — |
+| `audience` | ❌ | ❌ | — |
+| `yourClaim` | n/a | ✅ own only | — |
+| `claims` | ✅ | ❌ **absent** | — |
+
+Three of those rows are prohibitions rather than omissions:
+
+- ❌ **`audience` never leaves the server, not even to the owner.** It is the
+  owner's sharing configuration, not a property of the item, and a viewer who
+  could read it would learn the shape of the owner's circles. Owners edit it
+  through `UpdateListingInput`, which is a different type in a different
+  direction.
+- ❌ **`claims` is absent for non-owners, not empty.** An empty array is a
+  count, and zero is a number. A client that renders "0 interested" for one
+  viewer and nothing for another has leaked the distinction.
+- ❌ **No entrant counts, ever.** A lottery entrant cannot see their odds. This
+  is a real product loss, accepted deliberately —
+  [ADR 0017](../adr/0017-claim-modes-and-deadlines.md) records the argument so
+  the next person has to disagree with a reason rather than assume there was
+  none.
+
+**Photos follow the listing.** A `photoKey` is not a capability: serving one
+re-runs `listing:view` for the requester *and* checks that the key belongs to
+that listing. Both halves matter — without the second, any visible listing is an
+oracle for every photo in the store.
+
+The block gate applies unchanged: `listing:view` is not in
+`BLOCK_EXEMPT_ACTIONS`, so a blocked viewer sees nothing. This is why
+`projectListing` gates on `can()` rather than testing the audience inline — an
+inline `audienceMatches` would silently drop the block check.
+
+## 6b. The slot finder — an intersection, never a privileged read
+
+"When are we all free?" computes over **projections**, not stored events. For
+each participant the engine runs the same `projectCalendar` the requester would
+get by opening that person's calendar, then intersects the `busy` sets
+([ADR 0008](../adr/0008-slot-finder-on-projections.md)).
+
+The property this buys, stated as a rule reviewers should enforce:
+
+> **No information flows that was not already flowing.** A requester learns
+> nothing from a hundred slot queries that a hundred ordinary calendar views
+> would not have told them.
+
+That is what closes the differential attack. If the finder ever read raw events
+— or read *anything* the requester could not read directly — a caller could vary
+the participant set across queries and difference the results to isolate an
+individual's week. No single response would look like a leak.
+
+Rules that follow:
+
+- ❌ **Never intersect over stored events.** `repos.calendar.eventsInWindow`
+  output must pass through `projectCalendar` for the requesting viewer first.
+  This will look like a pointless indirection. It is the entire security
+  argument.
+- ❌ **Never add an audience that only the slot finder honours.** Such a grant is
+  privileged data by construction and reopens the attack; see
+  [why there is no `SCHEDULING` audience](../adr/0008-slot-finder-on-projections.md#why-there-is-no-scheduling-audience).
+- ✅ **Only `busy` blocks a slot.** `openBlocks` are explicitly overlappable, and
+  tentative holds are never busy (§7) — treating either as busy would also let a
+  requester manufacture false conflicts on someone else's calendar.
+- ✅ **Quantize inward.** Start rounds up, end rounds down, to a 15-minute grid,
+  so a suggestion never covers busy time and never reveals the exact boundary of
+  whatever created the gap.
+
+The accepted cost: someone who shares nothing with you appears completely free,
+so suggestions can be wrong. The interface is *required* to say so — "2 of 3
+people share availability with you" — which discloses that a grant does not
+exist, and nothing whatsoever about their calendar.
 
 ## 7. Tentative holds — a separate access rule
 

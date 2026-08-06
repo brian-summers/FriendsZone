@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CONSERVATIVE_SHARING_DEFAULTS, type VisibilityLevel } from '@friendszone/contracts';
+import {
+  CONSERVATIVE_SHARING_DEFAULTS,
+  presetOf,
+  SHARING_PRESETS,
+  SharingPresetName,
+  type VisibilityLevel,
+} from '@friendszone/contracts';
 import { resolveEventVisibility, widestSharedLevel } from './visibility.js';
 import {
   ALICE,
@@ -101,6 +107,7 @@ describe('resolveEventVisibility', () => {
       viewerId: BOB,
       relationship: 'NONE' as const,
       sharedCircleIds: [CLIMBING_CREW],
+      isModerator: false,
     };
     expect(resolveEventVisibility(circleOnly, exFriendStillInRoster, defaults())).toBe('HIDDEN');
   });
@@ -121,7 +128,7 @@ describe('resolveEventVisibility', () => {
   it('treats a viewer whose id matches the owner as the owner', () => {
     const own = event({ ownerId: ALICE });
     expect(
-      resolveEventVisibility(own, { viewerId: ALICE, relationship: 'NONE', sharedCircleIds: [] }, defaults()),
+      resolveEventVisibility(own, { viewerId: ALICE, relationship: 'NONE', sharedCircleIds: [], isModerator: false }, defaults()),
     ).toBe('FULL');
   });
 });
@@ -167,5 +174,58 @@ describe('widestSharedLevel', () => {
   it('recognises a public event', () => {
     const open = event({ shareRules: [rule({ kind: 'PUBLIC' }, 'TITLE')] });
     expect(widestSharedLevel(open, defaults())).toBe('TITLE');
+  });
+});
+
+describe('account sharing presets', () => {
+  it('grants exactly what each preset claims, and nothing wider', () => {
+    // A security-relevant constant: widening one of these silently widens every
+    // user who has not configured anything (ADR 0021).
+    expect(SHARING_PRESETS.PRIVATE.rules).toEqual([]);
+    expect(SHARING_PRESETS.BUSY_TO_FRIENDS.rules).toEqual([
+      { audience: { kind: 'FRIENDS' }, level: 'BUSY' },
+    ]);
+    expect(SHARING_PRESETS.OPEN_TO_FRIENDS.rules).toEqual([
+      { audience: { kind: 'FRIENDS' }, level: 'TITLE' },
+    ]);
+  });
+
+  it('offers no preset that shares FULL or reaches PUBLIC', () => {
+    // The load-bearing refusal. FULL carries location; PUBLIC reaches strangers.
+    // Both stay available per event, and neither is one tap on the screen
+    // nobody reads.
+    for (const name of SharingPresetName.options) {
+      for (const rule of SHARING_PRESETS[name].rules) {
+        expect(rule.level).not.toBe('FULL');
+        expect(rule.audience.kind).not.toBe('PUBLIC');
+      }
+    }
+  });
+
+  it('keeps the conservative fallback identical to the Busy preset', () => {
+    // Defined once. If these ever disagree, an unconfigured user and a user who
+    // picked "Busy to friends" would be sharing different amounts.
+    expect(CONSERVATIVE_SHARING_DEFAULTS.rules).toEqual(SHARING_PRESETS.BUSY_TO_FRIENDS.rules);
+    expect(presetOf(CONSERVATIVE_SHARING_DEFAULTS)).toBe('BUSY_TO_FRIENDS');
+  });
+
+  it('recognises a preset whatever order the rules are stored in', () => {
+    expect(presetOf({ rules: [] })).toBe('PRIVATE');
+    expect(presetOf({ rules: [{ audience: { kind: 'FRIENDS' }, level: 'TITLE' }] })).toBe(
+      'OPEN_TO_FRIENDS',
+    );
+  });
+
+  it('says CUSTOM rather than rounding to the nearest preset', () => {
+    // Someone who composed something specific is told it is specific.
+    expect(
+      presetOf({
+        rules: [
+          { audience: { kind: 'FRIENDS' }, level: 'BUSY' },
+          { audience: { kind: 'PUBLIC' }, level: 'TITLE' },
+        ],
+      }),
+    ).toBe('CUSTOM');
+    expect(presetOf({ rules: [{ audience: { kind: 'FRIENDS' }, level: 'FULL' }] })).toBe('CUSTOM');
   });
 });

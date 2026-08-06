@@ -31,3 +31,16 @@ export const PublicProfile = User.pick({
   avatarUrl: true,
 });
 export type PublicProfile = z.infer<typeof PublicProfile>;
+
+/**
+ * Your own profile, as returned by `/v1/me` and nowhere else.
+ *
+ * `isModerator` lives here rather than on `PublicProfile` deliberately: the
+ * latter is what other people receive, and "who are the moderators" is not a
+ * question this API answers. Telling *you* that you are one reveals nothing you
+ * could not learn by opening the queue.
+ */
+export const MeView = PublicProfile.extend({
+  isModerator: z.boolean(),
+});
+export type MeView = z.infer<typeof MeView>;

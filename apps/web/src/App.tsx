@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { PublicProfile } from '@friendszone/contracts';
+import type { MeView, PublicProfile } from '@friendszone/contracts';
 import { api } from './lib/api.js';
 import { applyTheme, loadTheme, saveTheme, type ThemeChoice } from './lib/theme.js';
 import { linkProps, matchRoute, navigate, usePathname } from './lib/router.js';
 import { WeekScreen } from './screens/WeekScreen.js';
 import { SettingsScreen } from './screens/SettingsScreen.js';
 import { InboxScreen } from './screens/InboxScreen.js';
+import { ThingsScreen } from './screens/ThingsScreen.js';
+import { SignInScreen } from './screens/SignInScreen.js';
+import { ModerationScreen } from './screens/ModerationScreen.js';
 import { Placeholder } from './components/Placeholder.js';
 
 /**
@@ -24,7 +27,7 @@ const DEV_ACTORS = [
   { id: '55555555-5555-4555-8555-555555555555', name: 'Mallory (blocked by Alice)' },
 ];
 
-const ROUTES = ['/', '/people/:id', '/inbox', '/things', '/settings'] as const;
+const ROUTES = ['/', '/people/:id', '/inbox', '/things', '/settings', '/moderation'] as const;
 
 const initials = (name: string): string =>
   name
@@ -35,10 +38,18 @@ const initials = (name: string): string =>
     .toUpperCase();
 
 export function App() {
+  /**
+   * `null` until we know. Three states, not two: "checking", "signed out", and
+   * "signed in" — collapsing the first two flashes the sign-in screen at
+   * someone who is already signed in, on every load.
+   */
+  const [authState, setAuthState] = useState<'checking' | 'out' | 'in'>('checking');
   const [actorId, setActorId] = useState<string>(DEV_ACTORS[0]!.id);
   const [theme, setTheme] = useState<ThemeChoice>(() => loadTheme());
-  const [me, setMe] = useState<PublicProfile | null>(null);
+  const [me, setMe] = useState<MeView | null>(null);
   const [people, setPeople] = useState<PublicProfile[]>([]);
+  /** Bumped when a friendship is accepted, removed, or blocked away. */
+  const [graph, setGraph] = useState(0);
   const [pendingInbox, setPendingInbox] = useState(0);
   // Bumped after any mutation so derived counts (the inbox badge) refresh
   // without each screen having to know about the shell.
@@ -47,6 +58,28 @@ export function App() {
 
   const pathname = usePathname();
   const match = matchRoute(pathname, ROUTES);
+
+  /**
+   * Ask the server who we are, once, on load.
+   *
+   * The session is an HttpOnly cookie, so the client genuinely cannot know
+   * whether it is signed in without asking — which is the point of the cookie
+   * being HttpOnly.
+   */
+  useEffect(() => {
+    const controller = new AbortController();
+    api
+      .me(null, controller.signal)
+      .then((who) => {
+        if (controller.signal.aborted) return;
+        setActorId(who.id);
+        setAuthState('in');
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAuthState('out');
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
@@ -75,7 +108,7 @@ export function App() {
     navigate('/');
 
     return () => controller.abort();
-  }, [actorId]);
+  }, [actorId, graph]);
 
   // The inbox count. A quiet number, never a red pulsing badge — a request that
   // demands to be dealt with now is the pressure this product removes (ADR 0007).
@@ -104,6 +137,25 @@ export function App() {
 
   const viewingPersonId = match?.pattern === '/people/:id' ? match.params.id : null;
 
+  // Only the week routes bring their own scroll container; the rest rely on
+  // <main> to scroll for them. Getting this wrong is silent — the content is
+  // clipped at the fold rather than erroring — so it is derived from the route
+  // rather than set per screen.
+  const weekManagesItsOwnScroll = match?.pattern === '/' || match?.pattern === '/people/:id';
+
+  if (authState === 'checking') return <div className="app" />;
+
+  if (authState === 'out') {
+    return (
+      <SignInScreen
+        onSignedIn={(who) => {
+          setActorId(who.userId);
+          setAuthState('in');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app">
       <header className="topbar">
@@ -127,6 +179,16 @@ export function App() {
           <a {...linkProps('/settings')} aria-current={isActive('/settings') ? 'page' : undefined}>
             Settings
           </a>
+          {/* Hidden for everyone else, but hiding is not the control: the queue
+              routes refuse anyone off the allowlist regardless of the nav. */}
+          {me?.isModerator === true && (
+            <a
+              {...linkProps('/moderation')}
+              aria-current={isActive('/moderation') ? 'page' : undefined}
+            >
+              Moderation
+            </a>
+          )}
         </nav>
 
         <div className="topbar-spacer" />
@@ -151,6 +213,16 @@ export function App() {
             }
           >
             Theme: {theme}
+          </button>
+
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => {
+              void api.logout().finally(() => setAuthState('out'));
+            }}
+          >
+            Sign out
           </button>
         </div>
       </header>
@@ -194,7 +266,7 @@ export function App() {
           </p>
         </aside>
 
-        <main className="main">
+        <main className={weekManagesItsOwnScroll ? 'main' : 'main main-scroll'}>
           {match === null && (
             <Placeholder
               title="Not found"
@@ -231,15 +303,20 @@ export function App() {
           )}
 
           {match?.pattern === '/things' && (
-            <Placeholder
-              title="Things"
-              blurb="Offer something to friends, claim what you need, and schedule a handoff that books itself into both calendars as a Busy block."
-              status="Not built yet. Listing, Claim, and Exchange are modelled and policy-covered; the exchange flow is gated on a reporting and moderation feature that must ship first."
-            />
+            <ThingsScreen actorId={actorId} peopleById={peopleById} onActivity={bumpActivity} />
           )}
 
+          {match?.pattern === '/moderation' && <ModerationScreen actorId={actorId} />}
+
           {match?.pattern === '/settings' && (
-            <SettingsScreen me={me} actorId={actorId} theme={theme} onTheme={setTheme} />
+            <SettingsScreen
+              me={me}
+              people={people}
+              actorId={actorId}
+              theme={theme}
+              onTheme={setTheme}
+              onGraphChanged={() => setGraph((n) => n + 1)}
+            />
           )}
         </main>
       </div>

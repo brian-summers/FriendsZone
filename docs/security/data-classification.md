@@ -5,7 +5,17 @@ party — the questions that actually come up in a code review.
 
 ## Tiers
 
-### 🔴 Restricted — never leaves the process boundary
+### 🔴 Restricted — never leaves the process boundary, except to its own store
+
+**Amended 2026-08-02.** With [ADR 0004](../adr/0004-persistence.md) these values
+are stored in PostgreSQL. They leave the process only to the database, and they
+are stored **hashed** — scrypt for passwords, SHA-256 for session tokens — never
+in the clear. They still never reach a log, an error, or a projection.
+
+Two things remain outstanding and are named in ADR 0004: **encryption at rest**
+is the deployment's responsibility (an encrypted volume or a managed instance
+that provides it), and **field-level encryption** of 🟠 Sensitive columns —
+event titles, descriptions, locations — is not yet implemented.
 
 Credentials, session tokens, `SESSION_SECRET`, password reset tokens.
 
@@ -47,14 +57,29 @@ Still rate-limit. Public does not mean bulk-harvestable.
 | Field | Tier | Notes |
 |---|---|---|
 | `SESSION_SECRET`, tokens | 🔴 | Never logged, never in errors |
+| `AuthIdentity.secretHash` | 🔴 | scrypt hash. No view type includes it, which is the control — there is nothing to forget to strip |
+| `AuthIdentity.subject` (email) | 🔴 | Lives on the identity, never on `User`, so an accidentally-serialised `User` is not a contact leak |
+| `Session.tokenHash` | 🔴 | The **hash**, never the token. A dump yields values that cannot be presented |
 | `CalendarEvent.title` | 🟠 | "Oncology, 2pm" |
 | `CalendarEvent.description` | 🟠 | |
 | `CalendarEvent.location` | 🟠 | Physical location of a person at a known time |
-| `Exchange.location` / `.timeRange` | 🟠 | A named person, a place, a time |
-| `Block` | 🟠 | Disclosure triggers escalation |
+| `Exchange.location` / `.timeRange` | 🟠 | A named person, a place, a time — the most sensitive row the product writes. Never leaves the two parties: booked events cap third parties at `BUSY` ([ADR 0019](../adr/0019-the-handoff.md)) |
+| `Listing.photoKeys` → stored bytes | 🟠 | A photo of a possession, often taken indoors at home. Served only through a listing the viewer can see, never by key alone |
+| `Claim.claimantId` | 🟠 | Who wants what someone owns. Disclosed to the listing owner alone — never to fellow claimants, not even as a count |
+| `Claim.message` | 🟠 | Free text to one specific person |
+| `Report.reporterId` | 🔴 | **Never** reaches the subject, at any status. Disclosure invites retaliation against someone who asked for help |
+| `Report.detail` | 🟠 | The reporter's own words, which routinely identify them. Moderators only |
+| `ReportNote.body` | 🟠 | Scoped to one thread; the other party never receives it |
+| `EvidenceSnapshot` | 🟠 | A frozen copy of reported material. Moderator-only, and the reason account deletion must reach report evidence |
+| `Block` | 🟠 | Disclosure triggers escalation. Directed, so `blockedBy` answers only *your* rows — there is no endpoint, anywhere, for "who blocked me" ([ADR 0028](../adr/0028-friend-requests-and-blocking.md)) |
+| `Friendship.status = 'PENDING'` | 🟠 | Shown to the two parties only. A declined request is **deleted**, so "waiting" and "turned down" are the same observable state |
 | `CalendarEvent.timeRange` | 🟡 | Free/busy, once stripped of detail |
 | `Friendship`, `Circle.memberIds` | 🟡 | Graph structure |
+| `Friendship.requestedBy` | 🟡 | Which of the two asked. Both parties already know; it is what stops a sender accepting their own request |
 | `Circle.name` | 🟡 | Owner-only; "Reluctant Work Friends" |
+| `Listing.title` / `.description` | 🟡 | Exists to be browsed by the chosen audience. Deliberately *not* encrypted — search is core to the feature (see roadmap) |
+| `Report.reason` / `.status` | 🟡 | The category and where it is up to; shown to both parties |
+| `Listing.claimMode` / `.claimsCloseAt` | 🟡 | The terms of the offer; shown to everyone who can see the listing, because they are what a claimant is agreeing to |
 | `User.timeZone` | 🟡 | Coarse location signal |
 | `PublicProfile` | 🟢 | |
 
@@ -76,6 +101,17 @@ echoing a client header, because a client-controlled value in a log field is log
 injection.
 
 ## Retention
+
+**Account deletion** ([ADR 0022](../adr/0022-export-and-deletion.md)) destroys
+events, sharing defaults, listings and their photo bytes, claims, notifications,
+and owned circle rosters, then tombstones the profile — id retained, every field
+emptied — so foreign references stay resolvable and resolve to nothing.
+
+Three things deliberately survive, and the interface says so rather than glossing
+it: **blocks** (never cleared, or delete-and-rejoin defeats them), **live
+moderation cases** about the departing user (or deletion is an escape hatch from
+moderation), and **other participants' copies** of shared plans, which are their
+records of their own weeks.
 
 Not yet implemented; needed before real users.
 

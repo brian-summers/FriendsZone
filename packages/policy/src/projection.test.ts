@@ -348,7 +348,7 @@ describe('projectCalendar', () => {
         shareRules: [rule({ kind: 'FRIENDS' }, 'FULL')],
       });
 
-      for (const viewer of [asFriend(), { viewerId: BOB, relationship: 'FRIEND' as const, sharedCircleIds: [] }]) {
+      for (const viewer of [asFriend(), { viewerId: BOB, relationship: 'FRIEND' as const, sharedCircleIds: [], isModerator: false }]) {
         const view = call({
           ownerId: ALICE,
           events: [shared],

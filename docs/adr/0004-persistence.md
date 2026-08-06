@@ -1,7 +1,12 @@
 # 0004. PostgreSQL with row-level security
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-07-20
+**Implemented:** 2026-08-02. The deferred question — "which query builder?" — is
+answered by [ADR 0026](0026-sql-layer.md), which chose raw SQL over Drizzle and
+gives the reasoning. Two items below remain outstanding and are named in
+Consequences: **field-level encryption** of 🟠 Sensitive fields, and moving photo
+bytes to object storage.
 
 ## Context
 

@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Config } from '../config.js';
 import { DEV_ACTOR_HEADER } from '../http/authenticate.js';
 import { createMemoryRepositories } from '../repositories/memory.js';
-import { ALICE, BOB, createDemoSeed } from '../seed.js';
+import { ALICE, BOB, DAVE, createDemoSeed } from '../seed.js';
 import { createServer } from '../server.js';
 
 const config: Config = {
@@ -13,6 +13,12 @@ const config: Config = {
   DATABASE_URL: 'postgres://localhost:5432/test',
   SESSION_SECRET: 'x'.repeat(48),
   PUBLIC_ORIGIN: 'http://localhost:5173',
+  MODERATOR_IDS: [],
+  REPORTS_EMAIL: 'reports@friends-zone.app',
+  // Off here: these suites hammer `app.inject` and would otherwise trip buckets
+  // in tests that are about something else. `rate-limit.test.ts` turns it on.
+  RATE_LIMIT_ENABLED: false,
+  TRUSTED_PROXY_HOPS: 0,
 };
 
 const as = (id: string) => ({ [DEV_ACTOR_HEADER]: id });
@@ -185,5 +191,59 @@ describe('sharing defaults', () => {
   it('requires a session', async () => {
     const res = await app.inject({ method: 'GET', url: '/v1/me/sharing-defaults' });
     expect(res.statusCode).toBe(401);
+  });
+
+  // ── Presets and onboarding (ADR 0021) ────────────────────────────
+  const read = (actor: string) =>
+    app.inject({ method: 'GET', url: '/v1/me/sharing-defaults', headers: as(actor) });
+
+  const write = (actor: string, rules: unknown) =>
+    app.inject({
+      method: 'PUT',
+      url: '/v1/me/sharing-defaults',
+      headers: as(actor),
+      payload: { rules },
+    });
+
+  it('reports an unconfigured user as not having chosen', async () => {
+    // DAVE has no seeded defaults row. He is on the conservative fallback and
+    // has never said so himself — the distinction onboarding needs.
+    const res = await read(DAVE);
+    expect(res.json().chosen).toBe(false);
+    expect(res.json().preset).toBe('BUSY_TO_FRIENDS');
+    // Not sharing *more* than before: the flag makes the state legible only.
+    expect(res.json().rules).toEqual([{ audience: { kind: 'FRIENDS' }, level: 'BUSY' }]);
+  });
+
+  it('counts saving the very same rules as having chosen', async () => {
+    expect((await read(DAVE)).json().chosen).toBe(false);
+    await write(DAVE, [{ audience: { kind: 'FRIENDS' }, level: 'BUSY' }]);
+    const after = await read(DAVE);
+    expect(after.json().chosen).toBe(true);
+    expect(after.json().preset).toBe('BUSY_TO_FRIENDS');
+  });
+
+  it('names the preset the stored rules match', async () => {
+    await write(ALICE, []);
+    expect((await read(ALICE)).json().preset).toBe('PRIVATE');
+
+    await write(ALICE, [{ audience: { kind: 'FRIENDS' }, level: 'TITLE' }]);
+    expect((await read(ALICE)).json().preset).toBe('OPEN_TO_FRIENDS');
+  });
+
+  it('says CUSTOM rather than rounding an unusual configuration', async () => {
+    await write(ALICE, [
+      { audience: { kind: 'FRIENDS' }, level: 'BUSY' },
+      { audience: { kind: 'PUBLIC' }, level: 'TITLE' },
+    ]);
+    expect((await read(ALICE)).json().preset).toBe('CUSTOM');
+  });
+
+  it('still accepts a wider configuration through custom rules', async () => {
+    // No *preset* grants FULL, but the lattice underneath is unchanged — the
+    // refusal is about one-tap defaults, not about capability.
+    const res = await write(ALICE, [{ audience: { kind: 'FRIENDS' }, level: 'FULL' }]);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().preset).toBe('CUSTOM');
   });
 });

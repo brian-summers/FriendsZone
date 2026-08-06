@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_ACTIONS } from '@friendszone/policy';
 import { createMemoryRepositories } from '../repositories/memory.js';
+import type { Config } from '../config.js';
 import { buildRoutes } from './index.js';
+
+const config: Config = {
+  NODE_ENV: 'test',
+  PORT: 0,
+  LOG_LEVEL: 'fatal',
+  DATABASE_URL: 'postgres://localhost:5432/test',
+  SESSION_SECRET: 'x'.repeat(48),
+  PUBLIC_ORIGIN: 'http://localhost:5173',
+  MODERATOR_IDS: [],
+  REPORTS_EMAIL: 'reports@friends-zone.app',
+  RATE_LIMIT_ENABLED: false,
+  TRUSTED_PROXY_HOPS: 0,
+};
 
 /**
  * Perimeter invariants.
@@ -13,7 +27,7 @@ import { buildRoutes } from './index.js';
  * control.
  */
 describe('route table', () => {
-  const routes = buildRoutes(createMemoryRepositories());
+  const routes = buildRoutes(createMemoryRepositories(), config);
 
   it('is not empty', () => {
     expect(routes.length).toBeGreaterThan(0);
@@ -43,7 +57,17 @@ describe('route table', () => {
       .filter((route) => route.authz.kind === 'PUBLIC')
       .map((route) => `${route.method} ${route.url}`)
       .sort();
-    expect(publicUrls).toEqual(['GET /healthz']);
+    expect(publicUrls).toEqual([
+      'GET /healthz',
+      // Readiness must answer before the app is in rotation at all.
+      'GET /readyz',
+      // Authentication cannot require authentication. Each carries a written
+      // justification, asserted non-trivial by the test above, and each draws
+      // from the tightest rate-limit class (ADR 0024).
+      'POST /v1/auth/login',
+      'POST /v1/auth/logout',
+      'POST /v1/auth/register',
+    ]);
   });
 
   it('names a known action on every policy-gated route', () => {
@@ -72,6 +96,25 @@ describe('route table', () => {
       (route) => route.method !== 'GET' && route.body === undefined,
     );
     expect(writersWithoutBody.map((route) => route.url)).toEqual([]);
+  });
+
+  it('never lets a mutating route draw from a read bucket', () => {
+    // A write is more expensive and more abusable than a read. Getting this
+    // backwards would be invisible until someone scripted it.
+    const readBuckets = new Set(['READ', 'DEFAULT']);
+    const tooLoose = routes.filter(
+      (route) => route.method !== 'GET' && readBuckets.has(route.rateLimit ?? 'DEFAULT'),
+    );
+    expect(tooLoose.map((route) => `${route.method} ${route.url}`)).toEqual([]);
+  });
+
+  it('keeps the fan-out endpoints on their own tight buckets', () => {
+    // ADR 0008 requires the slot finder be limited separately from ordinary
+    // calendar reads; photo upload costs storage per call.
+    const bucketOf = (url: string) =>
+      routes.find((route) => route.url === url)?.rateLimit;
+    expect(bucketOf('/v1/slots/find')).toBe('EXPENSIVE');
+    expect(bucketOf('/v1/photos')).toBe('UPLOAD');
   });
 
   it('declares no body on read routes', () => {

@@ -1,6 +1,7 @@
 import type { UserId } from '@friendszone/contracts';
 import type { Action, ViewerContext } from '@friendszone/policy';
 import type { z } from 'zod';
+import type { RateLimitClass } from './rate-limit.js';
 
 /**
  * How a route is authorized.
@@ -30,6 +31,65 @@ export type AuthzSpec =
       action: Action;
     };
 
+/**
+ * A non-JSON response body.
+ *
+ * Every other route answers with a value that gets serialised to JSON. Photos
+ * cannot: base64 in a JSON envelope would inflate every image by a third and
+ * put the bytes of a whole browse page through `JSON.parse`.
+ *
+ * This stays a *value returned by the handler* rather than a reply object handed
+ * to it, so handlers still never touch Fastify — and the `onSend` hook that adds
+ * `nosniff`, `no-store`, and the frame headers still runs over it, which is what
+ * makes serving user-supplied bytes tolerable at all.
+ */
+export interface RawResponse {
+  readonly kind: 'raw';
+  /** The *sniffed* content type. Never a client-supplied one. */
+  readonly contentType: string;
+  readonly bytes: Uint8Array;
+}
+
+export const rawResponse = (contentType: string, bytes: Uint8Array): RawResponse => ({
+  kind: 'raw',
+  contentType,
+  bytes,
+});
+
+export const isRawResponse = (value: unknown): value is RawResponse =>
+  typeof value === 'object' &&
+  value !== null &&
+  (value as { kind?: unknown }).kind === 'raw' &&
+  (value as { bytes?: unknown }).bytes instanceof Uint8Array;
+
+/**
+ * A response that also sets a cookie.
+ *
+ * Like `RawResponse`, this stays a *value the handler returns* rather than a
+ * reply object handed to it, so handlers still never touch Fastify — and the
+ * `onSend` hook that adds the security headers still runs over it.
+ *
+ * Only the auth routes use this. Nothing else in the product sets a cookie, and
+ * a second thing that does should have to explain why.
+ */
+export interface CookieResponse<T = unknown> {
+  readonly kind: 'cookie';
+  readonly setCookie: string;
+  readonly body: T;
+}
+
+export const withCookie = <T>(body: T, setCookie: string): CookieResponse<T> => ({
+  kind: 'cookie',
+  setCookie,
+  body,
+});
+
+export const isCookieResponse = (value: unknown): value is CookieResponse =>
+  typeof value === 'object' &&
+  value !== null &&
+  (value as { kind?: unknown }).kind === 'cookie' &&
+  typeof (value as { setCookie?: unknown }).setCookie === 'string';
+
 /** Everything a handler is given. Handlers receive no raw Fastify objects. */
 export interface RequestContext<TParams, TQuery, TBody> {
   readonly params: TParams;
@@ -42,6 +102,14 @@ export interface RequestContext<TParams, TQuery, TBody> {
   readonly body: TBody;
   /** `null` when unauthenticated. Routes must not assume otherwise. */
   readonly actorId: UserId | null;
+  /**
+   * The raw `Cookie` header, for logout alone.
+   *
+   * Deliberately the raw header rather than a parsed session: logout has to
+   * work when the session is already invalid, so it needs the token even when
+   * `actorId` is null.
+   */
+  readonly cookieHeader: string | undefined;
   /**
    * Resolves the viewer's relationship to a specific owner. Deliberately a
    * function of `ownerId`: a context built once per request and reused across
@@ -76,6 +144,20 @@ export interface RouteDefinition<
    * by which a handler reads a body that was not validated first.
    */
   readonly body?: BSchema;
+  /**
+   * Override the server-wide body cap for this route only.
+   *
+   * The global limit is deliberately small — nothing this API accepts is
+   * legitimately large. Photo upload is the one exception, and it has to say so
+   * explicitly here rather than the global limit being raised to accommodate it,
+   * which would quietly widen every other endpoint's DoS surface.
+   */
+  readonly bodyLimit?: number;
+  /**
+   * Which bucket this route draws from. Omitted means `DEFAULT` — there is no
+   * such thing as an unlimited route (docs/adr/0020-rate-limiting.md).
+   */
+  readonly rateLimit?: RateLimitClass;
   readonly handler: (
     ctx: RequestContext<
       z.output<PSchema>,
@@ -103,6 +185,8 @@ export interface AnyRoute {
   // Explicitly admits `undefined` so a body-less route — whose `body` field is
   // typed `undefined` — is assignable here under exactOptionalPropertyTypes.
   readonly body?: z.ZodTypeAny | undefined;
+  readonly bodyLimit?: number | undefined;
+  readonly rateLimit?: RateLimitClass | undefined;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   readonly handler: (ctx: RequestContext<any, any, any>) => Promise<unknown>;
 }

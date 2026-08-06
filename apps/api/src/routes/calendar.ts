@@ -3,6 +3,7 @@ import {
   EventId,
   Instant,
   isHangoutExpired,
+  presetOf,
   SharingDefaults,
   UpdateEventInput,
   UserId,
@@ -12,6 +13,7 @@ import {
   type EventView,
   type HangoutHold,
   type SharingDefaults as SharingDefaultsType,
+  type SharingDefaultsView as SharingDefaultsViewType,
   type TimeRange,
 } from '@friendszone/contracts';
 import {
@@ -104,6 +106,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
   return [
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/users/:ownerId/calendar',
     authz: { kind: 'POLICY', action: 'calendar:view' },
     params: z.object({ ownerId: UserId }),
@@ -133,6 +136,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
    */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/users/:ownerId/availability',
     authz: { kind: 'POLICY', action: 'calendar:view' },
     params: z.object({ ownerId: UserId }),
@@ -171,6 +175,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
    */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/me/calendar/preview',
     authz: { kind: 'POLICY', action: 'calendar:preview' },
     params: z.object({}),
@@ -195,7 +200,15 @@ export const buildCalendarRoutes = (repos: Repositories) => {
         repos.social.relationship(asViewerId, ownerId),
         repos.social.sharedCircles(asViewerId, ownerId),
       ]);
-      const asViewer: ViewerContext = { viewerId: asViewerId, relationship, sharedCircleIds };
+      const asViewer: ViewerContext = {
+        viewerId: asViewerId,
+        relationship,
+        sharedCircleIds,
+        // Never inherited from the caller, and never looked up: moderation
+        // grants no visibility exemption, so a preview "as a moderator" would
+        // be both meaningless and a way to ask a question we do not answer.
+        isModerator: false,
+      };
 
       const [events, ownerDefaults, holds] = await Promise.all([
         repos.calendar.eventsInWindow(ownerId, window),
@@ -227,6 +240,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
    */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/events',
     authz: { kind: 'POLICY', action: 'event:create' },
     params: z.object({}),
@@ -273,6 +287,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
    */
   defineRoute({
     method: 'PATCH',
+    rateLimit: 'WRITE',
     url: '/v1/events/:id',
     authz: { kind: 'POLICY', action: 'event:modify' },
     params: z.object({ id: EventId }),
@@ -318,6 +333,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
   /** Delete an event you own. Hangout events are cancelled via their hangout. */
   defineRoute({
     method: 'DELETE',
+    rateLimit: 'WRITE',
     url: '/v1/events/:id',
     authz: { kind: 'POLICY', action: 'event:modify' },
     params: z.object({ id: EventId }),
@@ -345,29 +361,40 @@ export const buildCalendarRoutes = (repos: Repositories) => {
   /** Read your own baseline sharing policy. */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/me/sharing-defaults',
     authz: { kind: 'POLICY', action: 'sharing:manage' },
     params: z.object({}),
     query: z.object({}),
-    handler: async (ctx): Promise<SharingDefaultsType> => {
+    handler: async (ctx): Promise<SharingDefaultsViewType> => {
       if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
       assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
-      return repos.calendar.sharingDefaults(ctx.actorId);
+
+      const [defaults, chosen] = await Promise.all([
+        repos.calendar.sharingDefaults(ctx.actorId),
+        repos.calendar.hasExplicitSharingDefaults(ctx.actorId),
+      ]);
+      // `chosen: false` means they are on the conservative fallback and have
+      // never said so themselves — which is what onboarding asks about.
+      return { rules: defaults.rules, preset: presetOf(defaults), chosen };
     },
   }),
 
   /** Replace your own baseline sharing policy — the most-used privacy control. */
   defineRoute({
     method: 'PUT',
+    rateLimit: 'WRITE',
     url: '/v1/me/sharing-defaults',
     authz: { kind: 'POLICY', action: 'sharing:manage' },
     params: z.object({}),
     query: z.object({}),
     body: SharingDefaults,
-    handler: async (ctx): Promise<SharingDefaultsType> => {
+    handler: async (ctx): Promise<SharingDefaultsViewType> => {
       if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
       assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
-      return repos.calendar.setSharingDefaults(ctx.actorId, ctx.body);
+      const saved = await repos.calendar.setSharingDefaults(ctx.actorId, ctx.body);
+      // Saving anything — preset or custom — is the choice being made.
+      return { rules: saved.rules, preset: presetOf(saved), chosen: true };
     },
   }),
   ];

@@ -1,14 +1,27 @@
 import { useEffect, useState } from 'react';
-import type { PublicProfile, ShareRule, VisibilityLevel } from '@friendszone/contracts';
+import {
+  SHARING_PRESETS,
+  SharingPresetName,
+  type PublicProfile,
+  type ShareRule,
+  type SharingPresetOrCustom,
+  type VisibilityLevel,
+} from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
+import { Circles } from '../components/Circles.js';
+import { Friends } from '../components/Friends.js';
 import type { ThemeChoice } from '../lib/theme.js';
 import { encodingFor } from '../lib/visibility.js';
 
 interface Props {
   me: PublicProfile | null;
+  /** Friends, for circle membership. */
+  people: PublicProfile[];
   actorId: string;
   theme: ThemeChoice;
   onTheme: (choice: ThemeChoice) => void;
+  /** The friend list lives in the shell, so changes here have to reach it. */
+  onGraphChanged: () => void;
 }
 
 const THEMES: ThemeChoice[] = ['system', 'light', 'dark'];
@@ -18,6 +31,13 @@ const levelLabel = (l: VisibilityLevel): string => (l === 'HIDDEN' ? 'Private' :
 const levelOf = (rules: ShareRule[], kind: 'FRIENDS' | 'PUBLIC'): VisibilityLevel =>
   rules.find((r) => r.audience.kind === kind)?.level ?? 'HIDDEN';
 
+/** Preset labels. The consequences come from contracts, defined once. */
+const PRESET_LABEL: Record<SharingPresetName, string> = {
+  PRIVATE: 'Private',
+  BUSY_TO_FRIENDS: 'Busy to friends',
+  OPEN_TO_FRIENDS: 'Open to friends',
+};
+
 /**
  * Settings.
  *
@@ -26,11 +46,19 @@ const levelOf = (rules: ShareRule[], kind: 'FRIENDS' | 'PUBLIC'): VisibilityLeve
  * making them editable, in plain language, matters more than any other switch
  * on this screen.
  */
-export function SettingsScreen({ me, actorId, theme, onTheme }: Props) {
+export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphChanged }: Props) {
   const [friends, setFriends] = useState<VisibilityLevel>('BUSY');
   const [everyone, setEveryone] = useState<VisibilityLevel>('HIDDEN');
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [preset, setPreset] = useState<SharingPresetOrCustom>('BUSY_TO_FRIENDS');
+  const [chosen, setChosen] = useState(true);
+  const [showCustom, setShowCustom] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [confirmHandle, setConfirmHandle] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,11 +68,80 @@ export function SettingsScreen({ me, actorId, theme, onTheme }: Props) {
         if (controller.signal.aborted) return;
         setFriends(levelOf(d.rules, 'FRIENDS'));
         setEveryone(levelOf(d.rules, 'PUBLIC'));
+        setPreset(d.preset);
+        setChosen(d.chosen);
+        // A custom configuration opens its own editor; nobody should have to
+        // hunt for the rules they already wrote.
+        setShowCustom(d.preset === 'CUSTOM');
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
     return () => controller.abort();
   }, [actorId]);
+
+  /**
+   * Presets save on click.
+   *
+   * No separate confirm step: tapping "Private" is the decision, and a preset
+   * that needs a second button is one people leave half-applied believing it
+   * took effect.
+   */
+  async function applyPreset(name: SharingPresetName) {
+    setStatus('saving');
+    try {
+      const saved = await api.setSharingDefaults(
+        { rules: SHARING_PRESETS[name].rules },
+        actorId,
+      );
+      setFriends(levelOf(saved.rules, 'FRIENDS'));
+      setEveryone(levelOf(saved.rules, 'PUBLIC'));
+      setPreset(saved.preset);
+      setChosen(saved.chosen);
+      setShowCustom(false);
+      setStatus('saved');
+      window.setTimeout(() => setStatus('idle'), 2500);
+    } catch (err) {
+      setStatus('error');
+      void (err instanceof ApiError);
+    }
+  }
+
+  /** Straight to a file. No "we'll email it" — there is no mail delivery yet. */
+  async function downloadExport() {
+    setExporting(true);
+    try {
+      const data = await api.exportAccount(actorId);
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `friendszone-${data.profile.handle}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      void (err instanceof ApiError);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function reallyDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.deleteAccount(confirmHandle.trim(), actorId);
+      setDeleted(true);
+    } catch (err: unknown) {
+      setDeleteError(
+        err instanceof ApiError && err.status === 409
+          ? 'That handle doesn’t match. Nothing has been deleted.'
+          : 'Could not delete the account.',
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function save() {
     setStatus('saving');
@@ -52,7 +149,9 @@ export function SettingsScreen({ me, actorId, theme, onTheme }: Props) {
     if (friends !== 'HIDDEN') rules.push({ audience: { kind: 'FRIENDS' }, level: friends });
     if (everyone !== 'HIDDEN') rules.push({ audience: { kind: 'PUBLIC' }, level: everyone });
     try {
-      await api.setSharingDefaults({ rules }, actorId);
+      const saved = await api.setSharingDefaults({ rules }, actorId);
+      setPreset(saved.preset);
+      setChosen(saved.chosen);
       setStatus('saved');
       window.setTimeout(() => setStatus('idle'), 2500);
     } catch (err) {
@@ -97,6 +196,61 @@ export function SettingsScreen({ me, actorId, theme, onTheme }: Props) {
         </div>
       </section>
 
+      <Friends actorId={actorId} people={people} onGraphChanged={onGraphChanged} />
+
+      <Circles actorId={actorId} people={people} />
+
+      <section className="settings-card">
+        <h2>Your data</h2>
+        <p className="muted">
+          A copy of everything you can see of your own account. It contains what you already
+          have access to and nothing more — a report about you never says who filed it.
+        </p>
+        <div className="thing-buttons">
+          <button type="button" onClick={() => void downloadExport()} disabled={exporting}>
+            {exporting ? 'Preparing…' : 'Download your data'}
+          </button>
+        </div>
+      </section>
+
+      <section className="settings-card danger-card">
+        <h2>Delete your account</h2>
+        <p className="muted">
+          Immediate and permanent — there is no undo and no grace period. Your calendar,
+          things, and photos are destroyed.
+        </p>
+        <p className="muted">
+          Some things are kept, and it would be dishonest not to say so: blocks involving you
+          (so deleting can’t be used to get around one), open moderation cases about you until
+          they close, and other people’s copies of plans you shared with them.
+        </p>
+        {deleted ? (
+          <p className="onboard-note">Your account has been deleted.</p>
+        ) : (
+          <>
+            <label className="field">
+              <span>Type your handle ({me?.handle ?? '…'}) to confirm</span>
+              <input
+                value={confirmHandle}
+                onChange={(e) => setConfirmHandle(e.target.value)}
+                placeholder={me?.handle ?? ''}
+              />
+            </label>
+            {deleteError !== null && <p className="things-error">{deleteError}</p>}
+            <div className="thing-buttons">
+              <button
+                type="button"
+                className="danger-btn"
+                disabled={confirmHandle.trim() === '' || deleting}
+                onClick={() => void reallyDelete()}
+              >
+                {deleting ? 'Deleting…' : 'Delete my account permanently'}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
       <section className="settings-card">
         <h2>Default sharing</h2>
         <p className="muted">
@@ -108,6 +262,50 @@ export function SettingsScreen({ me, actorId, theme, onTheme }: Props) {
           <p className="muted">Loading…</p>
         ) : (
           <>
+            {/* Shown once, as a card. Never a modal and never repeated — a
+                privacy prompt that pesters is one people dismiss unread. */}
+            {!chosen && (
+              <p className="onboard-note">
+                You haven’t chosen yet, so you’re on the most private sensible setting:
+                friends see that you’re busy, and nothing more. Pick below if you’d like
+                something different.
+              </p>
+            )}
+
+            <div className="preset-list">
+              {SharingPresetName.options.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`preset-card${preset === name ? ' preset-on' : ''}`}
+                  aria-pressed={preset === name}
+                  onClick={() => {
+                    void applyPreset(name);
+                  }}
+                >
+                  <strong>{PRESET_LABEL[name]}</strong>
+                  <small>{SHARING_PRESETS[name].consequence}</small>
+                </button>
+              ))}
+            </div>
+
+            {preset === 'CUSTOM' && (
+              <p className="muted">
+                <strong>Custom.</strong> Your rules don’t match one of the three above —
+                they’re shown below exactly as you set them.
+              </p>
+            )}
+
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setShowCustom((v) => !v)}
+            >
+              {showCustom ? 'Hide finer control' : 'Finer control…'}
+            </button>
+
+            {showCustom && (
+              <>
             <DefaultRow name="Friends" sub="Everyone you’ve added" value={friends} onChange={setFriends} />
             <DefaultRow
               name="Everyone else"
@@ -130,6 +328,8 @@ export function SettingsScreen({ me, actorId, theme, onTheme }: Props) {
                 {status === 'saving' ? 'Saving…' : 'Save defaults'}
               </button>
             </div>
+              </>
+            )}
           </>
         )}
       </section>

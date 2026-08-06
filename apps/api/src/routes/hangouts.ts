@@ -132,6 +132,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts',
     authz: { kind: 'POLICY', action: 'hangout:send' },
     params: empty,
@@ -182,6 +183,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /** Your inbox: requests other people sent you. */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/hangouts/received',
     authz: { kind: 'POLICY', action: 'hangout:respond' },
     params: empty,
@@ -196,6 +198,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /** Your outbox: requests you proposed, and where they stand. */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/hangouts/sent',
     authz: { kind: 'POLICY', action: 'hangout:withdraw' },
     params: empty,
@@ -216,6 +219,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts/:id/respond',
     authz: { kind: 'POLICY', action: 'hangout:respond' },
     params: z.object({ id: HangoutRequestId }),
@@ -279,6 +283,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /** Read a single hangout you are a party to — used to manage it in place. */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/hangouts/:id',
     authz: { kind: 'POLICY', action: 'hangout:read' },
     params: z.object({ id: HangoutRequestId }),
@@ -300,6 +305,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /** Take back a request you sent, while it is still pending. */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts/:id/withdraw',
     authz: { kind: 'POLICY', action: 'hangout:withdraw' },
     params: z.object({ id: HangoutRequestId }),
@@ -330,6 +336,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'PATCH',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts/:id',
     authz: { kind: 'POLICY', action: 'hangout:update' },
     params: z.object({ id: HangoutRequestId }),
@@ -396,6 +403,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts/:id/reschedule',
     authz: { kind: 'POLICY', action: 'hangout:reschedule' },
     params: z.object({ id: HangoutRequestId }),
@@ -462,6 +470,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts/:id/cancel',
     authz: { kind: 'POLICY', action: 'hangout:cancel' },
     params: z.object({ id: HangoutRequestId }),
@@ -520,6 +529,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'POST',
+    rateLimit: 'WRITE',
     url: '/v1/hangouts/:id/book',
     authz: { kind: 'POLICY', action: 'hangout:book' },
     params: z.object({ id: HangoutRequestId }),
@@ -583,6 +593,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /** Your notifications. Yours alone — the port scopes to the actor. */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/notifications',
     authz: { kind: 'POLICY', action: 'notifications:read' },
     params: empty,

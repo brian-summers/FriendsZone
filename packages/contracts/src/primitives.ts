@@ -31,6 +31,12 @@ export type ClaimId = z.infer<typeof ClaimId>;
 export const ExchangeId = brandedId('ExchangeId');
 export type ExchangeId = z.infer<typeof ExchangeId>;
 
+export const ReportId = brandedId('ReportId');
+export type ReportId = z.infer<typeof ReportId>;
+
+export const ReportNoteId = brandedId('ReportNoteId');
+export type ReportNoteId = z.infer<typeof ReportNoteId>;
+
 /** RFC 3339 timestamp, always stored and transmitted in UTC. */
 export const Instant = z.string().datetime({ offset: true });
 export type Instant = z.infer<typeof Instant>;

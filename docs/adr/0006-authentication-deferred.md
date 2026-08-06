@@ -2,6 +2,10 @@
 
 **Status:** Accepted
 **Date:** 2026-07-20
+**Implemented by:** [ADR 0024](0024-authentication.md) (2026-08-01). This record
+stands as written — it is the reason the deferral was safe, and the constraint
+list below is what 0024 was held to. One item, Argon2id, was deviated from
+deliberately and is argued there.
 
 ## Context
 

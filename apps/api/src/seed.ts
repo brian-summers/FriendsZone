@@ -1,6 +1,8 @@
 import {
   CONSERVATIVE_SHARING_DEFAULTS,
   type CalendarEvent,
+  type Listing,
+  type ListingId,
   type CircleId,
   type EventId,
   type HangoutRequest,
@@ -366,16 +368,81 @@ export function createDemoSeed(now = new Date()): MemorySeed {
     },
   ];
 
+  /**
+   * One listing per claim mode, so the Things page demonstrates all three
+   * without anyone having to create them. Photoless: the demo seed cannot
+   * invent image bytes, and a fake photo key would 404 on the way back.
+   */
+  const listings: Listing[] = [
+    {
+      id: 'dddddddd-dddd-4ddd-8ddd-000000000001' as ListingId,
+      ownerId: ALICE,
+      title: 'Cast iron skillet',
+      description: 'Seasoned for about ten years. Heavy. Wants a hob that gets used.',
+      condition: 'GOOD',
+      priceMinorUnits: 0,
+      currency: 'USD',
+      photoKeys: [],
+      audience: { kind: 'FRIENDS' },
+      status: 'AVAILABLE',
+      claimMode: 'FIRST_COME',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
+    {
+      id: 'dddddddd-dddd-4ddd-8ddd-000000000002' as ListingId,
+      ownerId: ALICE,
+      title: 'Climbing shoes, 41',
+      description: 'Resoled once. Barely worn since.',
+      condition: 'LIKE_NEW',
+      priceMinorUnits: 0,
+      currency: 'USD',
+      photoKeys: [],
+      // Circle-scoped: Bob sees this, Carol and Dave do not, which is the whole
+      // point of the audience model showing up in a second feature.
+      audience: { kind: 'CIRCLE', circleId: CLIMBING_CREW },
+      status: 'AVAILABLE',
+      claimMode: 'OWNER_SELECTS',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
+    {
+      id: 'dddddddd-dddd-4ddd-8ddd-000000000003' as ListingId,
+      ownerId: CAROL,
+      title: 'Record player',
+      description: 'Belt needs replacing. Free to whoever draws it.',
+      condition: 'WORN',
+      currency: 'USD',
+      photoKeys: [],
+      audience: { kind: 'FRIENDS' },
+      status: 'AVAILABLE',
+      claimMode: 'LOTTERY',
+      claimsCloseAt: at(base, 10, 20),
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
+  ];
+
   return {
     profiles: PROFILES,
+    listings,
     friendships: [
       [ALICE, BOB],
       [ALICE, CAROL],
       [ALICE, DAVE],
       [BOB, CAROL],
     ],
+    // Directed: Alice blocked Mallory. Mallory has not blocked Alice.
     blocks: [[ALICE, MALLORY]],
-    circles: [{ id: CLIMBING_CREW, ownerId: ALICE, memberIds: [BOB] }],
+    circles: [
+      {
+        id: CLIMBING_CREW,
+        ownerId: ALICE,
+        name: 'Climbing crew',
+        memberIds: [BOB],
+        createdAt: nowIso,
+      },
+    ],
     events: drafts.map((d) => build(base, d)),
     sharingDefaults: [
       [ALICE, CONSERVATIVE_SHARING_DEFAULTS],

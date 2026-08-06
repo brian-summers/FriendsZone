@@ -13,6 +13,12 @@ const config: Config = {
   DATABASE_URL: 'postgres://localhost:5432/test',
   SESSION_SECRET: 'x'.repeat(48),
   PUBLIC_ORIGIN: 'http://localhost:5173',
+  MODERATOR_IDS: [],
+  REPORTS_EMAIL: 'reports@friends-zone.app',
+  // Off here: these suites hammer `app.inject` and would otherwise trip buckets
+  // in tests that are about something else. `rate-limit.test.ts` turns it on.
+  RATE_LIMIT_ENABLED: false,
+  TRUSTED_PROXY_HOPS: 0,
 };
 
 const as = (id: string) => ({ [DEV_ACTOR_HEADER]: id });

@@ -3,6 +3,24 @@ import { PolicyDeniedError, type DenyReason } from '@friendszone/policy';
 export interface HttpErrorResponse {
   readonly status: number;
   readonly body: { readonly error: string };
+  /** Extra response headers. Only `Retry-After` uses this today. */
+  readonly headers?: Readonly<Record<string, string>>;
+}
+
+/**
+ * Too many requests.
+ *
+ * `retryAfterSeconds` is echoed to the caller because it says only how long
+ * *they* must wait — a fact about themselves, disclosing nothing about anyone
+ * else or about whether any resource exists.
+ */
+export class RateLimitedError extends Error {
+  readonly retryAfterSeconds: number;
+  constructor(retryAfterSeconds: number) {
+    super('rate limited');
+    this.name = 'RateLimitedError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
 }
 
 /**
@@ -71,6 +89,13 @@ export function errorToResponse(error: unknown): HttpErrorResponse {
   }
   if (error instanceof ValidationError) {
     return { status: 400, body: { error: 'invalid_request' } };
+  }
+  if (error instanceof RateLimitedError) {
+    return {
+      status: 429,
+      body: { error: 'rate_limited' },
+      headers: { 'retry-after': String(error.retryAfterSeconds) },
+    };
   }
   return { status: 500, body: { error: 'internal_error' } };
 }

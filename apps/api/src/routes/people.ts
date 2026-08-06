@@ -1,4 +1,4 @@
-import { UserId, type PublicProfile } from '@friendszone/contracts';
+import { UserId, type MeView, type PublicProfile } from '@friendszone/contracts';
 import { assertAllowed, can, PolicyDeniedError } from '@friendszone/policy';
 import { z } from 'zod';
 import { defineRoute } from '../http/route.js';
@@ -13,11 +13,12 @@ export const buildPeopleRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/me',
     authz: { kind: 'POLICY', action: 'profile:read' },
     params: empty,
     query: empty,
-    handler: async (ctx): Promise<PublicProfile> => {
+    handler: async (ctx): Promise<MeView> => {
       if (ctx.actorId === null) {
         throw new PolicyDeniedError('profile:read', 'ANONYMOUS');
       }
@@ -30,7 +31,9 @@ export const buildPeopleRoutes = (repos: Repositories) => [
         // missing person. Same outward shape as any other denial.
         throw new PolicyDeniedError('profile:read', 'NOT_OWNER');
       }
-      return profile;
+      // Read back off the viewer context, so the client's idea of "am I a
+      // moderator" and the kernel's come from the same boot-time allowlist.
+      return { ...profile, isModerator: viewer.isModerator };
     },
   }),
 
@@ -42,6 +45,7 @@ export const buildPeopleRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/people',
     authz: { kind: 'POLICY', action: 'friends:list' },
     params: empty,
@@ -62,6 +66,7 @@ export const buildPeopleRoutes = (repos: Repositories) => [
    */
   defineRoute({
     method: 'GET',
+    rateLimit: 'READ',
     url: '/v1/people/:userId',
     authz: { kind: 'POLICY', action: 'profile:read' },
     params: z.object({ userId: UserId }),

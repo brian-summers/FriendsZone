@@ -27,6 +27,26 @@ export interface ViewerContext {
    * input to the decision, not part of any response.
    */
   readonly sharedCircleIds: readonly CircleId[];
+
+  /**
+   * Whether this caller is on the deployment's moderator allowlist.
+   *
+   * Sourced from `MODERATOR_IDS` in config, never from the database and never
+   * from anything a user can write — a role that can be escalated to through
+   * the API is a role that will be
+   * (docs/adr/0018-reporting-and-moderation.md).
+   *
+   * Required rather than optional on purpose. An omitted boolean would default
+   * to `false`, which is fail-closed and would be *fine*; it would also be
+   * invisible in review. Making every construction site name it means the
+   * compiler asks the question.
+   *
+   * This grants **no exemption from the visibility model**. There is no branch
+   * anywhere in `visibility.ts` or `projection.ts` that consults it. It unlocks
+   * the moderation queue and the evidence snapshots attached to reports —
+   * nothing else, and specifically not anyone's calendar.
+   */
+  readonly isModerator: boolean;
 }
 
 /** The context for a caller we know nothing about. Maximum restriction. */
@@ -34,6 +54,7 @@ export const ANONYMOUS_VIEWER: ViewerContext = Object.freeze({
   viewerId: null,
   relationship: 'NONE',
   sharedCircleIds: Object.freeze([]),
+  isModerator: false,
 });
 
 export const isSelf = (viewer: ViewerContext, ownerId: UserId): boolean =>

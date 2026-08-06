@@ -16,4 +16,6 @@ export * from './viewer.js';
 export * from './decision.js';
 export * from './visibility.js';
 export * from './projection.js';
+export * from './marketplace.js';
+export * from './slots.js';
 export * from './actions.js';

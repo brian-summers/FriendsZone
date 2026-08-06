@@ -260,3 +260,67 @@ export const CalendarView = z.object({
   holds: z.array(HangoutHold),
 });
 export type CalendarView = z.infer<typeof CalendarView>;
+
+// ── The slot finder ───────────────────────────────────────────────────
+
+/**
+ * Participants in one query, including the requester.
+ *
+ * Bounded to hold fan-out down and to keep the inference surface small — see
+ * docs/adr/0008-slot-finder-on-projections.md.
+ */
+export const MAX_SLOT_PARTICIPANTS = 20;
+
+/**
+ * Suggestions are quantized to this grid.
+ *
+ * A free window is rounded *inward* — start up, end down — so a suggestion can
+ * never straddle time that is actually busy, and the exact boundary of the
+ * event that created the gap is never visible. Both directions matter: rounding
+ * outward would suggest busy time, and rounding start-only would still leak the
+ * end boundary.
+ */
+export const SLOT_GRID_MINUTES = 15;
+
+export const FindSlotsInput = z.object({
+  /**
+   * Who to find time for, besides you. The requester is always included, so
+   * this is the *other* people.
+   */
+  participantIds: z.array(UserId).min(1).max(MAX_SLOT_PARTICIPANTS - 1),
+  window: TimeRange,
+  /** How long you need. A multiple of the grid, so results are representable. */
+  durationMinutes: z
+    .number()
+    .int()
+    .min(SLOT_GRID_MINUTES)
+    .max(12 * 60)
+    .refine((m) => m % SLOT_GRID_MINUTES === 0, {
+      message: `must be a multiple of ${SLOT_GRID_MINUTES} minutes`,
+    }),
+  /** Local hour bounds, so nobody is offered 04:00. Inclusive start, exclusive end. */
+  earliestHour: z.number().int().min(0).max(23).default(8),
+  latestHour: z.number().int().min(1).max(24).default(22),
+});
+export type FindSlotsInput = z.infer<typeof FindSlotsInput>;
+
+/**
+ * How a single participant contributed to the answer.
+ *
+ * `sharesAvailability: false` is the honest denominator the interface is
+ * required to show. It says a *grant does not exist* — it carries nothing about
+ * that person's calendar, no content and no counts. Without it the feature
+ * confidently reports a stranger as free all week
+ * (docs/adr/0008-slot-finder-on-projections.md).
+ */
+export const SlotParticipant = z.object({
+  userId: UserId,
+  sharesAvailability: z.boolean(),
+});
+export type SlotParticipant = z.infer<typeof SlotParticipant>;
+
+export const FindSlotsResult = z.object({
+  slots: z.array(TimeRange),
+  participants: z.array(SlotParticipant),
+});
+export type FindSlotsResult = z.infer<typeof FindSlotsResult>;
