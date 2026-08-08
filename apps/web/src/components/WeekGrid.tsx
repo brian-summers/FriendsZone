@@ -352,8 +352,9 @@ export function WeekGrid({
                       </span>
                     )}
                     {shared && (
-                      <span className="seen-badge" title={`Others see: ${shared.label}`}>
-                        {shared.glyph} {shared.label}
+                      <span className="seen-badge">
+                        <span className="g">{shared.glyph}</span>
+                        <span className="w">{shared.label}</span>
                       </span>
                     )}
                   </>

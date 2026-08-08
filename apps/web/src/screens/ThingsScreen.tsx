@@ -390,13 +390,20 @@ function ListingCard({
             <p className="side-note">Nobody has asked yet.</p>
           )}
 
+          {listing.claimMode === 'LOTTERY' && !settled && !closed && (
+            <p className="side-note" id={`draw-${listing.id}`}>
+              You can draw once entries close. Refusing a draw before the deadline is what
+              makes it a draw.
+            </p>
+          )}
+
           <div className="thing-buttons">
             {listing.claimMode === 'LOTTERY' && !settled && (
               <button
                 type="button"
                 className="accent"
                 disabled={!closed}
-                title={closed ? undefined : 'You can draw once entries close.'}
+                aria-describedby={closed ? undefined : `draw-${listing.id}`}
                 onClick={() => onAct(() => api.drawListing(listing.id, actorId))}
               >
                 Draw a winner

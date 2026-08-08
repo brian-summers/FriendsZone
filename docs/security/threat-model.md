@@ -26,21 +26,16 @@ enabling someone to physically locate a person who is avoiding them.
 
 ## Trust boundaries
 
-```
-  Internet
-     │
-     ▼  ── boundary 1: untrusted input, unauthenticated by default
- ┌──────────────┐
- │  apps/api    │  parses, authenticates, shapes errors
- └──────┬───────┘
-        │  ── boundary 2: only ViewerContext + entities cross
- ┌──────▼───────────────┐
- │  packages/policy     │  pure. no I/O. cannot be tricked by a fetch
- └──────┬───────────────┘
-        │  ── boundary 3: ports; raw rows in, nothing sensitive out
- ┌──────▼───────┐
- │ repositories │
- └──────────────┘
+```mermaid
+flowchart TD
+    net(["Internet"])
+    api["<b>apps/api</b><br/>parses · authenticates · shapes errors"]
+    policy["<b>packages/policy</b><br/>pure — no I/O, so it cannot be tricked by a fetch"]
+    repos["<b>repositories</b>"]
+
+    net -->|"<b>boundary 1</b><br/>untrusted input,<br/>unauthenticated by default"| api
+    api -->|"<b>boundary 2</b><br/>only ViewerContext<br/>+ entities cross"| policy
+    policy -->|"<b>boundary 3</b><br/>ports: raw rows in,<br/>nothing sensitive out"| repos
 ```
 
 Boundary 2 is the interesting one. Because the policy engine performs no I/O, an

@@ -9,6 +9,7 @@ import {
 } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
 import { Circles } from '../components/Circles.js';
+import { Explainer } from '../components/Explainer.js';
 import { Friends } from '../components/Friends.js';
 import type { ThemeChoice } from '../lib/theme.js';
 import { encodingFor } from '../lib/visibility.js';
@@ -177,10 +178,12 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
       </section>
 
       <section className="settings-card">
-        <h2>Appearance</h2>
-        <p className="muted">
-          Follows your system by default. This choice is remembered on this device.
-        </p>
+        <h2>
+          Appearance
+          <Explainer label="About appearance">
+            Follows your system by default. This choice is remembered on this device.
+          </Explainer>
+        </h2>
         <div className="seg">
           {THEMES.map((choice) => (
             <button
@@ -201,11 +204,14 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
       <Circles actorId={actorId} people={people} />
 
       <section className="settings-card">
-        <h2>Your data</h2>
-        <p className="muted">
-          A copy of everything you can see of your own account. It contains what you already
-          have access to and nothing more — a report about you never says who filed it.
-        </p>
+        <h2>
+          Your data
+          <Explainer label="About your data download">
+            A copy of everything you can see of your own account. It contains what you
+            already have access to and nothing more — a report about you never says who
+            filed it.
+          </Explainer>
+        </h2>
         <div className="thing-buttons">
           <button type="button" onClick={() => void downloadExport()} disabled={exporting}>
             {exporting ? 'Preparing…' : 'Download your data'}
@@ -252,11 +258,13 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
       </section>
 
       <section className="settings-card">
-        <h2>Default sharing</h2>
-        <p className="muted">
-          What each audience sees of an event when you don’t choose otherwise. Most events use this,
-          so it is the most important privacy control in the product.
-        </p>
+        <h2>
+          Default sharing
+          <Explainer label="About default sharing">
+            What each audience sees of an event when you don’t choose otherwise. Most
+            events use this, so it is the most important privacy control in the product.
+          </Explainer>
+        </h2>
 
         {!loaded ? (
           <p className="muted">Loading…</p>
@@ -291,8 +299,11 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
 
             {preset === 'CUSTOM' && (
               <p className="muted">
-                <strong>Custom.</strong> Your rules don’t match one of the three above —
-                they’re shown below exactly as you set them.
+                <strong>Custom.</strong>
+                <Explainer label="What custom means">
+                  Your rules don’t match one of the three above — they’re shown below
+                  exactly as you set them.
+                </Explainer>
               </p>
             )}
 

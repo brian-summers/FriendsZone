@@ -4,10 +4,13 @@ One CloudFront distribution in front of an S3 bucket (the client) and a
 container (the API), with Postgres behind it. Rationale and the alternatives
 that lost: [ADR 0027](../adr/0027-deploy-on-aws.md).
 
-```
-  friends-zone.app ──→ CloudFront ──┬── /api/*  ──→ App Runner  ──→ Aurora Serverless v2
-                                    │                          └──→ S3 (listing photos)
-                                    └── /*      ──→ S3 (built client)
+```mermaid
+flowchart LR
+    dns(["friends-zone.app"]) --> cf["CloudFront"]
+    cf -->|"/api/*"| app["App Runner"]
+    cf -->|"/*"| web[("S3 — built client")]
+    app --> db[("Aurora Serverless v2")]
+    app --> photos[("S3 — listing photos")]
 ```
 
 **Two things to avoid, because they are most of the idle bill:** a NAT Gateway

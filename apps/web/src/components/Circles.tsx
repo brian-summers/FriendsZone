@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CircleView, PublicProfile, UserId } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
+import { Explainer } from './Explainer.js';
 
 /**
  * Managing circles.
@@ -58,10 +59,15 @@ export function Circles({ actorId, people }: Props) {
 
   return (
     <section className="settings-card">
-      <h2>Circles</h2>
+      <h2>
+        Circles
+        <Explainer label="About circles">
+          Private groupings of your friends, so you can share something with just the
+          climbing lot.
+        </Explainer>
+      </h2>
       <p className="muted">
-        Private groupings of your friends, so you can share something with just the climbing
-        lot. <strong>Only you ever see a circle or its name</strong> — nobody is told they’re in
+        <strong>Only you ever see a circle or its name</strong> — nobody is told they’re in
         one.
       </p>
 

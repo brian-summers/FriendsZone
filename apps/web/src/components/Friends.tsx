@@ -7,6 +7,7 @@ import type {
 } from '@friendszone/contracts';
 import { MIN_SEARCH_LENGTH } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
+import { Explainer } from './Explainer.js';
 
 /**
  * Friends: finding people, answering requests, unfriending, and blocking.
@@ -183,7 +184,12 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
 
       {/* ── Search ──────────────────────────────────────────────── */}
       <div className="friends-group">
-        <h3>Find someone</h3>
+        <h3>
+          Find someone
+          <Explainer label="About finding people">
+            You can search by handle or by the name someone chose to show.
+          </Explainer>
+        </h3>
         <label className="field">
           <span className="field-label">Handle or name</span>
           <input
@@ -195,10 +201,7 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
         </label>
 
         {results === null ? (
-          <p className="muted">
-            Type at least {MIN_SEARCH_LENGTH} characters. You can search by handle or by the name
-            someone chose to show.
-          </p>
+          <p className="muted">Type at least {MIN_SEARCH_LENGTH} characters.</p>
         ) : results.length === 0 ? (
           // Deliberately incurious. "No matches" is all anyone gets, whether the
           // handle is unused, misspelled, or belongs to someone who blocked them.

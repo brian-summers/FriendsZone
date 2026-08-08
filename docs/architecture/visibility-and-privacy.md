@@ -96,12 +96,12 @@ grants access without an affirmative match.
 `projectEvent(event, level)` builds the viewer's copy. It is a **whitelist**:
 each level names the fields it emits.
 
-```
-HIDDEN → nothing
-BUSY   → { start, end }                      ← no id, no title
-TITLE  → { id, ownerId, timeRange, title, status }
-FULL   → TITLE + { description?, location?, attendeeIds }
-```
+| Level | Fields emitted | Deliberately absent |
+|---|---|---|
+| `HIDDEN` | *nothing at all* | the event does not appear in any form |
+| `BUSY` | `start`, `end` | **no `id`** — an id is a handle for correlation; **no `title`** |
+| `TITLE` | `id`, `ownerId`, `timeRange`, `title`, `status` | `description`, `location`, `attendeeIds` |
+| `FULL` | everything in `TITLE`, plus `description?`, `location?`, `attendeeIds` | — |
 
 > A `...event` spread anywhere in `projection.ts` is a security bug. The
 > whitelist is what makes adding a field to `CalendarEvent` unable to leak it by

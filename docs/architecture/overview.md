@@ -23,28 +23,24 @@ calendar's privacy semantics right and the rest inherits them.
 
 ## Layers
 
-```
-┌──────────────────────────────────────────────────────────┐
-│ apps/api            transport, authn, error shaping      │
-│                     ── owns NO authorization logic ──    │
-├──────────────────────────────────────────────────────────┤
-│ packages/policy     THE SECURITY KERNEL                  │
-│                     can() · resolveEventVisibility()     │
-│                     projectCalendar()                    │
-│                     pure · no I/O · no deps but contracts│
-├──────────────────────────────────────────────────────────┤
-│ packages/contracts  Zod schemas → inferred TS types      │
-│                     one definition per domain concept    │
-└──────────────────────────────────────────────────────────┘
-         ▲
-         │ ports (interfaces) defined by the app,
-         │ implemented by adapters
-┌────────┴─────────────────────────────────────────────────┐
-│ repositories/       memory (today) → postgres (next)     │
-└──────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    api["<b>apps/api</b><br/>transport · authn · error shaping<br/><i>owns NO authorization logic</i>"]
+    policy["<b>packages/policy</b> — THE SECURITY KERNEL<br/>can() · resolveEventVisibility() · projectCalendar()<br/><i>pure · no I/O · no dependency but contracts</i>"]
+    contracts["<b>packages/contracts</b><br/>Zod schemas → inferred TS types<br/><i>one definition per domain concept</i>"]
+    repos["<b>repositories/</b><br/>memory (tests) · PostgreSQL (production)"]
+
+    api --> policy
+    policy --> contracts
+    repos -. "implements ports<br/>declared by the app" .-> api
+
+    classDef kernel stroke-width:3px;
+    class policy kernel;
 ```
 
-The dependency arrow only ever points inward. `packages/policy` cannot import
+Dependencies point **inward only**, and the dashed edge is the inversion that
+makes it work: the repositories implement interfaces the application declares,
+so the arrow of dependency runs opposite to the arrow of data. `packages/policy` cannot import
 from `apps/api`; it cannot import a database driver; it cannot read the clock or
 the environment. That constraint is what makes every authorization decision
 reproducible from its arguments, and therefore exhaustively testable — which is

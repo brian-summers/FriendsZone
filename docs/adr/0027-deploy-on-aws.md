@@ -21,16 +21,33 @@ oversized managed services, and scaling later should not be a rewrite.
 
 ### One CloudFront distribution in front of everything
 
+```mermaid
+flowchart LR
+    dns(["friends-zone.app"])
+
+    subgraph cf ["One CloudFront distribution"]
+        direction TB
+        apiPath["/api/*"]
+        webPath["/*"]
+    end
+
+    apiOrigin["API origin<br/>(container)"]
+    s3web["S3 — the built client"]
+    pg[("Postgres<br/>RDS / Aurora Serverless v2")]
+    s3photos[("S3 — listing photos")]
+    ses["SES — email, when it exists"]
+
+    dns --> cf
+    apiPath -->|"caching OFF"| apiOrigin
+    webPath --> s3web
+    apiOrigin --> pg
+    apiOrigin --> s3photos
+    apiOrigin -.-> ses
 ```
-                    ┌──────────────── CloudFront ────────────────┐
-   friends-zone.app │  /api/*  →  API origin (container)         │
-                    │  /*      →  S3 bucket (the built client)   │
-                    └────────────────────────────────────────────┘
-                                        │
-                        API ──→ Postgres (RDS / Aurora Serverless v2)
-                        API ──→ S3 (listing photos)
-                        API ──→ SES (email, when it exists)
-```
+
+Caching is off for `/api/*` and that is not a tuning choice: a CDN that cached
+one viewer's projection and served it to another would defeat the entire
+security model in a single response.
 
 The single distribution is not a convenience — it is the thing that preserves a
 **documented security property**. `apps/web/src/lib/api.ts` says it plainly:

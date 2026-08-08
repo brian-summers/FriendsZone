@@ -461,6 +461,9 @@ button.chip.hold:hover {
   position: absolute;
   right: 3px;
   bottom: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
   font-family: var(--font-mono);
   font-size: 0.5rem;
   letter-spacing: 0.03em;
@@ -471,6 +474,15 @@ button.chip.hold:hover {
   border: 1px solid var(--rule);
   pointer-events: none;
   max-width: calc(100% - 6px);
+}
+/* The glyph never shrinks and never truncates. The word may ellipsize on a
+   narrow chip, and when it does the glyph is what keeps the level readable —
+   so the two are separate elements rather than one truncating string. Four
+   redundant channels is the rule; this is what makes the fourth degrade
+   gracefully instead of vanishing. See packages/design-tokens/src/visibility.ts. */
+.seen-badge .g { flex: none; }
+.seen-badge .w {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1775,6 +1787,69 @@ button.chip.hold:hover {
   font: inherit;
   font-size: 0.875rem;
   max-width: 20rem;
+}
+
+/* ── Explainer popover ─────────────────────────────────────────────────
+   Orientation text only. Consequence text stays on the page — see the
+   rationale in apps/web/src/components/Explainer.tsx. */
+
+.explainer { position: relative; display: inline-flex; vertical-align: middle; }
+
+.explainer-trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-left: var(--space-2xs);
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.explainer-trigger:hover { color: var(--ink); border-color: var(--ink3); }
+.explainer-trigger[aria-expanded='true'] {
+  color: var(--verdigris);
+  border-color: var(--verdigris);
+}
+
+.explainer-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  display: block;
+  width: max-content;
+  /* Bounded so a long sentence does not stretch to the viewport edge, and
+     clamped so the panel can never overflow a narrow screen. */
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: 0 6px 20px color-mix(in srgb, #000 18%, transparent);
+  color: var(--ink2);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+.explainer-panel strong { color: var(--ink); }
+
+/* Near the right edge the panel flips its anchor rather than clipping. */
+.explainer.align-end .explainer-panel { left: auto; right: 0; }
+
+@media (max-width: 34rem) {
+  /* On a phone the panel spans the card instead of tracking the trigger,
+     which at this width would leave it half off-screen. */
+  .explainer { position: static; }
+  .explainer-panel { left: var(--space-md); right: var(--space-md); width: auto; max-width: none; }
 }
 
 /* ── Friends ───────────────────────────────────────────────────────── */
