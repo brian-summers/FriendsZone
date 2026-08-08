@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AA_LARGE, AA_NORMAL, contrastRatio } from './contrast.js';
-import { DARK, FOREGROUNDS, GROUNDS, LIGHT, type ColorScheme } from './color.js';
+import { FOREGROUNDS, GROUNDS, type ColorScheme } from './color.js';
+import { PALETTE_NAMES, PALETTES } from './palettes.js';
 import { VISIBILITY_TREATMENTS, type VisibilityLevelName } from './visibility.js';
 
 /**
@@ -11,10 +12,13 @@ import { VISIBILITY_TREATMENTS, type VisibilityLevelName } from './visibility.js
  * ship untested. Contrast gets the same treatment. "Check the contrast" is a
  * review comment people forget; a failing test is not.
  */
-describe.each([
-  ['light', LIGHT],
-  ['dark', DARK],
-])('%s palette', (themeName, scheme: ColorScheme) => {
+/** Every palette in every mode. A new palette is gated the day it is added. */
+const SCHEMES: Array<[string, ColorScheme]> = PALETTE_NAMES.flatMap((name) => [
+  [`${name} light`, PALETTES[name].light] as [string, ColorScheme],
+  [`${name} dark`, PALETTES[name].dark] as [string, ColorScheme],
+]);
+
+describe.each(SCHEMES)('%s', (themeName, scheme: ColorScheme) => {
   it.each(GROUNDS)('every foreground meets AA on %s', (ground) => {
     for (const fg of FOREGROUNDS) {
       const ratio = contrastRatio(scheme[fg], scheme[ground]);

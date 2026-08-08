@@ -73,7 +73,10 @@ backed by a test that will fail.
    channels — fill, border, glyph, label — at every breakpoint and density.
    Dropping one is a safety regression, not a visual tweak.
 12. **Never hard-code a colour.** Use tokens from `@friendszone/design-tokens`.
-    Button text uses `onVerdigris`; `#fff` is unreadable on dark-theme verdigris.
+    Button text uses `onVerdigris`; a filled event chip uses `--on-hue`. `#fff`
+    is unreadable on dark-theme verdigris, and on five of Signal's six hues.
+    A theme is a **palette** × a **mode**; every palette declares all four
+    combinations, and category hues are gated on colour-vision separation.
 13. **On writes, the server owns identity.** `ownerId` (and any id) comes from
     the authenticated actor, never the request body — the input schema has no
     field for it. A route that reads `ownerId` from the body is a bug. Every
@@ -141,6 +144,14 @@ anything in this list, read the comment next to it — each has one:
 - The authenticator throws in production → the auth gap must not be deployable.
 - `assertNever` in every default branch → a new union member must break the
   build.
+- `tokens.css` repeats all four palette-and-mode blocks per palette →
+  `[data-theme]` and `[data-palette]` tie on specificity, so omitting one lets
+  source order decide and pairs one palette's chrome with another's hues.
+- A `v-FULL` chip's border is `color-mix(hue 65%, ink)` rather than the hue →
+  a light hue cannot reach 3:1 against a light ground at all, so the edge, not
+  the fill, is what makes the chip a distinguishable shape.
+- Hue custom properties are numbered `--hue-1..6`, not named for colours →
+  slot 4 is aqua in Verdigris and orange in Signal; a colour name would lie.
 
 If one genuinely is redundant, say so and explain why rather than silently
 deleting it.

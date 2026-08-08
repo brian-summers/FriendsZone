@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PALETTES, PALETTE_NAMES } from '@friendszone/design-tokens';
 import {
   SHARING_PRESETS,
   SharingPresetName,
@@ -11,7 +12,7 @@ import { api, ApiError } from '../lib/api.js';
 import { Circles } from '../components/Circles.js';
 import { Explainer } from '../components/Explainer.js';
 import { Friends } from '../components/Friends.js';
-import type { ThemeChoice } from '../lib/theme.js';
+import type { ThemeChoice, ThemeSelection } from '../lib/theme.js';
 import { encodingFor } from '../lib/visibility.js';
 
 interface Props {
@@ -19,8 +20,8 @@ interface Props {
   /** Friends, for circle membership. */
   people: PublicProfile[];
   actorId: string;
-  theme: ThemeChoice;
-  onTheme: (choice: ThemeChoice) => void;
+  theme: ThemeSelection;
+  onTheme: (next: ThemeSelection) => void;
   /** The friend list lives in the shell, so changes here have to reach it. */
   onGraphChanged: () => void;
 }
@@ -184,19 +185,63 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
             Follows your system by default. This choice is remembered on this device.
           </Explainer>
         </h2>
-        <div className="seg">
-          {THEMES.map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              className={theme === choice ? 'seg-on' : ''}
-              aria-pressed={theme === choice}
-              onClick={() => onTheme(choice)}
-            >
-              {choice[0]!.toUpperCase() + choice.slice(1)}
-            </button>
-          ))}
-        </div>
+
+        {/* Two independent choices, presented as two. Merging them into one
+            list of six would mean picking Signal for its colour-vision hues
+            also meant accepting whichever lighting condition it shipped with. */}
+        <fieldset className="field theme-group">
+          <legend className="field-label">Light or dark</legend>
+          <div className="seg">
+            {THEMES.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                className={theme.mode === choice ? 'seg-on' : ''}
+                aria-pressed={theme.mode === choice}
+                onClick={() => onTheme({ ...theme, mode: choice })}
+              >
+                {choice[0]!.toUpperCase() + choice.slice(1)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="field theme-group">
+          <legend className="field-label">Colours</legend>
+          <div className="palette-list">
+            {PALETTE_NAMES.map((name) => {
+              const palette = PALETTES[name];
+              const hues = theme.mode === 'dark' ? palette.huesDark : palette.huesLight;
+              const on = theme.palette === name;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={`palette-option${on ? ' palette-on' : ''}`}
+                  aria-pressed={on}
+                  onClick={() => onTheme({ ...theme, palette: name })}
+                >
+                  <span className="palette-head">
+                    <strong>{palette.label}</strong>
+                    {on ? <span className="palette-current">In use</span> : null}
+                  </span>
+                  {/* A swatch row is a preview, not the label — the name and
+                      the sentence carry it, so this reads fine in monochrome. */}
+                  <span className="palette-swatches" aria-hidden="true">
+                    {hues.map((h) => (
+                      <span
+                        key={h.hex}
+                        className="palette-swatch"
+                        style={{ background: h.hex }}
+                      />
+                    ))}
+                  </span>
+                  <span className="palette-blurb">{palette.blurb}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
       </section>
 
       <Friends actorId={actorId} people={people} onGraphChanged={onGraphChanged} />

@@ -12,3 +12,5 @@ export * from './color.js';
 export * from './type.js';
 export * from './visibility.js';
 export * from './contrast.js';
+export * from './cvd.js';
+export * from './palettes.js';

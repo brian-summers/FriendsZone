@@ -51,11 +51,67 @@ read as *serious*, not as an emergency. The one place genuine alarm is warranted
 — reporting a safety problem with an exchange — earns it through weight,
 iconography, and confirmation copy rather than by turning the palette up.
 
-**Never hard-code button text color.** Use `onVerdigris`. White on verdigris is
+**Never hard-code text color on a filled surface.** Use `onVerdigris` for
+buttons and `--on-hue` for a filled event chip. White on verdigris is
 6.42:1 in light and **2.16:1 in dark**, because dark-theme verdigris is lifted
 to stay legible on a dark ground. A hard-coded `#fff` passes a light-mode
 eyeball check and ships an unreadable dark-mode button. This is exactly the
 class of bug a token prevents and a hex value invites.
+
+## Palettes and modes
+
+A theme is **two independent choices**: a palette and a mode. They are kept
+separate for one reason — collapsing them into a single list of six options
+would mean someone who needs the colourblind-safe hues has to accept whichever
+lighting condition that entry happened to ship with. Nobody should have to
+trade dark mode for legibility.
+
+| Palette | For |
+|---|---|
+| **Verdigris** | The default. Oxidised copper and aged metal |
+| **Harbor** | Cooler — slate and deep blue instead of green |
+| **Signal** | Colour vision deficiency. Neutral chrome, so the only saturated colour on screen is the one carrying information |
+
+`data-palette` and `data-theme` are independent attributes on the root, and
+`tokens.css` spells out **all four** palette-and-mode combinations for every
+palette. That is not redundancy: `:root[data-theme='dark']` and
+`:root[data-palette='signal']` have equal specificity, so without the explicit
+pair the winner would be decided by source order, and Signal-plus-dark would
+silently get Verdigris's chrome behind Signal's hues.
+
+### Colour vision is a build gate too
+
+Colour carries exactly one thing here: which calendar an event belongs to.
+Visibility — the part that can hurt someone — is carried by
+[four redundant channels](../../packages/design-tokens/src/visibility.ts) and
+never by hue.
+
+Even so, the shipped palette had a real defect, and it was invisible until
+somebody measured it. Under deuteranopia the old `moss` and `clay` hues sat
+**ΔE 0.6** apart — below the ~2.3 just-noticeable difference. They were the same
+colour for roughly 1 in 12 men. No amount of careful review would have caught
+it, because everyone reviewing could see the difference perfectly well.
+
+So [`cvd.ts`](../../packages/design-tokens/src/cvd.ts) simulates protanopia,
+deuteranopia and tritanopia (Machado et al. 2009), and `cvd.test.ts` measures
+the closest pair in every palette:
+
+- **Every palette**: all six hues ≥ **ΔE 12** apart under every vision type.
+  No two calendars can be confusable for anyone.
+- **Signal**: ≥ **ΔE 15**, and its light hues are the published
+  **Okabe–Ito** set, unmodified.
+
+A search maximising separation reaches ΔE 35 — and returns neon cyan and lime.
+Above roughly 20 the extra distance buys nothing anyone can perceive, so Signal
+pins the standard rather than trying to beat it on a metric. "We can out-score
+the reference palette" is how a known-good thing gets quietly replaced with an
+unreviewed one.
+
+One consequence worth stating, because it looks like an oversight: **a chip's
+fill cannot be what makes it a distinguishable shape.** Okabe–Ito's orange is
+inherently light, and no light colour reaches 3:1 against a light ground — the
+arithmetic does not allow it. The 2px border does that work, mixed toward `ink`
+so it darkens in light mode and lightens in dark.
 
 ### Contrast is a build gate
 

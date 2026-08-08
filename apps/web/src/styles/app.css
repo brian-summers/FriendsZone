@@ -376,9 +376,16 @@ button.chip { cursor: pointer; display: block; width: calc(100% - 4px); }
 }
 
 .chip.v-FULL {
-  border: 2px solid var(--hue);
+  /* The border, not the fill, is what makes a chip a distinguishable shape.
+     A light hue cannot reach 3:1 against a light ground at all — the
+     arithmetic forbids it — so the edge is mixed toward ink, which darkens it
+     in light mode and lightens it in dark. Ratio lives in
+     packages/design-tokens/src/palettes.ts and is verified by cvd.test.ts. */
+  border: 2px solid color-mix(in srgb, var(--hue) 65%, var(--ink));
   background: var(--hue);
-  color: #FFFFFF;
+  /* Never #fff: five of Signal's six hues are light enough to need dark text,
+     which is the same trap `--on-verdigris` exists to close. */
+  color: var(--on-hue);
 }
 
 .chip.cancelled .ttl { text-decoration: line-through; opacity: 0.7; }
@@ -1162,9 +1169,11 @@ button.chip.hold:hover {
   color: var(--ink2);
   white-space: nowrap;
 }
-.mode-first_come { border-color: var(--hue-moss); color: var(--hue-moss); }
-.mode-lottery { border-color: var(--hue-plum); color: var(--hue-plum); }
-.mode-owner_selects { border-color: var(--hue-slate); color: var(--hue-slate); }
+/* Slots, not colour names — these differ per palette. The pills also carry a
+   text label, so the colour is reinforcement and never the sole channel. */
+.mode-first_come { border-color: var(--hue-1); color: var(--hue-1); }
+.mode-lottery { border-color: var(--hue-3); color: var(--hue-3); }
+.mode-owner_selects { border-color: var(--hue-5); color: var(--hue-5); }
 
 .thing-owner { margin: 0; font-size: 0.8125rem; color: var(--ink3); }
 .thing-desc { margin: 0; font-size: 0.875rem; color: var(--ink2); line-height: 1.5; }
@@ -1788,6 +1797,51 @@ button.chip.hold:hover {
   font-size: 0.875rem;
   max-width: 20rem;
 }
+
+/* ── Palette picker ────────────────────────────────────────────────── */
+
+.theme-group { margin-bottom: var(--space-md); }
+.theme-group:last-child { margin-bottom: 0; }
+.theme-group .field-label { margin-bottom: var(--space-2xs); }
+
+.palette-list { display: grid; gap: var(--space-xs); }
+
+.palette-option {
+  display: grid;
+  gap: var(--space-2xs);
+  text-align: left;
+  padding: var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.palette-option:hover { border-color: var(--ink3); }
+/* Selection is carried by the border, the word "In use", and aria-pressed —
+   never by colour alone, which would be self-defeating on this control of all
+   controls. */
+.palette-option.palette-on { border-color: var(--verdigris); border-width: 2px; padding: calc(var(--space-sm) - 1px); }
+
+.palette-head { display: flex; align-items: baseline; gap: var(--space-xs); }
+.palette-head strong { font-size: 0.9375rem; }
+.palette-current {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--verdigris);
+}
+
+.palette-swatches { display: flex; gap: 3px; }
+.palette-swatch {
+  width: 1.5rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+}
+
+.palette-blurb { color: var(--ink3); font-size: 0.8125rem; line-height: 1.5; }
 
 /* ── Explainer popover ─────────────────────────────────────────────────
    Orientation text only. Consequence text stays on the page — see the

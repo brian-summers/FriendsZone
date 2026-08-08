@@ -166,7 +166,7 @@ export function WeekGrid({
 
   return (
     <div className="cal-scroll">
-      <div className="cal" style={{ ['--hue' as string]: hue }}>
+      <div className="cal" style={hue as React.CSSProperties}>
         <div className="cal-head corner" />
         {days.map((day) => (
           <div

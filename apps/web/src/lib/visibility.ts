@@ -42,19 +42,28 @@ export function encodingFor(level: VisibilityLevelName): ChipEncoding {
  * of the visibility channels, so it can never imply something false about who
  * can see an event.
  */
-const HUE_VARS = [
-  '--hue-verdigris',
-  '--hue-slate',
-  '--hue-plum',
-  '--hue-moss',
-  '--hue-brass',
-  '--hue-clay',
-] as const;
+/**
+ * Hue *slots*, not colour names.
+ *
+ * They were named for colours once — `--hue-moss`, `--hue-clay` — which stopped
+ * being true the moment a second palette existed, and would have been an
+ * outright lie in Signal where slot 4 is orange. Numbered slots say what these
+ * actually are: six positions a palette fills however it likes.
+ */
+export const HUE_SLOTS = 6;
 
-export function hueFor(ownerId: string): string {
+/** The fill for a calendar, and the text colour that is legible on it. */
+export interface HueVars {
+  '--hue': string;
+  '--on-hue': string;
+}
+
+export function hueFor(ownerId: string): HueVars {
   let hash = 0;
   for (let i = 0; i < ownerId.length; i += 1) {
     hash = (hash * 31 + ownerId.charCodeAt(i)) >>> 0;
   }
-  return `var(${HUE_VARS[hash % HUE_VARS.length]})`;
+  // 1-based, matching the CSS custom property names.
+  const slot = (hash % HUE_SLOTS) + 1;
+  return { '--hue': `var(--hue-${slot})`, '--on-hue': `var(--on-hue-${slot})` };
 }

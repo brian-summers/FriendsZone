@@ -1,13 +1,24 @@
 /*
  * Design tokens as CSS custom properties.
  *
- * This file is a hand-written mirror of @friendszone/design-tokens. It is
- * duplication with a guard: `tokens.test.ts` parses this file and asserts every
- * value matches the TypeScript source exactly, so the two cannot drift.
+ * Generated once from @friendszone/design-tokens and then checked in, so the
+ * palette exists before any JavaScript runs — a runtime-built palette flashes
+ * unstyled on every cold load. `tokens.test.ts` parses this file and asserts
+ * every value still matches the TypeScript source, so the duplication cannot
+ * drift. Regenerate rather than hand-edit.
  *
- * Written rather than generated so the tokens exist before any JavaScript
- * runs — a generated-at-runtime palette flashes unstyled on every cold load,
- * which is a poor trade for a file that CI keeps honest anyway.
+ * A theme is two independent choices: a **palette** (data-palette) and a
+ * **mode** (data-theme). They are separate so that someone who needs the
+ * colourblind-safe hues does not have to give up dark mode to get them.
+ *
+ * Cascade order matters and is deliberate:
+ *   1. bare :root       — the pre-JavaScript fallback, and the no-JS answer
+ *   2. the media query  — the OS preference, when no explicit mode is set
+ *   3. [data-theme]     — an explicit mode, which must beat the OS in *both*
+ *                         directions (light on a dark OS, and the reverse)
+ *   4. [data-palette]   — every palette repeats all four combinations, so the
+ *                         winning rule is decided by specificity rather than
+ *                         by source order
  */
 
 :root {
@@ -24,6 +35,19 @@
   --brass: #7C591A;
   --madder: #9B3B32;
   --amber: #7A5A12;
+
+  --hue-1: #136B58;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #C9A227;
+  --on-hue-2: #0D1412;
+  --hue-3: #4A3A78;
+  --on-hue-3: #FFFFFF;
+  --hue-4: #7FCFC4;
+  --on-hue-4: #0D1412;
+  --hue-5: #9D5725;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #B084CE;
+  --on-hue-6: #0D1412;
 
   --font-display: 'Hoefler Text', 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
   --font-body: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
@@ -47,14 +71,6 @@
   --motion-quick: 160ms;
   --motion-considered: 240ms;
   --ease: cubic-bezier(0.2, 0, 0.13, 1);
-
-  /* Event category hues. Carry category only — never visibility. */
-  --hue-verdigris: #136B58;
-  --hue-brass: #7C591A;
-  --hue-slate: #3F5666;
-  --hue-plum: #6B3A5B;
-  --hue-moss: #4A6B2A;
-  --hue-clay: #9B3B32;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -72,6 +88,19 @@
     --brass: #D2A459;
     --madder: #E3877D;
     --amber: #D9B166;
+
+    --hue-1: #5CC2A6;
+    --on-hue-1: #0D1412;
+    --hue-2: #6D3F8C;
+    --on-hue-2: #FFFFFF;
+    --hue-3: #CDCD81;
+    --on-hue-3: #0D1412;
+    --hue-4: #763B37;
+    --on-hue-4: #FFFFFF;
+    --hue-5: #4D5F6F;
+    --on-hue-5: #FFFFFF;
+    --hue-6: #C795C7;
+    --on-hue-6: #0D1412;
   }
 }
 
@@ -89,6 +118,19 @@
   --brass: #D2A459;
   --madder: #E3877D;
   --amber: #D9B166;
+
+  --hue-1: #5CC2A6;
+  --on-hue-1: #0D1412;
+  --hue-2: #6D3F8C;
+  --on-hue-2: #FFFFFF;
+  --hue-3: #CDCD81;
+  --on-hue-3: #0D1412;
+  --hue-4: #763B37;
+  --on-hue-4: #FFFFFF;
+  --hue-5: #4D5F6F;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #C795C7;
+  --on-hue-6: #0D1412;
 }
 
 :root[data-theme='light'] {
@@ -105,4 +147,377 @@
   --brass: #7C591A;
   --madder: #9B3B32;
   --amber: #7A5A12;
+
+  --hue-1: #136B58;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #C9A227;
+  --on-hue-2: #0D1412;
+  --hue-3: #4A3A78;
+  --on-hue-3: #FFFFFF;
+  --hue-4: #7FCFC4;
+  --on-hue-4: #0D1412;
+  --hue-5: #9D5725;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #B084CE;
+  --on-hue-6: #0D1412;
+}
+
+/* ── Verdigris ─────────────────────────────────────────────── */
+
+:root[data-palette='verdigris'] {
+  --ground: #F1F4F0;
+  --surface: #FFFFFF;
+  --sunken: #E7EBE5;
+  --rule: #C6D0C4;
+  --ink: #131C18;
+  --ink2: #495650;
+  --ink3: #5E6C65;
+  --verdigris: #136B58;
+  --verdigris-hover: #0E5546;
+  --on-verdigris: #FFFFFF;
+  --brass: #7C591A;
+  --madder: #9B3B32;
+  --amber: #7A5A12;
+
+  --hue-1: #136B58;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #C9A227;
+  --on-hue-2: #0D1412;
+  --hue-3: #4A3A78;
+  --on-hue-3: #FFFFFF;
+  --hue-4: #7FCFC4;
+  --on-hue-4: #0D1412;
+  --hue-5: #9D5725;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #B084CE;
+  --on-hue-6: #0D1412;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='verdigris'] {
+    --ground: #0D1412;
+    --surface: #151E1B;
+    --sunken: #1D2825;
+    --rule: #31403B;
+    --ink: #E7EDE9;
+    --ink2: #A9B6B0;
+    --ink3: #8B9993;
+    --verdigris: #5CC2A6;
+    --verdigris-hover: #7BD4BB;
+    --on-verdigris: #0D1412;
+    --brass: #D2A459;
+    --madder: #E3877D;
+    --amber: #D9B166;
+
+    --hue-1: #5CC2A6;
+    --on-hue-1: #0D1412;
+    --hue-2: #6D3F8C;
+    --on-hue-2: #FFFFFF;
+    --hue-3: #CDCD81;
+    --on-hue-3: #0D1412;
+    --hue-4: #763B37;
+    --on-hue-4: #FFFFFF;
+    --hue-5: #4D5F6F;
+    --on-hue-5: #FFFFFF;
+    --hue-6: #C795C7;
+    --on-hue-6: #0D1412;
+  }
+}
+
+:root[data-palette='verdigris'][data-theme='light'] {
+  --ground: #F1F4F0;
+  --surface: #FFFFFF;
+  --sunken: #E7EBE5;
+  --rule: #C6D0C4;
+  --ink: #131C18;
+  --ink2: #495650;
+  --ink3: #5E6C65;
+  --verdigris: #136B58;
+  --verdigris-hover: #0E5546;
+  --on-verdigris: #FFFFFF;
+  --brass: #7C591A;
+  --madder: #9B3B32;
+  --amber: #7A5A12;
+
+  --hue-1: #136B58;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #C9A227;
+  --on-hue-2: #0D1412;
+  --hue-3: #4A3A78;
+  --on-hue-3: #FFFFFF;
+  --hue-4: #7FCFC4;
+  --on-hue-4: #0D1412;
+  --hue-5: #9D5725;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #B084CE;
+  --on-hue-6: #0D1412;
+}
+
+:root[data-palette='verdigris'][data-theme='dark'] {
+  --ground: #0D1412;
+  --surface: #151E1B;
+  --sunken: #1D2825;
+  --rule: #31403B;
+  --ink: #E7EDE9;
+  --ink2: #A9B6B0;
+  --ink3: #8B9993;
+  --verdigris: #5CC2A6;
+  --verdigris-hover: #7BD4BB;
+  --on-verdigris: #0D1412;
+  --brass: #D2A459;
+  --madder: #E3877D;
+  --amber: #D9B166;
+
+  --hue-1: #5CC2A6;
+  --on-hue-1: #0D1412;
+  --hue-2: #6D3F8C;
+  --on-hue-2: #FFFFFF;
+  --hue-3: #CDCD81;
+  --on-hue-3: #0D1412;
+  --hue-4: #763B37;
+  --on-hue-4: #FFFFFF;
+  --hue-5: #4D5F6F;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #C795C7;
+  --on-hue-6: #0D1412;
+}
+
+/* ── Harbor ─────────────────────────────────────────────── */
+
+:root[data-palette='harbor'] {
+  --ground: #EFF2F6;
+  --surface: #FFFFFF;
+  --sunken: #E3E8EF;
+  --rule: #C3CCD8;
+  --ink: #131A22;
+  --ink2: #47535F;
+  --ink3: #5C6875;
+  --verdigris: #1F5C8B;
+  --verdigris-hover: #17496F;
+  --on-verdigris: #FFFFFF;
+  --brass: #7A5A1A;
+  --madder: #9B3B32;
+  --amber: #7A5A12;
+
+  --hue-1: #1F4E79;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #C97F2E;
+  --on-hue-2: #0D1412;
+  --hue-3: #5FA89A;
+  --on-hue-3: #0D1412;
+  --hue-4: #7C1D3A;
+  --on-hue-4: #FFFFFF;
+  --hue-5: #8E6FC9;
+  --on-hue-5: #0D1412;
+  --hue-6: #D6C08A;
+  --on-hue-6: #0D1412;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='harbor'] {
+    --ground: #0B1016;
+    --surface: #131A22;
+    --sunken: #1B242E;
+    --rule: #2E3A47;
+    --ink: #E6EDF4;
+    --ink2: #A7B4C0;
+    --ink3: #8A98A5;
+    --verdigris: #6FB3E8;
+    --verdigris-hover: #8CC6F2;
+    --on-verdigris: #0B1016;
+    --brass: #D2A459;
+    --madder: #E3877D;
+    --amber: #D9B166;
+
+    --hue-1: #7FB2E0;
+    --on-hue-1: #0D1412;
+    --hue-2: #A8774C;
+    --on-hue-2: #0D1412;
+    --hue-3: #462D78;
+    --on-hue-3: #FFFFFF;
+    --hue-4: #D9CDBB;
+    --on-hue-4: #0D1412;
+    --hue-5: #6F4A72;
+    --on-hue-5: #FFFFFF;
+    --hue-6: #993D56;
+    --on-hue-6: #FFFFFF;
+  }
+}
+
+:root[data-palette='harbor'][data-theme='light'] {
+  --ground: #EFF2F6;
+  --surface: #FFFFFF;
+  --sunken: #E3E8EF;
+  --rule: #C3CCD8;
+  --ink: #131A22;
+  --ink2: #47535F;
+  --ink3: #5C6875;
+  --verdigris: #1F5C8B;
+  --verdigris-hover: #17496F;
+  --on-verdigris: #FFFFFF;
+  --brass: #7A5A1A;
+  --madder: #9B3B32;
+  --amber: #7A5A12;
+
+  --hue-1: #1F4E79;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #C97F2E;
+  --on-hue-2: #0D1412;
+  --hue-3: #5FA89A;
+  --on-hue-3: #0D1412;
+  --hue-4: #7C1D3A;
+  --on-hue-4: #FFFFFF;
+  --hue-5: #8E6FC9;
+  --on-hue-5: #0D1412;
+  --hue-6: #D6C08A;
+  --on-hue-6: #0D1412;
+}
+
+:root[data-palette='harbor'][data-theme='dark'] {
+  --ground: #0B1016;
+  --surface: #131A22;
+  --sunken: #1B242E;
+  --rule: #2E3A47;
+  --ink: #E6EDF4;
+  --ink2: #A7B4C0;
+  --ink3: #8A98A5;
+  --verdigris: #6FB3E8;
+  --verdigris-hover: #8CC6F2;
+  --on-verdigris: #0B1016;
+  --brass: #D2A459;
+  --madder: #E3877D;
+  --amber: #D9B166;
+
+  --hue-1: #7FB2E0;
+  --on-hue-1: #0D1412;
+  --hue-2: #A8774C;
+  --on-hue-2: #0D1412;
+  --hue-3: #462D78;
+  --on-hue-3: #FFFFFF;
+  --hue-4: #D9CDBB;
+  --on-hue-4: #0D1412;
+  --hue-5: #6F4A72;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #993D56;
+  --on-hue-6: #FFFFFF;
+}
+
+/* ── Signal ─────────────────────────────────────────────── */
+
+:root[data-palette='signal'] {
+  --ground: #F4F4F2;
+  --surface: #FFFFFF;
+  --sunken: #E9E9E6;
+  --rule: #C8C8C4;
+  --ink: #16181A;
+  --ink2: #4A4D50;
+  --ink3: #5E6265;
+  --verdigris: #0F5E8C;
+  --verdigris-hover: #0B4A6E;
+  --on-verdigris: #FFFFFF;
+  --brass: #7A5A12;
+  --madder: #99342B;
+  --amber: #755712;
+
+  --hue-1: #0072B2;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #D55E00;
+  --on-hue-2: #0D1412;
+  --hue-3: #009E73;
+  --on-hue-3: #0D1412;
+  --hue-4: #E69F00;
+  --on-hue-4: #0D1412;
+  --hue-5: #CC79A7;
+  --on-hue-5: #0D1412;
+  --hue-6: #56B4E9;
+  --on-hue-6: #0D1412;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='signal'] {
+    --ground: #101112;
+    --surface: #191B1D;
+    --sunken: #232628;
+    --rule: #3A3E41;
+    --ink: #ECEEF0;
+    --ink2: #AFB4B8;
+    --ink3: #91979B;
+    --verdigris: #56B4E9;
+    --verdigris-hover: #7CC7F0;
+    --on-verdigris: #101112;
+    --brass: #D2A459;
+    --madder: #E3877D;
+    --amber: #D9B166;
+
+    --hue-1: #56B4E9;
+    --on-hue-1: #0D1412;
+    --hue-2: #AA7F4E;
+    --on-hue-2: #0D1412;
+    --hue-3: #282873;
+    --on-hue-3: #FFFFFF;
+    --hue-4: #D7D0BF;
+    --on-hue-4: #0D1412;
+    --hue-5: #993D56;
+    --on-hue-5: #FFFFFF;
+    --hue-6: #694971;
+    --on-hue-6: #FFFFFF;
+  }
+}
+
+:root[data-palette='signal'][data-theme='light'] {
+  --ground: #F4F4F2;
+  --surface: #FFFFFF;
+  --sunken: #E9E9E6;
+  --rule: #C8C8C4;
+  --ink: #16181A;
+  --ink2: #4A4D50;
+  --ink3: #5E6265;
+  --verdigris: #0F5E8C;
+  --verdigris-hover: #0B4A6E;
+  --on-verdigris: #FFFFFF;
+  --brass: #7A5A12;
+  --madder: #99342B;
+  --amber: #755712;
+
+  --hue-1: #0072B2;
+  --on-hue-1: #FFFFFF;
+  --hue-2: #D55E00;
+  --on-hue-2: #0D1412;
+  --hue-3: #009E73;
+  --on-hue-3: #0D1412;
+  --hue-4: #E69F00;
+  --on-hue-4: #0D1412;
+  --hue-5: #CC79A7;
+  --on-hue-5: #0D1412;
+  --hue-6: #56B4E9;
+  --on-hue-6: #0D1412;
+}
+
+:root[data-palette='signal'][data-theme='dark'] {
+  --ground: #101112;
+  --surface: #191B1D;
+  --sunken: #232628;
+  --rule: #3A3E41;
+  --ink: #ECEEF0;
+  --ink2: #AFB4B8;
+  --ink3: #91979B;
+  --verdigris: #56B4E9;
+  --verdigris-hover: #7CC7F0;
+  --on-verdigris: #101112;
+  --brass: #D2A459;
+  --madder: #E3877D;
+  --amber: #D9B166;
+
+  --hue-1: #56B4E9;
+  --on-hue-1: #0D1412;
+  --hue-2: #AA7F4E;
+  --on-hue-2: #0D1412;
+  --hue-3: #282873;
+  --on-hue-3: #FFFFFF;
+  --hue-4: #D7D0BF;
+  --on-hue-4: #0D1412;
+  --hue-5: #993D56;
+  --on-hue-5: #FFFFFF;
+  --hue-6: #694971;
+  --on-hue-6: #FFFFFF;
 }

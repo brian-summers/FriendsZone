@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MeView, PublicProfile } from '@friendszone/contracts';
 import { api } from './lib/api.js';
-import { applyTheme, loadTheme, saveTheme, type ThemeChoice } from './lib/theme.js';
+import { applyTheme, loadTheme, saveTheme, type ThemeSelection } from './lib/theme.js';
 import { linkProps, matchRoute, navigate, usePathname } from './lib/router.js';
 import { WeekScreen } from './screens/WeekScreen.js';
 import { SettingsScreen } from './screens/SettingsScreen.js';
@@ -45,7 +45,7 @@ export function App() {
    */
   const [authState, setAuthState] = useState<'checking' | 'out' | 'in'>('checking');
   const [actorId, setActorId] = useState<string>(DEV_ACTORS[0]!.id);
-  const [theme, setTheme] = useState<ThemeChoice>(() => loadTheme());
+  const [theme, setTheme] = useState<ThemeSelection>(() => loadTheme());
   const [me, setMe] = useState<MeView | null>(null);
   const [people, setPeople] = useState<PublicProfile[]>([]);
   /** Bumped when a friendship is accepted, removed, or blocked away. */
@@ -209,10 +209,13 @@ export function App() {
             type="button"
             className="icon-btn"
             onClick={() =>
-              setTheme((c) => (c === 'system' ? 'light' : c === 'light' ? 'dark' : 'system'))
+              setTheme((t) => ({
+                ...t,
+                mode: t.mode === 'system' ? 'light' : t.mode === 'light' ? 'dark' : 'system',
+              }))
             }
           >
-            Theme: {theme}
+            Theme: {theme.mode}
           </button>
 
           <button
@@ -314,7 +317,7 @@ export function App() {
               people={people}
               actorId={actorId}
               theme={theme}
-              onTheme={setTheme}
+              onTheme={(next) => setTheme(next)}
               onGraphChanged={() => setGraph((n) => n + 1)}
             />
           )}
