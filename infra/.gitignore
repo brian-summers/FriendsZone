@@ -1,0 +1,7 @@
+node_modules/
+cdk.out/
+*.js
+*.d.ts
+
+# Deploy transcripts - useful locally, noise in the repo.
+*.log

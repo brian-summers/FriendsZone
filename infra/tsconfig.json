@@ -1,0 +1,22 @@
+// `exactOptionalPropertyTypes` is deliberately absent, unlike everywhere else
+// in this repository: aws-cdk-lib's own interfaces declare optional properties
+// as `foo?: string` while assigning `string | undefined` internally, so the
+// flag rejects the library rather than our code. Every other strictness flag
+// is kept.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["bin/**/*.ts", "lib/**/*.ts"]
+}

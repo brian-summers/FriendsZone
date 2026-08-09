@@ -39,6 +39,27 @@ can use. Not "production" — a place to find out what is actually broken.
 
 **Exit:** someone who is not you can sign up on their phone and add an event.
 
+### Deferred at deploy time, with reasons
+
+These came out of running `cdk-nag` against the real stack. Each is suppressed
+in [`infra/`](../../infra/) with the reason written next to it, so the
+suppression is reviewable rather than invisible.
+
+| Item | Why it was deferred | What it costs to fix |
+|---|---|---|
+| **Custom domain + ACM certificate** | Without one, CloudFront serves the default `*.cloudfront.net` certificate and **pins the minimum TLS version** — `AwsSolutions-CFR4` cannot be satisfied at all until a certificate exists. This is the highest-value item here | Domain registration + ~1h |
+| **Secrets Manager rotation** | Rotating the Aurora credential needs a Lambda inside the VPC, and this VPC has no NAT by design — so it also needs a Secrets Manager interface endpoint at ~$7/mo, more than the database costs at rest | ~$7/mo + 0.5d |
+| **WAF on the distribution** | Every route already declares a token-bucket rate-limit class ([ADR 0020](../adr/0020-rate-limiting.md)) and the origin scales to one small instance. Real, but not yet worth the monthly floor | ~$8/mo + 0.25d |
+| **Stop using the account root user** | An IAM admin (`friendszone-deploy`) now exists and is what deploys. Root still has no MFA, which is the remaining gap | 10 min, console only |
+| **IAM database authentication** | Already **enabled** on the cluster; the application still connects with the password from Secrets Manager. Moving to short-lived tokens is now an application change, not a migration | 0.5d |
+
+**CloudFront access logging is deliberately off and is not on this list.** An
+access log records the concrete request URI, and this API's URIs carry the
+subject's identity — `/api/v1/users/<uuid>/calendar`. [Data
+classification](../security/data-classification.md) is explicit that what may
+be logged is the *route pattern*, never the concrete id, so enabling that
+control would breach the rule it appears to serve.
+
 **Cost:** low single-digit dollars a month idle.
 
 ---

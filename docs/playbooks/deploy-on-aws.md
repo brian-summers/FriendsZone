@@ -19,10 +19,93 @@ size, and neither appears below.
 
 ---
 
+## It is now infrastructure as code
+
+The console walkthrough below is kept because it explains *why* each setting is
+what it is, and that reasoning is the valuable part. **The actual deployment
+lives in [`infra/`](../../infra/)** as a CDK app, and that is what should be
+run:
+
+```bash
+cd infra && npm install
+npx cdk synth --strict          # cdk-nag runs here; findings block the deploy
+npx cdk deploy FriendszoneData      # VPC, Aurora, secrets, ECR
+# build and push the image (see below), then:
+npx cdk deploy FriendszoneService   # App Runner, S3, CloudFront
+```
+
+Two stacks, split on **state**. `FriendszoneData` holds the only copy of every
+user's calendar and carries `terminationProtection`; `FriendszoneService` is
+rebuildable from this repository in minutes.
+
+### Three things that bit during the first real deploy
+
+- **Pin an engine version the region actually has.** `VER_16_6` exists in the
+  CDK enum and does not exist in `us-east-2`. The stack rolled back ten minutes
+  in. Check with `aws rds describe-db-engine-versions --engine aurora-postgresql`.
+- **`RETAIN` leaves orphans that block the retry.** After the rollback, the ECR
+  repository, the DB subnet group and the session secret survived, and each
+  collided by name on the next attempt. Delete them, or the retry fails for a
+  reason unrelated to the original fault.
+- **No em dashes in CloudFormation descriptions.** A security group description
+  containing one fails template validation with a regex error that does not
+  mention the character.
+
+### Four more that bit, all at the edge
+
+- **App Runner routes on `Host`.** CloudFront's `ALL_VIEWER` origin-request
+  policy forwards the viewer's Host, so App Runner's Envoy saw
+  `d1xxx.cloudfront.net`, did not recognise it, and answered **404 with an
+  empty body** before the container was consulted. It looks exactly like a
+  missing route. The only tell is `Server: envoy` in the response headers. Use
+  `ALL_VIEWER_EXCEPT_HOST_HEADER`.
+- **CloudFront does not strip the path prefix.** The client calls
+  `/api/v1/me`; the API serves `/v1/me`. `originPath` only *prepends*, so a
+  CloudFront Function has to remove it.
+- **Do not write a regex inside a CDK inline function.** The code is a
+  TypeScript template literal, which eats the backslash in `\/` - `/^\/api/`
+  synthesised to `/^/api/`, a syntax error CloudFront accepts at deploy time
+  and fails on at request time with a bare 503. Use `indexOf`/`substring`, and
+  check it with `aws cloudfront test-function` before trusting it.
+- **`errorResponses` are distribution-wide.** Mapping 404 to `/index.html` with
+  status 200 for SPA routing also rewrote every API denial - and this API
+  answers *denied* with 404 by design. Scope the fallback to the client
+  behaviour with a function instead.
+
+### The two-pass deploy, and why it is not a mistake
+
+App Runner needs `PUBLIC_ORIGIN` to set the session cookie's `Secure` flag;
+CloudFront needs App Runner's URL as its origin. That is a genuine cycle.
+It is resolved by deploying twice rather than by a custom resource:
+
+```bash
+npx cdk deploy FriendszoneService                                  # pass 1, placeholder
+npx cdk deploy FriendszoneService -c publicOrigin=https://<dist>   # pass 2, real
+```
+
+A custom resource that reaches in and mutates a running service's environment
+would hide the cycle rather than resolve it.
+
+---
+
+## What is actually deployed
+
+| | |
+|---|---|
+| Client + API | `https://d1xuqpfc4zouut.cloudfront.net` |
+| Region | `us-east-2` (Agent Toolkit pinned to `us-east-1`) |
+| Database | Aurora Serverless v2 PostgreSQL 17.10, **0-2 ACU**, encrypted, 7-day backups |
+| API | App Runner `friendszone-api`, 0.25 vCPU / 0.5 GB, VPC egress, `/readyz` health check |
+| NAT gateways | **0** |
+| Deploy identity | IAM user `friendszone-deploy`, not root |
+| Budget | $40/mo, alerts at 50% actual and 100% forecast |
+
+---
+
 ## 0. Before anything
 
 ```bash
-npm run verify        # typecheck + 511 tests
+npm run verify        # typecheck + 665 tests
 npm run build:web     # → apps/web/dist
 ```
 

@@ -23,6 +23,15 @@ RUN npm ci
 COPY . .
 RUN npm run typecheck && npm run build:web
 
+# The Amazon RDS certificate authority.
+#
+# Aurora refuses unencrypted connections (`rds.force_ssl`), and its server
+# certificate chains to an Amazon CA that is not in Node's default trust store.
+# Without this bundle the only options are an unverified connection or none at
+# all; with it, `sslmode=verify-full` both encrypts and proves the host is the
+# database we think it is.
+ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /rds-ca.pem
+
 # Drop dev dependencies from the tree that gets copied forward. PGlite alone is
 # several megabytes of WebAssembly the server never loads in production.
 RUN npm prune --omit=dev
@@ -44,6 +53,7 @@ COPY --from=build --chown=node:node /app/packages       ./packages
 COPY --from=build --chown=node:node /app/apps/api/dist  ./apps/api/dist
 COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/
 COPY --from=build --chown=node:node /app/package.json   ./
+COPY --from=build --chmod=444 /rds-ca.pem                ./rds-ca.pem
 
 # `schema.sql` is data, not code, so `tsc` does not emit it. `applySchema` looks
 # beside the compiled module first, which is where this puts it.
