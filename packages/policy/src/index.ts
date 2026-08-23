@@ -1,5 +1,5 @@
 /**
- * @friendszone/policy — the security kernel.
+ * @friendszone/policy - the security kernel.
  *
  * Rules for this package, which reviewers should enforce strictly:
  *
@@ -20,3 +20,4 @@ export * from './marketplace.js';
 export * from './slots.js';
 export * from './actions.js';
 export * from './messaging.js';
+export * from './availability.js';

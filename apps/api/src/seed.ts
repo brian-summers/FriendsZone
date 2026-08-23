@@ -22,7 +22,7 @@ import type { MemorySeed } from './repositories/memory.js';
  * Deliberately built to exercise the *privacy* model rather than to look busy:
  * every visibility level appears at least once, one friend is in a circle and
  * one is not, one contact is blocked, and one friend shares nothing back. If
- * you change this, keep that coverage — it is what makes the running app a
+ * you change this, keep that coverage - it is what makes the running app a
  * usable check on the projection engine.
  *
  * Events are generated relative to the current week so the app is never empty.
@@ -173,7 +173,7 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       day: 4,
       from: 18,
       to: 20,
-      title: 'Book club — The Dispossessed',
+      title: 'Book club - The Dispossessed',
       location: 'Trellis Cafe',
       rules: [rule({ kind: 'PUBLIC' }, 'TITLE')],
     },
@@ -214,7 +214,7 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       title: 'Co-working',
       rules: [rule({ kind: 'FRIENDS' }, 'TITLE')],
     },
-    // …with two calls layered inside that same block — the multi-layer case.
+    // …with two calls layered inside that same block - the multi-layer case.
     {
       ownerId: ALICE,
       day: 3,
@@ -231,7 +231,7 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       title: 'Review call',
       rules: [rule({ kind: 'FRIENDS' }, 'BUSY')],
     },
-    // A trip that runs past midnight — the multi-day case. It draws as one
+    // A trip that runs past midnight - the multi-day case. It draws as one
     // continuous band from Saturday afternoon across into Sunday. Exclusive,
     // so it's a real block on both days, and shared with friends by title.
     {
@@ -307,7 +307,7 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       inviteeIds: [ALICE],
       kind: 'FIXED',
       title: 'Climb next week?',
-      note: 'Been a while — fancy getting back on the wall?',
+      note: 'Been a while - fancy getting back on the wall?',
       location: 'Vertigo Bouldering',
       proposedSlots: [slot(9, 19, 21), slot(11, 19, 21), slot(12, 10, 12)],
       status: 'PENDING',
@@ -355,7 +355,7 @@ export function createDemoSeed(now = new Date()): MemorySeed {
       inviteeIds: [ALICE],
       kind: 'FLOATING',
       title: 'Walk the dog anytime',
-      note: 'Grab a walk whenever suits — as often as you like.',
+      note: 'Grab a walk whenever suits - as often as you like.',
       proposedSlots: [],
       period: { start: at(base, 0, 0), end: at(base, 13, 23) },
       occurrenceMinutes: 60,

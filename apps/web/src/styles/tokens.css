@@ -2,7 +2,7 @@
  * Design tokens as CSS custom properties.
  *
  * Generated once from @friendszone/design-tokens and then checked in, so the
- * palette exists before any JavaScript runs — a runtime-built palette flashes
+ * palette exists before any JavaScript runs - a runtime-built palette flashes
  * unstyled on every cold load. `tokens.test.ts` parses this file and asserts
  * every value still matches the TypeScript source, so the duplication cannot
  * drift. Regenerate rather than hand-edit.
@@ -12,11 +12,11 @@
  * colourblind-safe hues does not have to give up dark mode to get them.
  *
  * Cascade order matters and is deliberate:
- *   1. bare :root       — the pre-JavaScript fallback, and the no-JS answer
- *   2. the media query  — the OS preference, when no explicit mode is set
- *   3. [data-theme]     — an explicit mode, which must beat the OS in *both*
+ *   1. bare :root       - the pre-JavaScript fallback, and the no-JS answer
+ *   2. the media query  - the OS preference, when no explicit mode is set
+ *   3. [data-theme]     - an explicit mode, which must beat the OS in *both*
  *                         directions (light on a dark OS, and the reverse)
- *   4. [data-palette]   — every palette repeats all four combinations, so the
+ *   4. [data-palette]   - every palette repeats all four combinations, so the
  *                         winning rule is decided by specificity rather than
  *                         by source order
  */

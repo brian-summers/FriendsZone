@@ -55,10 +55,10 @@ because those are a denial-of-service control rather than a formatting opinion.
 **Hand-written interfaces plus separate validators.** The status quo everywhere,
 and precisely the drift this decision exists to prevent.
 
-**io-ts / Effect Schema.** More principled, materially steeper learning curve —
+**io-ts / Effect Schema.** More principled, materially steeper learning curve -
 which matters when a contributor may be an agent working from the repo alone.
 
 **Generate types from the database schema.** Inverts the dependency: the domain
 model ends up shaped by storage concerns, and `packages/policy` would transitively
-depend on the database. The policy engine must stay pure — see
+depend on the database. The policy engine must stay pure - see
 [ADR 0005](0005-policy-engine.md).

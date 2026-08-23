@@ -22,12 +22,12 @@ const account = process.env['CDK_DEFAULT_ACCOUNT'] ?? process.env['AWS_ACCOUNT_I
 if (account === undefined) {
   // An unresolved account silently produces an environment-agnostic stack that
   // cannot look up AZs, and fails much later with a confusing error.
-  throw new Error('CDK_DEFAULT_ACCOUNT is not set — run through the CDK CLI with credentials.');
+  throw new Error('CDK_DEFAULT_ACCOUNT is not set - run through the CDK CLI with credentials.');
 }
 const env = { account, region: process.env['CDK_DEFAULT_REGION'] ?? 'us-east-2' };
 
 /**
- * Placeholder until the distribution exists — see the two-pass note on
+ * Placeholder until the distribution exists - see the two-pass note on
  * `ServiceStackProps.publicOrigin`. It is a syntactically valid https URL so
  * `config.ts` boots, and an obviously wrong host so a stale value is loud
  * rather than subtle.
@@ -65,7 +65,7 @@ Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
  *
  * `ServiceStack` consumes the VPC, cluster, security group and secrets from
  * `DataStack`. A strong reference means CloudFormation refuses to delete the
- * export while it is in use — which is the behaviour we want for a database
+ * export while it is in use - which is the behaviour we want for a database
  * the service depends on, and also the setup for a "deadly embrace" if one of
  * those references is ever *removed*.
  *

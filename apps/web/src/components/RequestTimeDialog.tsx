@@ -12,7 +12,7 @@ import { addDays, formatDayOfWeek } from '../lib/time.js';
 interface Props {
   invitee: PublicProfile;
   weekStart: Date;
-  /** The friend's busy blocks *as you can see them* — for the free/busy hint. */
+  /** The friend's busy blocks *as you can see them* - for the free/busy hint. */
   friendBusy: BusyBlock[];
   actorId: string;
   /** Preselect the first proposed slot, e.g. from a drag on their calendar. */
@@ -65,7 +65,7 @@ function seedSlot(range: TimeRange, weekStart: Date): SlotDraft {
  * Times are confined to the week you're looking at, on purpose: that's the week
  * whose shared availability the client already holds, so the free/busy hint
  * beside each slot is honest. The hint reads from what the friend *shares* with
- * you — never a privileged view — so "looks free" means "no conflict you can
+ * you - never a privileged view - so "looks free" means "no conflict you can
  * see", and the dialog says exactly that.
  */
 export function RequestTimeDialog({
@@ -232,7 +232,7 @@ export function RequestTimeDialog({
               </div>
               <p className="hint-note">
                 {invitee.displayName.split(' ')[0]} can book this any number of times within the
-                window — no fixed slot, just an open door.
+                window - no fixed slot, just an open door.
               </p>
             </fieldset>
           )}
@@ -323,7 +323,7 @@ export function RequestTimeDialog({
               type="text"
               value={note}
               maxLength={280}
-              placeholder="No pressure on timing — whenever works"
+              placeholder="No pressure on timing - whenever works"
               onChange={(e) => setNote(e.target.value)}
             />
           </label>
@@ -340,7 +340,7 @@ export function RequestTimeDialog({
           </label>
 
           <div className="consequence">
-            {invitee.displayName.split(' ')[0]} can answer whenever — the request waits, and bows
+            {invitee.displayName.split(' ')[0]} can answer whenever - the request waits, and bows
             out on its own after a week if it goes unanswered. No nudges, no read receipts.
           </div>
 

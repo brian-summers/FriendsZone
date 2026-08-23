@@ -7,7 +7,7 @@ import { api, ApiError } from '../lib/api.js';
  *
  * One deliberate restraint in the copy: a failed sign-in says "that email and
  * password don't match" and never "no account with that email". The server
- * refuses to distinguish them — same body, same status, same timing — and the
+ * refuses to distinguish them - same body, same status, same timing - and the
  * interface must not undo that by guessing
  * (docs/adr/0024-authentication.md).
  */
@@ -135,7 +135,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: (who: AuthResult) => 
             />
             {registering && (
               <small className="side-note">
-                At least 12 characters. Length beats punctuation — a few unrelated words is a
+                At least 12 characters. Length beats punctuation - a few unrelated words is a
                 good password.
               </small>
             )}
@@ -154,7 +154,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: (who: AuthResult) => 
 
         {!registering && (
           <p className="side-note signin-foot">
-            Forgotten passwords can’t be reset yet — that needs email, which isn’t built.
+            Forgotten passwords can’t be reset yet - that needs email, which isn’t built.
           </p>
         )}
       </div>

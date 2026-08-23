@@ -3,12 +3,12 @@
 An honest assessment of what Friendszone should become, what each thing costs at
 scale, and what it should refuse to build.
 
-Costs are rated for the *whole* change — schema, policy, projection, tests,
-docs, and operational burden — not just the happy-path code.
+Costs are rated for the *whole* change - schema, policy, projection, tests,
+docs, and operational burden - not just the happy-path code.
 
 ---
 
-## Tier 0 — Obligations, not features
+## Tier 0 - Obligations, not features
 
 These are not optional and they are not differentiating. Nothing else ships
 first.
@@ -29,23 +29,23 @@ extra steps. The pattern that works: a **once-daily digest at a user-chosen
 hour**, listing what arrived, with expiry dates shown as dates rather than
 countdowns.
 
-Pleasingly, this is also the cheapest option to operate — one batched job per
+Pleasingly, this is also the cheapest option to operate - one batched job per
 user per day instead of a real-time fan-out on every write. The ethical choice
 and the cheap choice coincide here, which is worth noticing because it usually
 does not.
 
 ---
 
-## Tier 1 — Completes the core product
+## Tier 1 - Completes the core product
 
-### "When are we all free?" — the mutual slot finder
+### "When are we all free?" - the mutual slot finder
 
 **The feature.** Pick some friends, a rough window, a duration. Get back times
 that work for everyone.
 
 **Why it matters.** This is the single highest-value feature in the product and
-arguably its reason to exist. Everything else — the calendar, the sharing
-model, the async requests — is infrastructure for answering this question
+arguably its reason to exist. Everything else - the calendar, the sharing
+model, the async requests - is infrastructure for answering this question
 without a group chat.
 
 **Why it is dangerous.** The naive implementation reads everyone's raw calendar
@@ -56,7 +56,7 @@ is a side channel, and a determined user with a script extracts a full calendar
 from someone who shared nothing.
 
 **The design that works.** Compute the intersection over **projections, not raw
-events** — each participant's availability exactly as the requester is already
+events** - each participant's availability exactly as the requester is already
 entitled to see it. This falls directly out of the existing architecture:
 `projectCalendar` already produces per-viewer busy sets, and the slot finder
 becomes an intersection over N of them.
@@ -68,10 +68,10 @@ there is no privileged data in the computation.
 The cost is a UX problem, not a security one: a friend who shares nothing with
 you appears completely free, so suggestions are wrong. Three mitigations:
 
-1. Show the denominator honestly — "4 of 6 friends share availability with you".
+1. Show the denominator honestly - "4 of 6 friends share availability with you".
 2. Offer a one-tap **request to share free/busy for scheduling**.
-3. Add a purpose-limited `SCHEDULING` audience — "share Busy-only with people
-   actively scheduling with me", narrow and revocable — so a user can enable
+3. Add a purpose-limited `SCHEDULING` audience - "share Busy-only with people
+   actively scheduling with me", narrow and revocable - so a user can enable
    good suggestions without widening their calendar generally.
 
 Further hardening: quantize results to a 15-minute grid so exact boundaries are
@@ -79,7 +79,7 @@ never revealed, cap participants at ~20, and rate limit the endpoint separately
 from ordinary calendar reads.
 
 **Scale weight.** N calendar reads per query. With the caching strategy below
-this is N cache hits plus N pure projections — microseconds each. The
+this is N cache hits plus N pure projections - microseconds each. The
 intersection itself is a linear sweep over merged intervals. Cheap.
 
 **Cost: M. Verdict: build it, and build it on projections. Requires an ADR.**
@@ -91,7 +91,7 @@ time, a plus-one count, and the ability to change your mind.
 
 Note the interaction with the privacy model: an attendee sees `FULL`, which
 includes the attendee list. So RSVP status is visible to co-attendees by
-construction — that is correct, but it should be a deliberate decision recorded
+construction - that is correct, but it should be a deliberate decision recorded
 in the domain model rather than a side effect nobody noticed.
 
 **Cost: S. Verdict: build.**
@@ -99,8 +99,8 @@ in the domain model rather than a side effect nobody noticed.
 ### Sharing presets and honest onboarding
 
 Almost nobody changes defaults, which makes the default the most important
-privacy control in the product. Ship three named presets — *Private*, *Busy to
-friends* (the current conservative default), *Open to friends* — chosen during
+privacy control in the product. Ship three named presets - *Private*, *Busy to
+friends* (the current conservative default), *Open to friends* - chosen during
 onboarding with the consequence spelled out in plain language.
 
 Then, periodically, a **sharing checkup**: "Here is what Bob can see of your
@@ -110,7 +110,7 @@ projection engine already does exactly this.
 
 **Cost: S. Verdict: build. Highest value-to-effort ratio in this document.**
 
-**Built** — [ADR 0021](../adr/0021-sharing-presets.md). Three presets, no one-tap
+**Built** - [ADR 0021](../adr/0021-sharing-presets.md). Three presets, no one-tap
 `FULL`, and "never chose" is a distinct state. The sharing checkup shipped
 earlier.
 
@@ -129,7 +129,7 @@ the rest unchanged). Two implementation strategies, neither free:
   growth, and a reconciliation problem whenever a rule changes retroactively.
 
 Recommended: materialize a rolling 13 months, keep the rule plus exceptions as
-the source of truth. Note it interacts badly with field-level encryption —
+the source of truth. Note it interacts badly with field-level encryption -
 re-materializing means re-encrypting.
 
 **Cost: XL. Verdict: build, but only with its own ADR, and never as a
@@ -137,20 +137,20 @@ re-materializing means re-encrypting.
 
 ---
 
-## Tier 2 — Valuable once the core is solid
+## Tier 2 - Valuable once the core is solid
 
 | Feature | Value | Cost | Notes |
 |---|---|---|---|
 | Circle management UI | High | S | Circles exist in the model but are unusable without one |
 | Calendar import (ICS, read-only) | High | M | See the warning below |
-| Wishlists — "looking for a desk" | Med | S | The inverse of a listing; reuses the entire audience model |
+| Wishlists - "looking for a desk" | Med | S | The inverse of a listing; reuses the entire audience model |
 | Exchange safety kit | High | M | Suggested public meetup spots, share-with-a-friend, in-flow reporting |
 | Travel mode | Med | M | Timezone changes silently corrupt availability windows; worth solving properly |
 | Shared circle calendars | Med | L | Ownership becomes ambiguous, which is where authorization bugs breed |
 | Web push | Med | S | Only ever for the digest. Never per-event |
 
-**On calendar import.** Enormous convenience value — an empty calendar is a dead
-product — but it imports 🟠 Sensitive data wholesale from Google or Apple, and
+**On calendar import.** Enormous convenience value - an empty calendar is a dead
+product - but it imports 🟠 Sensitive data wholesale from Google or Apple, and
 users will not realise their work calendar's event titles are now in a second
 system. Mitigations: import as `BUSY`-only by default with titles discarded
 unless explicitly opted into, one-way sync only, and a visible provenance marker
@@ -159,7 +159,7 @@ wait.
 
 ---
 
-## Anti-features — deliberate refusals
+## Anti-features - deliberate refusals
 
 Recorded so they get re-proposed with an argument rather than by default.
 
@@ -188,14 +188,14 @@ The resolution follows from the architecture rather than fighting it:
 > **Cache the input, never the output.**
 
 Raw events for an owner and window are identical regardless of who is asking, so
-they are safely cacheable — keyed `events:{ownerId}:{weekBucket}`, short TTL,
+they are safely cacheable - keyed `events:{ownerId}:{weekBucket}`, short TTL,
 invalidated on write. The projection is a pure function over that data,
 measured in microseconds for a realistic number of events, and is recomputed per
 request.
 
 This preserves the security property exactly (a projection is never stored or
 shared) while removing the database from the hot path. It is only available
-because the policy engine is pure — a projection that did I/O could not be
+because the policy engine is pure - a projection that did I/O could not be
 recomputed cheaply per request. The purity constraint from
 [ADR 0005](../adr/0005-policy-engine.md) turns out to buy a scaling property, not
 just a testing one.
@@ -204,11 +204,11 @@ just a testing one.
 
 | Concern | Assessment |
 |---|---|
-| **N+1 relationship lookups** | `viewerFor(ownerId)` is per-owner by design. Any multi-owner view needs a batch port — `relationships(viewerId, ownerId[])` — before the slot finder ships |
+| **N+1 relationship lookups** | `viewerFor(ownerId)` is per-owner by design. Any multi-owner view needs a batch port - `relationships(viewerId, ownerId[])` - before the slot finder ships |
 | **Busy merge** | O(n log n) on a bounded window. Not a concern |
 | **Recurrence expansion** | The real risk. Materialize; do not expand in the read path |
 | **Notification fan-out** | Digest batching makes this trivial. Real-time push would not be |
-| **Marketplace search** | Interacts with field-level encryption — see below |
+| **Marketplace search** | Interacts with field-level encryption - see below |
 | **Social graph queries** | Friend-of-friend traversal is absent by design; the graph stays shallow and cheap |
 
 ### An encryption decision that should be made early
@@ -229,7 +229,7 @@ Deciding this before encrypting is much cheaper than deciding it afterwards.
 
 ## Suggested sequence
 
-1. **Tier 0** — auth, persistence, rate limiting, moderation, deletion, digest.
+1. **Tier 0** - auth, persistence, rate limiting, moderation, deletion, digest.
 2. **Sharing presets and the sharing checkup.** Cheap, and it makes the privacy
    model legible to users rather than merely correct.
 3. **Circle management UI.** Unlocks a model capability that already exists.

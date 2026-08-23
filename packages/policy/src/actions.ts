@@ -143,7 +143,7 @@ export const ALL_ACTIONS = Object.keys(ACTION_REGISTRY) as readonly Action[];
  * without checking that, and without a test that asserts it.
  *
  * `calendar:view` is here to close an oracle. If it were denied outright, a
- * blocked user would get a 404 where a stranger gets an empty 200 — and that
+ * blocked user would get a 404 where a stranger gets an empty 200 - and that
  * difference is itself the disclosure. It tells them they have been blocked,
  * which is information the person who blocked them did not choose to share, and
  * it is exactly the signal that makes people escalate to another account. It
@@ -158,7 +158,7 @@ export const ALL_ACTIONS = Object.keys(ACTION_REGISTRY) as readonly Action[];
  * blocking someone is frequently the *first* thing a person does when they are
  * being harassed, and blocks are bidirectional here. Without this exemption, an
  * abuser could block their victim and thereby strip them of the ability to
- * report — the safest users would be the ones who could not ask for help. They
+ * report - the safest users would be the ones who could not ask for help. They
  * satisfy the invariant because every report projection returns only the
  * caller's own side: `projectReportForReporter` and `projectReportForSubject`
  * carry no counterparty identity and no counterparty thread, asserted in
@@ -173,7 +173,7 @@ const BLOCK_EXEMPT_ACTIONS: ReadonlySet<Action> = new Set<Action>([
   'report:create',
   'report:read',
   'report:reply',
-  // If Bob blocks Alice first, Alice must still be able to block Bob back —
+  // If Bob blocks Alice first, Alice must still be able to block Bob back -
   // otherwise whoever blocks first controls whether the other can protect
   // themselves, and Bob unblocking would silently restore contact Alice never
   // agreed to. Withdrawing your own block has to work for the same reason.
@@ -283,7 +283,7 @@ export type PolicyRequest =
       /**
        * Whether this viewer already has a live claim on this listing.
        *
-       * One person, one entry — otherwise a lottery is won by whoever scripts
+       * One person, one entry - otherwise a lottery is won by whoever scripts
        * the most entries, which is the one outcome a draw exists to prevent.
        */
       viewerHasClaimed: boolean;
@@ -312,7 +312,7 @@ export type PolicyRequest =
        * Answering a proposed handoff.
        *
        * Carries `proposedBy` because the one person who may *not* accept is the
-       * person who proposed — otherwise "we agreed a time" is one party
+       * person who proposed - otherwise "we agreed a time" is one party
        * clicking twice.
        */
       action: 'exchange:respond';
@@ -328,7 +328,7 @@ export type PolicyRequest =
     }
   | {
       // Filing a report. Whether the caller may *see* the reported material is
-      // checked separately, at the route, by projecting it — see below.
+      // checked separately, at the route, by projecting it - see below.
       action: 'report:create';
       subjectUserId: UserId;
     }
@@ -413,7 +413,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       /**
        * Friends only, and `FRIEND` exactly.
        *
-       * The block gate above this switch already ends it in both directions —
+       * The block gate above this switch already ends it in both directions -
        * `message:send` is deliberately **not** in `BLOCK_EXEMPT_ACTIONS`,
        * unlike `report:*`. Someone you blocked must not be able to reach you,
        * and the route turns that denial into the same 404 a nonexistent
@@ -427,7 +427,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
     case 'thread:read': {
       if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
       /**
-       * Participation, not friendship — but a block still ends it.
+       * Participation, not friendship - but a block still ends it.
        *
        * Two different relaxations, and only one of them is granted:
        *
@@ -451,7 +451,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
       if (isSelf(viewer, request.targetId)) return deny(request.action, 'NOT_PARTICIPANT');
       // Already friends, or already asked. Re-asking is not a way to nag
-      // someone who has not answered — ADR 0007's whole posture.
+      // someone who has not answered - ADR 0007's whole posture.
       if (request.existing === 'FRIEND' || request.existing === 'PENDING') {
         return deny(request.action, 'WRONG_STATE');
       }
@@ -461,7 +461,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
     case 'friend:respond': {
       if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
       // The person who *sent* it cannot accept it. Agreeing with yourself is
-      // not agreement — the same rule the handoff uses (ADR 0019).
+      // not agreement - the same rule the handoff uses (ADR 0019).
       if (viewer.viewerId === request.request.requestedBy) {
         return deny(request.action, 'NOT_PARTICIPANT');
       }
@@ -473,8 +473,8 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
     case 'friend:remove': {
       if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
       /**
-       * One action for three things a user experiences differently — unfriend,
-       * withdraw my request, decline theirs — because they are the same write
+       * One action for three things a user experiences differently - unfriend,
+       * withdraw my request, decline theirs - because they are the same write
        * and either party may do any of them. Splitting them would mean three
        * gates that must agree about who is allowed.
        */
@@ -486,7 +486,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
 
     case 'block:list': {
       // Self-scoped by construction: the route only ever reads the actor's own
-      // blocks. There is no route anywhere that answers "who blocked me" —
+      // blocks. There is no route anywhere that answers "who blocked me" -
       // that answer belongs to the other party, and knowing it is what makes a
       // block evadable (ADR 0028).
       return viewer.viewerId === null
@@ -525,7 +525,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
     case 'circle:manage': {
       if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
       /**
-       * Your circles are yours alone — reading them as much as writing them.
+       * Your circles are yours alone - reading them as much as writing them.
        *
        * There is no "circles I am in" anywhere in the product, and this gate is
        * why: every circle route names an owner, and it must be the caller
@@ -543,7 +543,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
        * subject id, so there is no "whose account" to get wrong. Authentication
        * is the whole gate.
        *
-       * Not block-exempt, and it does not need to be — neither response says
+       * Not block-exempt, and it does not need to be - neither response says
        * anything about anyone the caller is blocked with. The export runs
        * through the same projections, which already return nothing for a
        * blocked pair.
@@ -564,11 +564,11 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
     case 'calendar:preview': {
       if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
       /**
-       * "What does Bob see of *my* week?" — the sharing checkup.
+       * "What does Bob see of *my* week?" - the sharing checkup.
        *
        * Safe only because the direction is fixed: the owner asks about their
-       * own calendar. The inverse — letting a caller name whose eyes to borrow
-       * on someone else's calendar — would be a complete bypass of the
+       * own calendar. The inverse - letting a caller name whose eyes to borrow
+       * on someone else's calendar - would be a complete bypass of the
        * visibility model, so the request carries `ownerId` and this case
        * requires it to be the caller. There is deliberately no parameter for
        * "whose calendar", only "whose eyes".
@@ -584,7 +584,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
        *
        * Every participant's availability is computed by `projectCalendar` for
        * this exact viewer, so a stranger contributes an empty set and appears
-       * free — the same answer they would get by opening that calendar. There is
+       * free - the same answer they would get by opening that calendar. There is
        * nothing here to authorize beyond being someone, because the projection
        * has already decided what each participant is willing to tell them
        * (ADR 0008).
@@ -629,7 +629,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       const isParty =
         viewer.viewerId === request.request.proposerId ||
         request.request.inviteeIds.includes(viewer.viewerId);
-      // Unknown-to-you and not-a-party collapse to the same outcome upstream —
+      // Unknown-to-you and not-a-party collapse to the same outcome upstream -
       // a non-participant learns nothing, not even that the hangout exists.
       return isParty ? allow(request.action) : deny(request.action, 'NOT_PARTICIPANT');
     }
@@ -663,7 +663,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       if (viewer.viewerId !== request.request.proposerId) {
         return deny(request.action, 'NOT_OWNER');
       }
-      // Editable while live — pending or confirmed — but not once it is over.
+      // Editable while live - pending or confirmed - but not once it is over.
       const s = request.request.status;
       return s === 'PENDING' || s === 'ACCEPTED'
         ? allow(request.action)
@@ -737,7 +737,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       // meeting, so actually claiming it still requires a friendship.
       if (viewer.relationship !== 'FRIEND') return deny(request.action, 'NOT_FRIENDS');
       if (request.listing.status !== 'AVAILABLE') return deny(request.action, 'WRONG_STATE');
-      // One person, one entry — checked before the deadline so that a repeat
+      // One person, one entry - checked before the deadline so that a repeat
       // attempt reads the same whether or not claiming has closed.
       if (request.viewerHasClaimed) return deny(request.action, 'WRONG_STATE');
       return areClaimsClosed(request.listing, request.now)
@@ -755,7 +755,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       /**
        * Drawing early would let an owner run the draw, dislike the winner, and
        * leave entries open for another go. A deadline is therefore *required*
-       * for a lottery, which `CreateListingInput` cannot express — so an absent
+       * for a lottery, which `CreateListingInput` cannot express - so an absent
        * one is refused here rather than treated as "open forever".
        */
       return areClaimsClosed(request.listing, request.now)
@@ -798,7 +798,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
        * blocking their victim must not strip that victim of the ability to
        * report them. Routes therefore build the context against the *caller*
        * (`viewerFor(actorId)`, which is always `SELF`), so the social
-       * relationship never reaches this decision at all — rather than adding
+       * relationship never reaches this decision at all - rather than adding
        * `report:create` to `BLOCK_EXEMPT_ACTIONS` and widening a set whose
        * invariant is that its members return no data.
        *
@@ -870,7 +870,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
        * Either party, at any point before it is done, and no reason required.
        *
        * Calling off a plan to meet a person must be the easiest thing in the
-       * flow — someone who has become uncomfortable should never have to
+       * flow - someone who has become uncomfortable should never have to
        * justify it, to us or to the other party (ADR 0019).
        */
       const s = request.exchange.status;
@@ -884,7 +884,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       const isCounterparty =
         isSelf(viewer, request.listing.ownerId) || viewer.viewerId === request.claim.claimantId;
       if (!isCounterparty) return deny(request.action, 'NOT_PARTICIPANT');
-      // Either party's call, not a two-sided confirmation — chasing someone for
+      // Either party's call, not a two-sided confirmation - chasing someone for
       // a confirming tap is the obligation this product refuses (ADR 0007).
       return request.exchange.status === 'SCHEDULED'
         ? allow(request.action)
@@ -905,7 +905,7 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
        * need to meet, so a rejected suggestion returns them to "nothing
        * arranged" rather than ending the exchange (ADR 0019).
        *
-       * `SCHEDULED` is excluded — moving a booked handoff means un-booking two
+       * `SCHEDULED` is excluded - moving a booked handoff means un-booking two
        * calendars, so it goes through cancel and then propose, where the
        * calendar cleanup is explicit rather than implied.
        */

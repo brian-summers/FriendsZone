@@ -78,7 +78,7 @@ export function HangoutManage({
       setError(
         err instanceof ApiError
           ? err.status === 409
-            ? 'That’s no longer possible — it may have changed. Refreshing.'
+            ? 'That’s no longer possible - it may have changed. Refreshing.'
             : `That didn’t go through (${err.status}).`
           : 'Could not reach the API.',
       );

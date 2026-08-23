@@ -13,7 +13,7 @@
  *
  *  - Calendar UI is dense with numerals that must align. A webfont that arrives
  *    late reflows a grid of times, which is far uglier than in prose.
- *  - The product is used in short, frequent glances — "am I free Thursday?" —
+ *  - The product is used in short, frequent glances - "am I free Thursday?" -
  *    where a 200ms font swap is a disproportionate share of the interaction.
  */
 export const FONTS = {
@@ -31,7 +31,7 @@ export const FONTS = {
 
   /**
    * Times, durations, dates, and any tabular data. Monospace is not a stylistic
-   * flourish here — it is the only way a column of times aligns without
+   * flourish here - it is the only way a column of times aligns without
    * fighting proportional digits.
    */
   mono: "ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace",
@@ -87,7 +87,7 @@ export const RADIUS = {
  * Kept short and few. This is an anxiety-reducing product, and animation that
  * draws attention to itself works against that. Notably absent: any attention
  * -seeking motion for incoming requests. A request arriving must never animate
- * in a way that demands to be dealt with now — that is the read-receipt problem
+ * in a way that demands to be dealt with now - that is the read-receipt problem
  * wearing a different hat. See docs/adr/0007-async-by-design.md.
  */
 export const MOTION = {

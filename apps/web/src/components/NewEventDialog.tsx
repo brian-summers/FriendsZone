@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CreateEventInput, EventView, TimeRange } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
 import { addDays, dayTimeToIso, formatDayOfWeek } from '../lib/time.js';
+import { TimeField } from './TimeField.js';
 import { SHARE_PRESETS, presetById } from '../lib/sharePresets.js';
 import { encodingFor } from '../lib/visibility.js';
 
@@ -13,10 +14,6 @@ interface Props {
   onClose: () => void;
   onCreated: (event: EventView) => void;
 }
-
-/** 07:00–23:00 in 30-minute steps, as minutes-of-day. */
-const START_OPTIONS = Array.from({ length: 32 }, (_, i) => 7 * 60 + i * 30); // 420…1350
-const END_OPTIONS = Array.from({ length: 33 }, (_, i) => 7 * 60 + i * 30); // 420…1380
 
 const clampDay = (i: number): number => Math.max(0, Math.min(6, i));
 
@@ -31,7 +28,7 @@ const dayIndexOf = (weekStart: Date, d: Date): number =>
 /**
  * Create an event.
  *
- * The sharing choice is a preset rather than a rule builder — see
+ * The sharing choice is a preset rather than a rule builder - see
  * `lib/sharePresets.ts` for why. The form defaults to "Friends see I'm busy",
  * the conservative option, so the safe choice is the one requiring no thought.
  * A drag on the calendar opens this with the day and time pre-filled.
@@ -156,13 +153,7 @@ export function NewEventDialog({ weekStart, actorId, initialRange, onClose, onCr
             </label>
             <label className="field">
               <span>From</span>
-              <select value={fromMin} onChange={(e) => setFromMin(Number(e.target.value))}>
-                {START_OPTIONS.map((m) => (
-                  <option key={m} value={m}>
-                    {fmtMin(m)}
-                  </option>
-                ))}
-              </select>
+              <TimeField label="Start time" value={fromMin} onChange={setFromMin} />
             </label>
           </div>
 
@@ -179,13 +170,7 @@ export function NewEventDialog({ weekStart, actorId, initialRange, onClose, onCr
             </label>
             <label className="field">
               <span>To</span>
-              <select value={toMin} onChange={(e) => setToMin(Number(e.target.value))}>
-                {END_OPTIONS.map((m) => (
-                  <option key={m} value={m}>
-                    {fmtMin(m)}
-                  </option>
-                ))}
-              </select>
+              <TimeField label="End time" value={toMin} onChange={setToMin} />
             </label>
           </div>
 
@@ -245,7 +230,7 @@ export function NewEventDialog({ weekStart, actorId, initialRange, onClose, onCr
               <strong>Block this time</strong>
               <small>
                 By default events can overlap and friends may request the time. Tick this to make it
-                exclusive — a hard block that shows as busy and nothing can overlap.
+                exclusive - a hard block that shows as busy and nothing can overlap.
               </small>
             </span>
           </label>

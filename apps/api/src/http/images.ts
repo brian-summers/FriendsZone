@@ -42,7 +42,7 @@ export function sniffImageType(bytes: Uint8Array): ImageType | null {
   // GIF: "GIF87a" or "GIF89a".
   if (startsWith(bytes, [0x47, 0x49, 0x46, 0x38])) return 'image/gif';
 
-  // WebP is a RIFF container: "RIFF" ���� "WEBP". Both halves are checked —
+  // WebP is a RIFF container: "RIFF" ���� "WEBP". Both halves are checked -
   // "RIFF" alone is also how a WAV file starts.
   if (
     startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) &&

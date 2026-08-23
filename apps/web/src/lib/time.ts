@@ -6,9 +6,19 @@
  * event ends up drawn on the wrong day for anyone not on UTC.
  */
 
-/** First and last hour drawn in the grid. */
-export const DAY_START_HOUR = 7;
-export const DAY_END_HOUR = 23;
+/**
+ * The grid draws the whole day, 00:00 to 24:00.
+ *
+ * It used to start at 07:00 and stop at 23:00, which quietly made a third of
+ * the day unreachable: a night shift, an early flight, and anything after 11pm
+ * could not be seen, created, or dragged. The grid scrolls, so the cost of the
+ * full range is scrolling rather than lost time.
+ *
+ * `DAY_END_HOUR` is 24, not 23: it is the exclusive upper bound of the drawn
+ * region, so the last row is 23:00 to 23:59.
+ */
+export const DAY_START_HOUR = 0;
+export const DAY_END_HOUR = 24;
 export const HOUR_PX = 44;
 
 export const GRID_HEIGHT = (DAY_END_HOUR - DAY_START_HOUR) * HOUR_PX;
@@ -17,6 +27,34 @@ export const HOURS: number[] = Array.from(
   { length: DAY_END_HOUR - DAY_START_HOUR },
   (_, i) => DAY_START_HOUR + i,
 );
+
+/**
+ * A quiet-hours window as pixel bands on the grid.
+ *
+ * One band normally; **two** when the window wraps midnight, which is the
+ * common case. 23:00 to 09:00 is not one region from 1380 to 540 - on a grid
+ * that starts at 00:00 it is a band at the top of the day and another at the
+ * bottom, and treating it as a single span would draw it inverted.
+ *
+ * Returns pixel offsets rather than minutes so the caller does no arithmetic.
+ */
+export function quietHoursToBands(
+  quiet: { startMinute: number; endMinute: number } | null | undefined,
+): Array<{ top: number; height: number }> {
+  if (quiet === null || quiet === undefined) return [];
+  if (quiet.startMinute === quiet.endMinute) return [];
+
+  const px = (minute: number) => ((minute - DAY_START_HOUR * 60) / 60) * HOUR_PX;
+  const dayEnd = DAY_END_HOUR * 60;
+
+  if (quiet.startMinute < quiet.endMinute) {
+    return [{ top: px(quiet.startMinute), height: px(quiet.endMinute) - px(quiet.startMinute) }];
+  }
+  return [
+    { top: px(DAY_START_HOUR * 60), height: px(quiet.endMinute) - px(DAY_START_HOUR * 60) },
+    { top: px(quiet.startMinute), height: px(dayEnd) - px(quiet.startMinute) },
+  ].filter((b) => b.height > 0);
+}
 
 /** Monday 00:00 local of the week containing `date`, plus `weekOffset` weeks. */
 export function startOfWeek(date: Date, weekOffset = 0): Date {
@@ -46,7 +84,7 @@ export interface Placement {
 }
 
 export interface Segment extends Placement {
-  /** The interval began before this day — this segment is a continuation. */
+  /** The interval began before this day - this segment is a continuation. */
   continuesBefore: boolean;
   /** The interval runs past this day into the next one. */
   continuesAfter: boolean;
@@ -65,7 +103,7 @@ export interface Segment extends Placement {
  *
  * A same-day interval yields a single segment. One that crosses midnight yields
  * a segment per day: the first runs to the bottom of its column, each whole
- * middle day fills its column, and the last starts at the top — so a weekend
+ * middle day fills its column, and the last starts at the top - so a weekend
  * trip reads as a continuous band across the columns it touches. Days outside
  * `[weekStart, weekStart+7)` are omitted, so the result is already clipped to
  * the visible week.
@@ -81,7 +119,7 @@ export function placeSpan(startIso: string, endIso: string, weekStart: Date): Se
 
   for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
     // Local midnight to local midnight, via date arithmetic so DST-length days
-    // stay correct — the boundaries are real instants, not fixed 24h offsets.
+    // stay correct - the boundaries are real instants, not fixed 24h offsets.
     const dayStartMs = addDays(weekStart, dayIndex).getTime();
     const dayEndMs = addDays(weekStart, dayIndex + 1).getTime();
 
@@ -167,8 +205,8 @@ export interface DragPoint {
 /**
  * Normalise a drag's two endpoints into an ISO range.
  *
- * Orders them (a drag can go up or to the left), and expands a click — or a
- * drag that never left its starting slot — into a single `SNAP_MINUTES` block.
+ * Orders them (a drag can go up or to the left), and expands a click - or a
+ * drag that never left its starting slot - into a single `SNAP_MINUTES` block.
  * The endpoints may sit in different columns, so the resulting range can span
  * days; `dayTimeToIso` turns each (day, minute) into a real instant.
  */
@@ -198,8 +236,8 @@ export interface ColumnSpan {
  * Lay overlapping intervals out in side-by-side columns.
  *
  * Events overlap by default now, so a block can hold several at once; this is
- * the standard interval-graph packing — greedy column assignment within each
- * cluster of transitively-overlapping events — that reads as "multiple things
+ * the standard interval-graph packing - greedy column assignment within each
+ * cluster of transitively-overlapping events - that reads as "multiple things
  * in the same slot" rather than chips stacked illegibly on top of each other.
  * Returns one `ColumnSpan` per input, in input order.
  */

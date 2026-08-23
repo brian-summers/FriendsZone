@@ -199,7 +199,7 @@ describe('identity and preview endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     const handles = res.json().people.map((p: { handle: string }) => p.handle);
-    // Bob, Carol, Dave — not Mallory, who is blocked.
+    // Bob, Carol, Dave - not Mallory, who is blocked.
     expect(handles.sort()).toEqual(['bob', 'carol', 'dave']);
   });
 
@@ -249,8 +249,8 @@ describe('identity and preview endpoints', () => {
 
   it('cannot be turned into a way to read someone else’s calendar', async () => {
     // The endpoint takes "whose eyes", never "whose calendar". Bob asking to
-    // preview as Alice gets *Bob's* calendar as Alice sees it — his own data,
-    // which he is entitled to — and never Alice's.
+    // preview as Alice gets *Bob's* calendar as Alice sees it - his own data,
+    // which he is entitled to - and never Alice's.
     const res = await app.inject({
       method: 'GET',
       url: `/v1/me/calendar/preview?${win()}&viewerId=${SEED_ALICE}`,
@@ -382,7 +382,7 @@ describe('authenticator', () => {
    * ([ADR 0006](../../../docs/adr/0006-authentication-deferred.md)).
    *
    * One now does ([ADR 0024](../../../docs/adr/0024-authentication.md)), so the
-   * refusal is gone — that was the entire point of it. The *property* it
+   * refusal is gone - that was the entire point of it. The *property* it
    * protected is not gone, and is asserted here and in `auth.test.ts`: in
    * production the development header does nothing at all.
    */

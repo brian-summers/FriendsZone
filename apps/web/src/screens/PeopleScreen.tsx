@@ -10,7 +10,7 @@ import { api, ApiError } from '../lib/api.js';
 import { Explainer } from '../components/Explainer.js';
 
 /**
- * People — finding, adding, and answering.
+ * People - finding, adding, and answering.
  *
  * This used to live inside Settings, which was the wrong place twice over.
  * Adding a friend is the first thing a new account needs to do, and answering
@@ -24,7 +24,7 @@ import { Explainer } from '../components/Explainer.js';
  *    exists. Someone who has set themselves unfindable is indistinguishable
  *    from a handle nobody has.
  *  - Report that a request was declined. Declining deletes the row, so
- *    "waiting" and "turned down" render identically — as nothing at all.
+ *    "waiting" and "turned down" render identically - as nothing at all.
  */
 
 interface Props {
@@ -274,7 +274,7 @@ export function PeopleScreen({ actorId, people, onGraphChanged, onMessage }: Pro
         <h2>Blocked</h2>
         <p className="muted">
           Blocking removes the friendship, hides each of you from the other, and ends any
-          conversation you had. Unblocking lifts only your block — if they have blocked you too,
+          conversation you had. Unblocking lifts only your block - if they have blocked you too,
           that stays, and you will not be told either way.
         </p>
         {blocked.length === 0 ? (

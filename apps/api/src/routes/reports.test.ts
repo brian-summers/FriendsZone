@@ -7,7 +7,7 @@ import { ALICE, BOB, CAROL, DAVE, MALLORY, createDemoSeed } from '../seed.js';
 import { createServer } from '../server.js';
 
 /**
- * BOB reports ALICE. DAVE is the moderator — deliberately someone with no
+ * BOB reports ALICE. DAVE is the moderator - deliberately someone with no
  * special relationship to either of them.
  */
 const config: Config = {
@@ -185,7 +185,7 @@ describe('reporting and moderation', () => {
       });
       expect(before.json().reports).toEqual([]);
 
-      // Reading it directly is refused too — not a different error, just gone.
+      // Reading it directly is refused too - not a different error, just gone.
       const direct = await app.inject({
         method: 'GET',
         url: `/v1/moderation/reports/${report.id}`,
@@ -213,7 +213,7 @@ describe('reporting and moderation', () => {
 
     it('keeps the two threads from ever crossing', async () => {
       const { report } = await reportListing();
-      await modNote(report.id, 'REPORTER', 'Thanks — can you tell us when this started?');
+      await modNote(report.id, 'REPORTER', 'Thanks - can you tell us when this started?');
       await modNote(report.id, 'SUBJECT', 'Please review our conduct guidance.');
 
       await app.inject({

@@ -22,6 +22,7 @@ import {
   hours,
   rule,
   viewer,
+  asAnonymous,
 } from './testing.js';
 
 describe('projectEvent', () => {
@@ -242,11 +243,67 @@ describe('projectCalendar', () => {
       'holds',
       'openBlocks',
       'ownerId',
+      'quietHours',
       'window',
     ]);
     // Still no count of what was withheld; these are fixed, non-secret fields.
     expect(view.holds).toEqual([]);
     expect(view.openBlocks).toEqual([]);
+    expect(view.quietHours).toBeNull();
+  });
+
+  describe('quiet hours', () => {
+    // 23:00 to 09:00, in a fixed zone so the assertion does not depend on
+    // where the test runs.
+    const QUIET = { startMinute: 1380, endMinute: 540, timeZone: 'Europe/Lisbon' };
+
+    const withQuiet = (viewer: ReturnType<typeof asStranger>) =>
+      call({
+        ownerId: ALICE,
+        events: [],
+        viewer,
+        ownerDefaults: defaults(),
+        window: DAY,
+        ownerQuietHours: QUIET,
+      });
+
+    it('reaches the owner and accepted friends', () => {
+      expect(withQuiet(asOwner()).quietHours).toEqual(QUIET);
+      expect(withQuiet(asFriend()).quietHours).toEqual(QUIET);
+    });
+
+    it('is null for a stranger, a blocked viewer and an anonymous caller alike', () => {
+      /**
+       * The whole reason this field is gated. The rest of this view is
+       * identical for those three, so a `quietHours` that differed between
+       * them would be exactly the oracle the projection works to remove - and
+       * it would leak a sleeping pattern to someone who was blocked.
+       */
+      expect(withQuiet(asStranger()).quietHours).toBeNull();
+      expect(withQuiet(asBlocked()).quietHours).toBeNull();
+      expect(withQuiet(asAnonymous()).quietHours).toBeNull();
+    });
+
+    it('never becomes busy time', () => {
+      // A quiet hour says "do not ask", not "I am occupied". Folding it into
+      // busy would overstate how full the week is and publish a sleeping
+      // pattern as though it were a commitment.
+      const view = withQuiet(asFriend());
+      expect(view.busy).toEqual([]);
+      expect(view.openBlocks).toEqual([]);
+      expect(view.details).toEqual([]);
+    });
+
+    it('is null when the owner has set none', () => {
+      const view = call({
+        ownerId: ALICE,
+        events: [],
+        viewer: asFriend(),
+        ownerDefaults: defaults(),
+        window: DAY,
+      });
+      expect(view.quietHours).toBeNull();
+    });
   });
 
   it('refuses to project events belonging to another owner', () => {
@@ -434,7 +491,7 @@ describe('deriveHangoutHolds', () => {
 
   it('never shows a hold for a request the viewer is not part of', () => {
     // Carol views Alice's calendar. There's a pending Bob→Alice request. Carol
-    // is not a party to it, so she must not see the tentative hold — even
+    // is not a party to it, so she must not see the tentative hold - even
     // though she can see Alice's calendar.
     const holds = deriveHangoutHolds({
       ownerId: ALICE,

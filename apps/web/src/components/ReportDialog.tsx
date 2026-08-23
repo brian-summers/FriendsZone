@@ -68,7 +68,7 @@ export function ReportDialog({ subject, label, actorId, onClose }: Props) {
       <div className="dialog report-dialog" role="dialog" aria-label="Report">
         {state === 'sent' ? (
           <>
-            <h3>Thank you — that’s with us</h3>
+            <h3>Thank you - that’s with us</h3>
             <p className="report-reassure">
               Someone will read it. <strong>{label}</strong> will not be told who reported them,
               and nothing has been removed automatically.
@@ -86,7 +86,7 @@ export function ReportDialog({ subject, label, actorId, onClose }: Props) {
           <>
             <h3>Report {label}</h3>
             <p className="report-reassure">
-              They won’t be told who reported them. Nothing is removed automatically — a person
+              They won’t be told who reported them. Nothing is removed automatically - a person
               reads every report.
             </p>
 
@@ -114,7 +114,7 @@ export function ReportDialog({ subject, label, actorId, onClose }: Props) {
                 placeholder="Optional. What happened, and when."
               />
               <small className="side-note">
-                Only moderators see this — never the person you’re reporting.
+                Only moderators see this - never the person you’re reporting.
               </small>
             </label>
 

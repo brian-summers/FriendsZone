@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
  * Backstop: development affordances must not reach a production build.
  *
  * The server already refuses `x-dev-actor-id` outside development, so nothing
- * here is the security boundary — `auth.test.ts` and `server.test.ts` hold that
+ * here is the security boundary - `auth.test.ts` and `server.test.ts` hold that
  * line. What these assertions protect is the *client*: a real person should
  * never be offered an identity switcher, and their browser should never be
  * handed a list of seeded account ids to go with it.
@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
  * `false` when building. That turns every guarded branch into dead code the
  * bundler deletes, so the affordance is *absent* from shipped JavaScript rather
  * than hidden in it. These tests read source, because the thing worth catching
- * is a future edit that adds a dev helper without the guard — which looks
+ * is a future edit that adds a dev helper without the guard - which looks
  * completely fine in review.
  */
 
@@ -125,7 +125,7 @@ describe('development affordances', () => {
 
   it('ships no build-status board to users', () => {
     // A "what works / what is a stub" list is a developer artefact, and it goes
-    // stale in the way such lists always do — this one still called Things a
+    // stale in the way such lists always do - this one still called Things a
     // stub and auth "todo" long after both shipped. The maintained versions of
     // that information are README.md and docs/product/road-to-ga.md.
     const offenders = sources()

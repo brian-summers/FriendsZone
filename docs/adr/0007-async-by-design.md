@@ -6,7 +6,7 @@
 ## Context
 
 Friendszone exists because coordinating plans over messaging apps is stressful.
-Not because messaging is technically inadequate — because it is *synchronous by
+Not because messaging is technically inadequate - because it is *synchronous by
 social convention*. A message that has been delivered creates an obligation. A
 message marked "seen" and unanswered creates a worse one. People end up
 declining plans they would have enjoyed, or avoiding making them at all, because
@@ -24,7 +24,7 @@ Friendszone will not have them. Not as an option, not defaulted off, not for
 This is a product constraint with a schema consequence: **there is nowhere in
 the domain model to store them.** `HangoutRequest` has no `seenAt`,
 `deliveredAt`, or `viewedBy`. `User` has no `lastActiveAt`. The absence is
-deliberate and is recorded here so that a future contributor — human or agent —
+deliberate and is recorded here so that a future contributor - human or agent -
 recognises it as a decision rather than an omission to be helpfully filled in.
 
 Three positive mechanisms replace the pressure these features create:
@@ -46,7 +46,7 @@ Three positive mechanisms replace the pressure these features create:
 - There is a real privacy benefit as a side effect: presence data is a
   high-resolution activity log, and the safest way to protect it is not to
   collect it. A `lastActiveAt` field would undermine the calendar privacy model
-  from an entirely different direction — it tells a watcher when you are awake,
+  from an entirely different direction - it tells a watcher when you are awake,
   travelling, or at your desk, regardless of what your calendar shares.
 - Notification design must be careful not to reintroduce this by the back door.
   A push notification that says "Bob is waiting for your reply" is a read
@@ -60,5 +60,5 @@ becomes a social question. The pressure returns via the settings screen.
 
 **Presence limited to a close-friends circle.** Same failure, smaller blast
 radius, plus it makes circle membership socially loaded in a way the privacy
-model works hard to avoid — see the circle-name leakage abuse case in
+model works hard to avoid - see the circle-name leakage abuse case in
 [the threat model](../security/threat-model.md).

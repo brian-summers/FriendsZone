@@ -9,7 +9,7 @@ import { ReportDialog } from './ReportDialog.js';
  * This is the only screen in Friendszone that ends with two people in a room,
  * so it is the only one that says so out loud: what the other person will see,
  * what everyone else will see, and how to get out of it. None of that copy is
- * decoration — it is the difference between someone understanding what they are
+ * decoration - it is the difference between someone understanding what they are
  * agreeing to and finding out afterwards.
  *
  * See docs/adr/0019-the-handoff.md.
@@ -75,7 +75,7 @@ export function Handoff({
       setError(
         err instanceof ApiError
           ? err.status === 409
-            ? 'That’s moved on — reload and take another look.'
+            ? 'That’s moved on - reload and take another look.'
             : `That didn’t work (${err.status}).`
           : 'Could not reach the API.',
       );
@@ -129,7 +129,7 @@ export function Handoff({
       {composing && (
         <div className="handoff-compose">
           <p className="handoff-safety">
-            Somewhere public is usually best — a café, a shop, a busy street. You’re about to
+            Somewhere public is usually best - a café, a shop, a busy street. You’re about to
             share a time and place with <strong>{counterpartyName}</strong>.
           </p>
 
@@ -176,7 +176,7 @@ export function Handoff({
           {/* The one thing people most need to know, and cannot infer. */}
           <p className="side-note">
             Once you both agree this goes on both your calendars. Everyone else only ever sees
-            that you’re busy — never where, never with whom.
+            that you’re busy - never where, never with whom.
           </p>
 
           <div className="thing-buttons">
@@ -246,7 +246,7 @@ export function Handoff({
                   disabled={busy}
                   onClick={() => void act(() => api.completeExchange(exchange.id, actorId))}
                 >
-                  Done — we’ve swapped
+                  Done - we’ve swapped
                 </button>
                 <button
                   type="button"
@@ -265,11 +265,11 @@ export function Handoff({
         </div>
       )}
 
-      {/* Always available while arranging — someone who becomes uneasy should
+      {/* Always available while arranging - someone who becomes uneasy should
           not have to go and find the feature (ADR 0019). */}
       <div className="handoff-report">
         <button type="button" className="link-btn" onClick={() => setReporting(true)}>
-          Something feels off — report {counterpartyName}
+          Something feels off - report {counterpartyName}
         </button>
       </div>
 

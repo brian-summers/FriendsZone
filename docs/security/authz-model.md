@@ -3,7 +3,7 @@
 ## Shape
 
 Relationship-based (ReBAC). Permission is derived from the relationship between
-the viewer and the *owner* of the resource — not from a role attached to the
+the viewer and the *owner* of the resource - not from a role attached to the
 user. There are no roles, and adding one should require an ADR: "admin" is how a
 social product acquires an internal surface that can read every calendar.
 
@@ -33,16 +33,16 @@ security-critical code exhaustively testable.
 Authorization happens twice, and conflating the stages is the most likely way to
 introduce a leak here.
 
-**Stage 1 — the coarse gate.** `can()` answers "may this actor attempt this
+**Stage 1 - the coarse gate.** `can()` answers "may this actor attempt this
 action at all?" It rejects categorically forbidden things: writing to someone
 else's calendar, messaging a non-friend, claiming your own listing.
 
-**Stage 2 — per-record filtering.** For reads, the visibility engine decides
+**Stage 2 - per-record filtering.** For reads, the visibility engine decides
 what actually comes back, one record at a time.
 
 For calendars, stage 1 rejects almost nothing on purpose. Everyone may *ask*;
 the answer is filtered per event, and may legitimately be empty. That is why a
-stranger receives `200 {busy: [], details: []}` rather than `403` — see the next
+stranger receives `200 {busy: [], details: []}` rather than `403` - see the next
 section.
 
 ## Denials do not distinguish themselves
@@ -50,7 +50,7 @@ section.
 `denialToResponse()` maps most reasons to **404, not 403**.
 
 A 403 is an admission. "You may not view Alice's calendar" confirms Alice
-exists, confirms the id is hers, and — if the status varies by reason — reveals
+exists, confirms the id is hers, and - if the status varies by reason - reveals
 whether you are blocked or merely not a friend. Chained across a handle list,
 that turns the API into a social-graph oracle.
 
@@ -108,7 +108,7 @@ Structural, not procedural. Conventions decay; these do not:
 
 Not yet implemented; required before production. When Postgres lands, ownership
 predicates should be enforced by RLS policies *in addition to* the policy
-engine. The engine is the primary control and RLS is the backstop — a bug in a
+engine. The engine is the primary control and RLS is the backstop - a bug in a
 handler should hit a wall in the database, not a data leak. See
 [ADR 0004](../adr/0004-persistence.md).
 

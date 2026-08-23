@@ -32,7 +32,7 @@ export interface ViewerContext {
    * Whether this caller is on the deployment's moderator allowlist.
    *
    * Sourced from `MODERATOR_IDS` in config, never from the database and never
-   * from anything a user can write — a role that can be escalated to through
+   * from anything a user can write - a role that can be escalated to through
    * the API is a role that will be
    * (docs/adr/0018-reporting-and-moderation.md).
    *
@@ -43,7 +43,7 @@ export interface ViewerContext {
    *
    * This grants **no exemption from the visibility model**. There is no branch
    * anywhere in `visibility.ts` or `projection.ts` that consults it. It unlocks
-   * the moderation queue and the evidence snapshots attached to reports —
+   * the moderation queue and the evidence snapshots attached to reports -
    * nothing else, and specifically not anyone's calendar.
    */
   readonly isModerator: boolean;

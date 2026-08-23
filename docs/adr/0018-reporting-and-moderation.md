@@ -12,7 +12,7 @@ explicitly waiting on this. Things now ships user-authored text and user-supplie
 photographs to other people. That is the surface that needs a way to report
 someone.
 
-The obvious starting point — and the one proposed — is an email address:
+The obvious starting point - and the one proposed - is an email address:
 `reports@friends-zone.app`. It is cheap and needs no product surface at all.
 
 It also cannot do most of what is being asked for, and it is worth being precise
@@ -23,7 +23,7 @@ about why rather than dismissing it:
    accuser" has no accuser to protect and no way to reach them for follow-up
    that isn't equally forgeable.
 2. **It moves the most sensitive data we hold *out* of the system.** A useful
-   report quotes the offending material — event titles, claim messages, photos.
+   report quotes the offending material - event titles, claim messages, photos.
    Mailing that to an inbox copies 🟠 Sensitive content into a mail spool,
    somebody's phone, and a backup, all outside the projection model that the rest
    of the product is built around.
@@ -56,7 +56,7 @@ accidentally forwarded, archived, or breached leaks a reason code and a UUID.
 
 ### Evidence is snapshotted at report time
 
-Filing a report captures an immutable `EvidenceSnapshot` — the text fields and
+Filing a report captures an immutable `EvidenceSnapshot` - the text fields and
 photo keys of the reported material, as they were at that instant.
 
 This does two jobs, and the second is the one that matters more:
@@ -66,7 +66,7 @@ This does two jobs, and the second is the one that matters more:
   attached to a report. They *cannot* read the live listing, the subject's
   calendar, or anything else. There is no moderator master key, and the
   visibility lattice has no moderator exemption. What was reported is what can be
-  seen — which also means a moderator cannot go fishing, and a compromised
+  seen - which also means a moderator cannot go fishing, and a compromised
   moderator account is worth the reports it can open rather than the database.
 
 ### Moderators are a deployment allowlist, not a user role
@@ -101,7 +101,7 @@ that stamp, and the tests assert the cross-party case directly.
 
 The residue we cannot remove: a moderator writes free text, and a moderator can
 type a name into it. No schema prevents that. What the system guarantees is that
-it never *composes* one — no quoting, no "reported by", no attribution anywhere
+it never *composes* one - no quoting, no "reported by", no attribution anywhere
 in the payload sent to a subject.
 
 ### The subject is not told a report exists
@@ -118,7 +118,7 @@ reason category rather than the report.
 
 You may only report material you can already see. Reporting something outside
 your audience and reporting something that does not exist return the identical
-404 — otherwise `POST /v1/reports` becomes a probe for whether a given id exists,
+404 - otherwise `POST /v1/reports` becomes a probe for whether a given id exists,
 which is exactly the disclosure `denialToResponse` exists to prevent everywhere
 else.
 
@@ -129,7 +129,7 @@ person and a report count never becomes a popularity signal.
 
 `OPEN → AWAITING_INFO → UPHELD | DISMISSED`.
 
-Upholding a report about a listing can **take it down** — that enforcement is
+Upholding a report about a listing can **take it down** - that enforcement is
 real because listings are ours to unpublish. There is deliberately no ban, no
 suspension, and no account action: with [ADR 0006](0006-authentication-deferred.md)
 outstanding there are no accounts to suspend, and a `banned: true` column that
@@ -143,7 +143,7 @@ nothing enforces is worse than an honest gap, because it looks like a control.
 - `ViewerContext` grows a field, so every construction site in the repo has to
   name it. That churn is the intended cost of not having a defaultable flag.
 - Snapshots duplicate content, and duplicated content has to be deleted when a
-  user exercises erasure. Account deletion must reach report evidence — noted in
+  user exercises erasure. Account deletion must reach report evidence - noted in
   [data classification](../security/data-classification.md) retention.
 - Moderators cannot see context around reported material, only the material. That
   will feel restrictive and it is the point; widening it means designing an audit
@@ -154,7 +154,7 @@ nothing enforces is worse than an honest gap, because it looks like a control.
 ## Alternatives considered
 
 **Email as the record of truth.** The proposal above. Rejected for the four
-reasons in Context — chiefly that it cannot authenticate a reporter and cannot
+reasons in Context - chiefly that it cannot authenticate a reporter and cannot
 keep two parties apart in one thread.
 
 **A shared moderator↔parties thread with names redacted.** Redaction is a

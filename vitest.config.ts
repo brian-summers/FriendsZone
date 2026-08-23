@@ -6,7 +6,7 @@ const src = (pkg: string) => fileURLToPath(new URL(`./${pkg}/src/index.ts`, impo
 export default defineConfig({
   // Tests run against TypeScript sources, not build output. Without this,
   // `npm test` on a clean checkout would silently exercise a stale `dist/`
-  // — or nothing at all.
+  // - or nothing at all.
   resolve: {
     alias: [
       {

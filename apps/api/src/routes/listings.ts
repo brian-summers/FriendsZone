@@ -30,7 +30,7 @@ import { ValidationError } from '../http/errors.js';
 import type { Repositories } from '../repositories/ports.js';
 
 /**
- * Things — the secondhand exchange.
+ * Things - the secondhand exchange.
  *
  * Offering an item to an audience, and claiming one by whichever of the three
  * modes the owner chose (docs/adr/0017-claim-modes-and-deadlines.md).
@@ -64,7 +64,7 @@ export function buildListingRoutes(repos: Repositories) {
    * Live handoffs for a listing's claims, as this viewer may see them.
    *
    * `projectExchange` refuses anyone who is not a party, so a non-party simply
-   * gets an empty map — the filtering is the kernel's, not this loop's.
+   * gets an empty map - the filtering is the kernel's, not this loop's.
    */
   const exchangesFor = async (
     listing: Listing,
@@ -86,7 +86,7 @@ export function buildListingRoutes(repos: Repositories) {
    * nonexistent id would produce.
    *
    * Unknown-to-you and does-not-exist have to be one outcome, so they are one
-   * code path — the only way to keep them identical as the file grows.
+   * code path - the only way to keep them identical as the file grows.
    */
   const loadVisible = async (
     listingId: ListingId,
@@ -113,7 +113,7 @@ export function buildListingRoutes(repos: Repositories) {
      * Browse. Every listing the viewer is entitled to, newest first.
      *
      * The port returns raw rows and `projectListing` decides, per listing, what
-     * survives — including whether it appears at all. The coarse `listing:view`
+     * survives - including whether it appears at all. The coarse `listing:view`
      * gate on this route is not the filter; dropping the per-record projection
      * would expose every listing in the system.
      */
@@ -179,8 +179,8 @@ export function buildListingRoutes(repos: Repositories) {
         assertAllowed(can(viewer, { action: 'listing:create', ownerId: actorId }));
 
         /**
-         * A lottery with no deadline can never be drawn — `listing:draw`
-         * refuses one — so creating that combination would produce an item
+         * A lottery with no deadline can never be drawn - `listing:draw`
+         * refuses one - so creating that combination would produce an item
          * permanently stuck accepting entries. Refused at the edge, where the
          * caller can still fix it, rather than left as a dead end.
          */
@@ -405,7 +405,7 @@ export function buildListingRoutes(repos: Repositories) {
     /**
      * Run the draw. Owner only, lottery only, and only once entries have closed.
      *
-     * The winning entry is accepted and **every other entry is declined** —
+     * The winning entry is accepted and **every other entry is declined** -
      * leaving them pending forever is the guilt pile in another costume.
      */
     defineRoute({
@@ -445,7 +445,7 @@ export function buildListingRoutes(repos: Repositories) {
          * A cryptographic source, converted to the `[0, 1)` the kernel wants.
          *
          * Dividing a uint32 by 2^32 is exact in float64 and cannot reach 1.
-         * `Math.random()` is avoided on principle — see ADR 0017.
+         * `Math.random()` is avoided on principle - see ADR 0017.
          */
         const randomUnit = crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32;
         const winner = drawWinner(entries, randomUnit);
@@ -484,7 +484,7 @@ export function buildListingRoutes(repos: Repositories) {
       },
     }),
 
-    /** Hand-pick a claim. `OWNER_SELECTS` only — the kernel enforces that. */
+    /** Hand-pick a claim. `OWNER_SELECTS` only - the kernel enforces that. */
     defineRoute({
       method: 'POST',
       rateLimit: 'WRITE',
@@ -545,7 +545,7 @@ export function buildListingRoutes(repos: Repositories) {
      * Gated on `listing:create`: the only thing a photo is for is a listing you
      * are about to offer, so the right to upload is the right to list.
      *
-     * The key is a random UUID and is *not* a capability — the serving route
+     * The key is a random UUID and is *not* a capability - the serving route
      * below re-checks visibility through the listing that references it.
      */
     defineRoute({

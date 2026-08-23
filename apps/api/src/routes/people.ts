@@ -113,7 +113,7 @@ export const buildPeopleRoutes = (repos: Repositories) => [
 
       const profile = await repos.directory.profile(subjectId);
       if (profile === null) {
-        // Indistinguishable from "not allowed" — both surface as 404.
+        // Indistinguishable from "not allowed" - both surface as 404.
         throw new PolicyDeniedError('profile:read', 'NOT_FRIENDS');
       }
       return profile;

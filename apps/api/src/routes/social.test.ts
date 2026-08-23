@@ -7,7 +7,7 @@ import { ALICE, BOB, CAROL, CLIMBING_CREW, DAVE, MALLORY, createDemoSeed } from 
 import { createServer } from '../server.js';
 
 /**
- * Friend requests, unfriending, blocking, and search — at the HTTP boundary.
+ * Friend requests, unfriending, blocking, and search - at the HTTP boundary.
  *
  * The assertions that matter most here are the *negative* ones, and they are
  * negative in a specific way: not "this is refused" but "this is refused in a
@@ -193,7 +193,7 @@ describe('friend requests and blocking', () => {
       await request(BOB, MALLORY);
       // CAROL is party to neither side. The route is addressed by *the other
       // party*, so there is no id she could supply that names someone else's
-      // request — she can only ever look up a row she is on.
+      // request - she can only ever look up a row she is on.
       expect((await respond(CAROL, MALLORY, 'ACCEPT')).statusCode).toBe(404);
 
       const inbox = await app.inject({
@@ -233,7 +233,7 @@ describe('friend requests and blocking', () => {
        *
        * Written against a *fresh* event rather than the seed's climbing night,
        * because BOB is an attendee there and the attendee branch returns FULL
-       * before any rule is consulted — it would stay visible after unfriending
+       * before any rule is consulted - it would stay visible after unfriending
        * for a reason that has nothing to do with the circle.
        */
       const start = new Date();
@@ -270,7 +270,7 @@ describe('friend requests and blocking', () => {
         url: `/v1/users/${ALICE}/calendar?${weekWindow()}`,
         headers: as(BOB),
       });
-      // He is still on the roster, and it buys him nothing — not the location,
+      // He is still on the roster, and it buys him nothing - not the location,
       // not the title, not the fact that the hour is occupied.
       expect(after.body).not.toContain('Quarry Lane');
       expect(after.body).not.toContain('Route setting');
@@ -360,7 +360,7 @@ describe('friend requests and blocking', () => {
       /**
        * The reason `blocks` is directed (ADR 0028). With a single canonical row
        * per pair, ALICE unblocking MALLORY would clear MALLORY's block on ALICE
-       * too — handing the person MALLORY wanted away from her the power to undo
+       * too - handing the person MALLORY wanted away from her the power to undo
        * her protection. This is the regression test for that whole class.
        */
       await block(MALLORY, ALICE); // ALICE→MALLORY is already in the seed

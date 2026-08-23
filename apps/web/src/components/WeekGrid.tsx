@@ -15,6 +15,7 @@ import {
   rangeFromDrag,
   yToMinutes,
   type Segment,
+  quietHoursToBands,
 } from '../lib/time.js';
 import { encodingFor, hueFor } from '../lib/visibility.js';
 
@@ -24,7 +25,7 @@ interface Props {
   ownerId: string;
   /**
    * Clicking a detail chip opens it. When omitted, chips are inert (used for
-   * read-only contexts). Busy blocks are never clickable — they carry no
+   * read-only contexts). Busy blocks are never clickable - they carry no
    * identity to open.
    */
   onChipActivate?: ((event: EventView) => void) | undefined;
@@ -50,7 +51,7 @@ interface Drag {
 }
 
 /**
- * The week grid — the surface people spend nearly all their time on.
+ * The week grid - the surface people spend nearly all their time on.
  *
  * Renders exactly what the server returned and nothing more. Two properties
  * follow from that and must survive any future edit:
@@ -65,7 +66,7 @@ interface Drag {
  *    here is what it is.
  *
  * Every interval is placed with `placeSpan`, which returns one segment per day
- * it touches — so an event that crosses midnight draws as a continuous band
+ * it touches - so an event that crosses midnight draws as a continuous band
  * across the columns it covers rather than being clamped into its start day.
  */
 export function WeekGrid({
@@ -164,6 +165,16 @@ export function WeekGrid({
         );
   const dragSegs = dragRange === null ? [] : placeSpan(dragRange.start, dragRange.end, weekStart);
 
+  /**
+   * The shaded regions for the owner's quiet hours, in grid pixels.
+   *
+   * Identical on every day, because the window recurs daily - so it is
+   * computed once here rather than per column. A window that wraps midnight
+   * becomes two bands, one at the top of the day and one at the bottom, which
+   * is what it actually looks like on a grid that starts at 00:00.
+   */
+  const quietBands = quietHoursToBands(view.quietHours);
+
   return (
     <div className="cal-scroll">
       <div className="cal" style={hue as React.CSSProperties}>
@@ -219,13 +230,31 @@ export function WeekGrid({
                 ))}
               </div>
 
+              {/*
+                Quiet hours: a shaded region, never a chip.
+
+                Deliberately behind everything and non-interactive. It says
+                "do not ask", not "I am busy" - so it carries no title, no id,
+                and no occupancy, and it must never look like an entry that
+                could be opened. `aria-hidden` because the same fact is
+                announced once, in words, below the grid.
+              */}
+              {quietBands.map((band, i) => (
+                <div
+                  key={`quiet-${dayIndex}-${i}`}
+                  className="quiet-band"
+                  style={{ top: band.top, height: band.height }}
+                  aria-hidden="true"
+                />
+              ))}
+
               {marker !== null && (
                 <div className="nowline" style={{ top: marker }} aria-hidden="true" />
               )}
 
               {dragSeg && dragRange && <DragSelection seg={dragSeg} range={dragRange} />}
 
-              {/* Busy layer — opaque, hatched, carries no identity. */}
+              {/* Busy layer - opaque, hatched, carries no identity. */}
               {busySegs
                 .filter((b) => b.seg.dayIndex === dayIndex)
                 .map(({ block, seg, i }) => (
@@ -245,7 +274,7 @@ export function WeekGrid({
                   </div>
                 ))}
 
-              {/* Open blocks — the owner is occupied but flagged the time
+              {/* Open blocks - the owner is occupied but flagged the time
                   negotiable, so it reads as "open", not a hard busy wall. */}
               {openSegs
                 .filter((o) => o.seg.dayIndex === dayIndex)
@@ -264,7 +293,7 @@ export function WeekGrid({
                   </div>
                 ))}
 
-              {/* Tentative holds — pending hangout slots the viewer is party to.
+              {/* Tentative holds - pending hangout slots the viewer is party to.
                   Painted before firm events so a real commitment reads on top
                   when they overlap; on free time the hold shows in full. */}
               {holdSegs
@@ -275,7 +304,7 @@ export function WeekGrid({
                   const ariaLabel = `${hold.title}, ${formatRange(
                     hold.timeRange.start,
                     hold.timeRange.end,
-                  )}, tentative — ${roleLabel}. Open to respond.`;
+                  )}, tentative - ${roleLabel}. Open to respond.`;
 
                   const holdInner = (
                     <>
@@ -315,7 +344,7 @@ export function WeekGrid({
                   );
                 })}
 
-              {/* Detail layer — only what this viewer was granted. */}
+              {/* Detail layer - only what this viewer was granted. */}
               {dayDetailSegs.map(({ event, seg }, k) => {
                 const enc = encodingFor(event.visibility);
                 const cancelled = event.status === 'CANCELLED';
@@ -326,7 +355,7 @@ export function WeekGrid({
 
                 // Owner-only: the widest level anyone else can see. Rendered as
                 // a corner marker so "who can see this" is legible at a glance
-                // without opening anything — the number that can actually hurt.
+                // without opening anything - the number that can actually hurt.
                 const shared =
                   event.visibility === 'FULL' && event.sharedAs !== undefined
                     ? encodingFor(event.sharedAs)
@@ -363,7 +392,7 @@ export function WeekGrid({
                 // Firm vs tentative is a distinct axis from visibility. A
                 // CONFIRMED event is solid; a TENTATIVE one gets the dashed,
                 // unsettled treatment so "this is not locked in" reads at a
-                // glance — the same language pending holds use below.
+                // glance - the same language pending holds use below.
                 const tentative = event.status === 'TENTATIVE';
                 const className = `chip v-${enc.level}${cancelled ? ' cancelled' : ''}${
                   tentative ? ' tentative' : ''
@@ -404,6 +433,11 @@ export function WeekGrid({
           );
         })}
       </div>
+      {quietBands.length > 0 && (
+        <p className="sr-only">
+          This calendar has recurring unavailable hours. Plans cannot be proposed during them.
+        </p>
+      )}
       <div className="cal-legend" aria-hidden="true">
         <span className="legend-item">
           <span className="legend-swatch firm" /> Firm
@@ -414,9 +448,14 @@ export function WeekGrid({
         <span className="legend-item">
           <span className="legend-swatch busyk" /> Busy
         </span>
+        {quietBands.length > 0 && (
+          <span className="legend-item">
+            <span className="legend-swatch quiet" /> Unavailable
+          </span>
+        )}
         {view.holds.length > 0 && (
           <span className="legend-note">
-            {view.holds.length} pending {view.holds.length === 1 ? 'slot' : 'slots'} — tap to respond
+            {view.holds.length} pending {view.holds.length === 1 ? 'slot' : 'slots'} - tap to respond
           </span>
         )}
         {onRangeSelect && (

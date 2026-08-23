@@ -15,7 +15,7 @@ import {
  *
  * The shape to understand before reading the rest: a `Report` is the record, an
  * `EvidenceSnapshot` freezes what was reported at the moment it was reported,
- * and `ReportNote`s form **two independent threads** — one between the moderator
+ * and `ReportNote`s form **two independent threads** - one between the moderator
  * and the reporter, one between the moderator and the subject. The two parties
  * never share an object, which is what makes "follow up without revealing the
  * accuser" a property of the data rather than a rule someone has to remember.
@@ -124,7 +124,7 @@ export const Report = z.object({
    * The person the report is about, resolved at file time.
    *
    * Stored rather than derived so the queue can be grouped and rate-limited
-   * without re-reading whatever was reported — which may since have been
+   * without re-reading whatever was reported - which may since have been
    * deleted.
    */
   subjectUserId: UserId,
@@ -185,8 +185,8 @@ export type NoteView = z.infer<typeof NoteView>;
 /**
  * A report as the person who filed it sees it.
  *
- * Carries no evidence snapshot: the reporter already saw the material — they
- * reported it — and echoing a frozen copy back would hand them a durable record
+ * Carries no evidence snapshot: the reporter already saw the material - they
+ * reported it - and echoing a frozen copy back would hand them a durable record
  * of content the author may since have deleted.
  */
 export const ReporterReportView = z.object({
@@ -202,7 +202,7 @@ export const ReporterReportView = z.object({
 export type ReporterReportView = z.infer<typeof ReporterReportView>;
 
 /**
- * A report as the person it is *about* sees it — and only once a moderator has
+ * A report as the person it is *about* sees it - and only once a moderator has
  * deliberately opened a thread with them.
  *
  * No `reporterId`, no `detail` (the reporter's own words, which are often

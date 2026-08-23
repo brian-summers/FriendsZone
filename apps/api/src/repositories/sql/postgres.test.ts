@@ -20,8 +20,8 @@ import { createSqlRepositories } from './postgres.js';
  * behavioural assertions against both is the only thing that keeps them honest
  * (docs/adr/0026-sql-layer.md).
  *
- * The Postgres side runs on PGlite — real Postgres 18, compiled to WebAssembly
- * — so the schema, the GiST index, the constraints, and the RLS policies are
+ * The Postgres side runs on PGlite - real Postgres 18, compiled to WebAssembly
+ * - so the schema, the GiST index, the constraints, and the RLS policies are
  * exercised by the actual engine, with no server to install.
  */
 
@@ -205,7 +205,7 @@ describe.each(harnesses)('$name adapter', ({ make }) => {
 
     it('leaves the other party’s block standing when one is lifted', async () => {
       // The reason `blocks` is directed at all (ADR 0028). With one canonical
-      // row, Alice unblocking Bob would silently clear Bob's block on Alice —
+      // row, Alice unblocking Bob would silently clear Bob's block on Alice -
       // handing the person Bob wanted away from control of Bob's protection.
       await repos.social.block(ALICE, BOB);
       await repos.social.block(BOB, ALICE);
@@ -359,7 +359,7 @@ describe.each(harnesses)('$name adapter', ({ make }) => {
       expect(await repos.directory.search('a', 1)).toHaveLength(1);
     });
 
-    it('returns raw rows — the route, not the port, filters blocks', async () => {
+    it('returns raw rows - the route, not the port, filters blocks', async () => {
       // Stated as a test so a well-meaning change that "helpfully" filters here
       // fails loudly: two places that filter is two places to audit.
       await repos.social.block(ALICE, BOB);
@@ -536,7 +536,7 @@ describe('the Postgres schema', () => {
   });
 
   it('answers the overlap query through the GiST index', async () => {
-    // Not just "does it return the right rows" — the index ADR 0004 asks for
+    // Not just "does it return the right rows" - the index ADR 0004 asks for
     // has to actually be the one used, or it is decoration.
     const plan = await db.query<{ 'QUERY PLAN': string }>(
       `explain select doc from events where owner_id = $1 and span && $2::tstzrange`,
@@ -591,7 +591,7 @@ describe('the Postgres schema', () => {
   });
 
   it('keeps a block row when the user rows are deleted', async () => {
-    // No `on delete cascade` on `blocks`, deliberately — see schema.sql.
+    // No `on delete cascade` on `blocks`, deliberately - see schema.sql.
     await db.query(`insert into users (id, handle, display_name) values ($1,'a','A'), ($2,'b','B')`, [
       ALICE,
       BOB,
@@ -633,7 +633,7 @@ describe('the Postgres schema', () => {
 
   it('enforces the ownership policy on events for a non-superuser', async () => {
     /**
-     * RLS is a **backstop**, not the control — a superuser bypasses it, which
+     * RLS is a **backstop**, not the control - a superuser bypasses it, which
      * is why the policy kernel is still the thing that decides. Exercised here
      * as a restricted role so the policy is proven to do something.
      */

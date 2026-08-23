@@ -8,7 +8,7 @@
 Friendszone will be built largely with AI assistance. That changes what
 documentation is for.
 
-A human returning to unfamiliar code carries residual memory — they half-recall
+A human returning to unfamiliar code carries residual memory - they half-recall
 that the odd-looking thing was deliberate. An agent starting a session carries
 none. It reads the code, sees something that looks like an oversight, and
 "fixes" it. The most dangerous version of this is security logic, where the
@@ -31,7 +31,7 @@ refactor and code that quietly stops protecting anyone.
 ## Consequences
 
 - Changing a decision costs a new ADR. Intended friction.
-- A reviewer — human or agent — can answer "was this intentional?" without
+- A reviewer - human or agent - can answer "was this intentional?" without
   archaeology.
 - Some ADRs will document things that later seem obvious. Acceptable: the ones
   that seem obvious in hindsight are usually the ones that were re-litigated.

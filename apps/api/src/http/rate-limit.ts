@@ -3,7 +3,7 @@
  *
  * A token bucket per (class, key). See docs/adr/0020-rate-limiting.md for why
  * buckets rather than fixed windows, why classes rather than numbers on routes,
- * and — most importantly — the consequence of holding this in process memory.
+ * and - most importantly - the consequence of holding this in process memory.
  *
  * Deliberately *not* in `packages/policy`: the kernel is pure, may not hold
  * state or read a clock, and "how many times have you asked" is not an
@@ -67,8 +67,8 @@ export interface RateLimitVerdict {
 /**
  * The arithmetic, as a pure function.
  *
- * Separated from the store so the interesting part — refill, clamping, whether
- * a burst is permitted — is testable without a clock or a map.
+ * Separated from the store so the interesting part - refill, clamping, whether
+ * a burst is permitted - is testable without a clock or a map.
  */
 export function consume(bucket: Bucket, spec: BucketSpec, nowMs: number): RateLimitVerdict {
   const elapsedSeconds = Math.max(0, (nowMs - bucket.lastRefillMs) / 1000);
@@ -125,7 +125,7 @@ export function createRateLimiter(
         /**
          * Evict oldest-first when full.
          *
-         * This is forgiving in the wrong direction — a flood of distinct keys
+         * This is forgiving in the wrong direction - a flood of distinct keys
          * can evict a legitimate caller's bucket and hand them a fresh
          * allowance. The alternative, refusing service when the table is full,
          * would let anyone lock out every user by filling it. Forgiving is the

@@ -37,9 +37,9 @@ export type HangoutRequestStatus = z.infer<typeof HangoutRequestStatus>;
 /**
  * How a hangout resolves.
  *
- *  - `FIXED`   — the classic ask: a short list of candidate slots, resolved once
+ *  - `FIXED`   - the classic ask: a short list of candidate slots, resolved once
  *                into a single confirmed event.
- *  - `FLOATING`— a standing invitation over a period ("any evening in the next
+ *  - `FLOATING`- a standing invitation over a period ("any evening in the next
  *                two weeks"), which can be booked *any number of times*. Each
  *                booking mints an occurrence; the invitation stays open until
  *                the period ends.
@@ -90,7 +90,7 @@ export const HangoutRequest = z.object({
   responses: z.array(InviteeResponse).max(50),
 
   /**
-   * Calendar events this hangout has produced — one per participant per
+   * Calendar events this hangout has produced - one per participant per
    * occurrence. A FIXED hangout has two once accepted; a FLOATING one
    * accumulates a pair per booking. Fanning cancel/reschedule/update out to all
    * copies reads from here, so it must list *every* copy, not just one.
@@ -117,7 +117,7 @@ export type HangoutRequest = z.infer<typeof HangoutRequest>;
  * ACCEPTED is no longer terminal: a confirmed hangout can be CANCELLED after
  * the fact. Rescheduling and property updates keep the status unchanged (they
  * are edits, not transitions), so they do not appear here. Booking a FLOATING
- * occurrence likewise keeps it PENDING — the invitation stays open.
+ * occurrence likewise keeps it PENDING - the invitation stays open.
  */
 export const HANGOUT_TRANSITIONS: Readonly<
   Record<HangoutRequestStatus, readonly HangoutRequestStatus[]>
@@ -151,7 +151,7 @@ export const isHangoutExpired = (
  * than the 1:1 case. Rather than ship an ambiguous half-version, the input type
  * expresses the 1:1 constraint honestly; groups get their own input later.
  *
- * `proposerId` is absent by design — it is the authenticated actor, never the
+ * `proposerId` is absent by design - it is the authenticated actor, never the
  * body. `expiresAt` is optional; the server supplies a sensible default so a
  * client cannot forget the property that keeps the inbox from becoming a guilt
  * pile.
@@ -184,7 +184,7 @@ export type CreateHangoutInput = z.infer<typeof CreateHangoutInput>;
  * How an invitee resolves a FIXED request they received.
  *
  * Accepting names the winning slot and books it for everyone; declining is one
- * tap and needs no reason (an optional note is offered, never required — a
+ * tap and needs no reason (an optional note is offered, never required - a
  * mandatory reason is exactly what makes people avoid answering at all).
  */
 export const HangoutDecision = z.discriminatedUnion('decision', [
@@ -211,7 +211,7 @@ export type UpdateHangoutInput = z.infer<typeof UpdateHangoutInput>;
  * Move a hangout in time.
  *
  * For a still-pending FIXED request this replaces the proposed slots (a fresh
- * ask). For a confirmed hangout it takes a single new time and re-books it —
+ * ask). For a confirmed hangout it takes a single new time and re-books it -
  * the counterparty is notified and can bow out if it no longer works.
  */
 export const RescheduleHangoutInput = z.object({

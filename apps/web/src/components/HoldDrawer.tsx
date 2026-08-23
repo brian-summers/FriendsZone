@@ -20,7 +20,7 @@ interface Props {
  * The actions offered come straight from the hold's `role`, which the server
  * computed: an invitee accepts this specific slot or declines the whole
  * request; a proposer withdraws it. There is no second lookup and no way to
- * offer an action the viewer isn't entitled to — the server would refuse it
+ * offer an action the viewer isn't entitled to - the server would refuse it
  * anyway, but the UI never presents it.
  */
 export function HoldDrawer({ hold, actorId, weekStart, peopleById, onClose, onResolved }: Props) {
@@ -82,7 +82,7 @@ export function HoldDrawer({ hold, actorId, weekStart, peopleById, onClose, onRe
             {isInvitee ? (
               <>
                 <strong>{otherName}</strong> asked about this time. It’s a soft hold until you
-                answer — nothing is booked yet.
+                answer - nothing is booked yet.
               </>
             ) : (
               <>

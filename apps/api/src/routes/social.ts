@@ -44,8 +44,8 @@ export function buildSocialRoutes(repos: Repositories) {
    * How the actor stands with someone, as a search result renders it.
    *
    * Derived from the friendship row rather than `relationship()` because the
-   * client needs to know *who asked* — "cancel request" and "accept" are
-   * different buttons — and `RelationshipKind` deliberately collapses both
+   * client needs to know *who asked* - "cancel request" and "accept" are
+   * different buttons - and `RelationshipKind` deliberately collapses both
    * into `PENDING`.
    */
   const statusFor = async (actorId: UserId, otherId: UserId): Promise<SearchResultStatus> => {
@@ -107,7 +107,7 @@ export function buildSocialRoutes(repos: Repositories) {
           if (results.length >= MAX_SEARCH_RESULTS) break;
           // `relationship()` collapses a block in either direction, so this
           // single check covers both "you blocked them" and "they blocked
-          // you" — and the two are indistinguishable in the output, as they
+          // you" - and the two are indistinguishable in the output, as they
           // must be.
           const relationship = await repos.social.relationship(actorId, profile.id);
           if (relationship === 'BLOCKED') continue;
@@ -229,7 +229,7 @@ export function buildSocialRoutes(repos: Repositories) {
      * Unfriend, or withdraw a request you sent.
      *
      * One route, because they are the same write and the kernel allows either
-     * party to make it. Deliberately **does not scrub circle rosters** — the
+     * party to make it. Deliberately **does not scrub circle rosters** - the
      * friendship re-check in `audienceMatches` makes a stale entry grant
      * nothing, and rewriting someone's circles as a side effect of their
      * friend's action is a worse outcome than a name they can remove
@@ -294,7 +294,7 @@ export function buildSocialRoutes(repos: Repositories) {
      * Unblock someone.
      *
      * Removes **only your row**. If they also blocked you, that block stands
-     * and you remain invisible to each other — which is why `blocks` is
+     * and you remain invisible to each other - which is why `blocks` is
      * directed at all. This does not restore a friendship: blocking severed
      * it, and re-forming it is a new request either party may send.
      */
@@ -321,7 +321,7 @@ export function buildSocialRoutes(repos: Repositories) {
     /**
      * Who you have blocked.
      *
-     * Yours alone — there is no endpoint anywhere that answers "who blocked
+     * Yours alone - there is no endpoint anywhere that answers "who blocked
      * me", for the same reason there is no "circles you're in": the answer is
      * the other party's, and knowing it is what makes a block evadable.
      */

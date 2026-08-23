@@ -25,7 +25,7 @@ erDiagram
 
 `User` carries no email, no phone, no password hash. Those live in a separate
 credential store the application layer does not casually read. What remains is
-the shape that is safe to load into ordinary business logic — so a handler that
+the shape that is safe to load into ordinary business logic - so a handler that
 accidentally serialises a `User` leaks a display name, not a contact list.
 
 `PublicProfile` is the non-friend view: id, handle, display name, avatar. Handle
@@ -38,7 +38,7 @@ highUserId`). One row means the pair is unique and cannot drift into a
 half-accepted state that is visible from one side only.
 
 **A friend request is that same row with `status: 'PENDING'`**, plus
-`requestedBy` — not a second table
+`requestedBy` - not a second table
 ([ADR 0028](../adr/0028-friend-requests-and-blocking.md)). A request table
 alongside a friendship table is two places that can disagree about whether two
 people are friends, and the disagreement is a visibility decision. `requestedBy`
@@ -60,7 +60,7 @@ silently reinstates a friendship.
 **Directed means two rows for a mutual block**, keyed `(blocker_id,
 blocked_id)`. This is not symmetry for its own sake. With one canonically
 ordered row per pair, Alice unblocking Bob would delete the only row and lift
-*Bob's* block on Alice at the same time — handing the person Bob wanted away
+*Bob's* block on Alice at the same time - handing the person Bob wanted away
 from him the power to undo his protection. Each party owns their own row and
 can only ever remove that one.
 
@@ -80,7 +80,7 @@ that sentence is a rule with teeth:
 - **No endpoint answers "which circles am I in"**, for anyone. The tempting
   features that would break this are a profile line ("you're in 3 of Alice's
   circles") and a checkup that explains *why* a viewer can see something. The
-  checkup already answers the safe form — *what* they can see.
+  checkup already answers the safe form - *what* they can see.
 - **Rosters outlive friendships.** Unfriending does not scrub them, because
   `audienceMatches` re-checks friendship at read time and a stale entry grants
   nothing. The owner sees such entries marked inactive rather than silently
@@ -97,16 +97,16 @@ that sentence is a rule with teeth:
 
 Two sharing controls, and they do different jobs:
 
-- **`shareRules`** — grants. Additive, maximum wins. Empty means *inherit the
+- **`shareRules`** - grants. Additive, maximum wins. Empty means *inherit the
   owner's defaults*, not *deny*.
-- **`visibilityCeiling`** — a cap. It exists so a user can drop one sensitive
+- **`visibilityCeiling`** - a cap. It exists so a user can drop one sensitive
   event below their general defaults without reasoning about which of their
   circles those defaults happen to cover. Denying is what the ceiling is for.
 
 `TimeRange` is half-open, `[start, end)`. This is the only sane choice for a
 calendar: back-to-back events must not register as overlapping.
 
-`AvailabilityWindow` is *not* free/busy. It is consent to be asked — when a user
+`AvailabilityWindow` is *not* free/busy. It is consent to be asked - when a user
 is open to receiving hangout requests. A friend proposing a time inside these
 windows is not intruding; outside them, the UI warns before sending.
 
@@ -118,7 +118,7 @@ Two consequences fall out of that:
 1. **Requests expire.** `expiresAt` is required. A request that quietly ages out
    is socially cheaper than one you must actively decline, and it stops the
    inbox becoming a guilt pile. `EXPIRED` is not a rejection.
-2. **No read receipts, no typing indicators, no "seen" state — anywhere.**
+2. **No read receipts, no typing indicators, no "seen" state - anywhere.**
    Those signals reintroduce exactly the synchronous pressure the product
    exists to remove. This is a product constraint with a schema consequence:
    there is no field to put them in.
@@ -136,13 +136,13 @@ parallel one. One audience vocabulary across the product means one place to get
 the privacy semantics right and one place to review them.
 
 **Discoverability and claimability are separate gates.** A `PUBLIC` listing can
-be seen by anyone, but claiming it still requires friendship — because a claim
+be seen by anyone, but claiming it still requires friendship - because a claim
 ends with two people arranging to meet in person.
 
 `photoKeys` are opaque storage keys, never client-supplied URLs. Accepting a URL
 here would hand us SSRF and a phishing vector in one field. The bytes behind a
 key are served only through `GET /v1/listings/:id/photos/:key`, which re-checks
-`listing:view` — so a key that leaks into a log, a referrer, or a screenshot is
+`listing:view` - so a key that leaks into a log, a referrer, or a screenshot is
 not a bearer token for someone's belongings.
 
 ### How a thing finds its next home
@@ -156,7 +156,7 @@ not a bearer token for someone's belongings.
 | `LOTTERY` | "Enter me" | The owner draws once, at random, after the deadline |
 | `OWNER_SELECTS` | "I'd like that" | The owner accepts one, whenever they choose |
 
-`claimsCloseAt` means the same thing in every mode — after it, no new claims —
+`claimsCloseAt` means the same thing in every mode - after it, no new claims -
 so there is one field and one comparison rather than three of each.
 
 Two rules in the kernel are load-bearing rather than incidental:
@@ -174,7 +174,7 @@ The draw itself is pure: `drawWinner(entries, unitInterval)` takes a number in
 assert exactly who wins. The route supplies `crypto.getRandomValues`.
 
 **Claimants never learn about each other.** `projectListing` returns `yourClaim`
-— the viewer's own — and omits `claims` entirely for anyone but the owner.
+- the viewer's own - and omits `claims` entirely for anyone but the owner.
 Absent rather than empty: zero is a number, and a count of interest is a
 disclosure about the people who expressed it.
 
@@ -185,7 +185,7 @@ so it is the only place with an explicit safety story
 ([ADR 0019](../adr/0019-the-handoff.md)).
 
 `PROPOSED → SCHEDULED → COMPLETED | CANCELLED`. Either party proposes a time and
-place; the **other** accepts — the proposer cannot accept their own proposal, so
+place; the **other** accepts - the proposer cannot accept their own proposal, so
 "we agreed" is never one person clicking twice. Nothing touches a calendar until
 that acceptance.
 
@@ -194,7 +194,7 @@ Accepting writes one event to **each** participant's calendar with
 
 - A third party resolves through `minVisibility(granted, ceiling)`, so the most
   anyone else learns is that this person is occupied. At `BUSY`, `projectEvent`
-  emits a time range and nothing else — no title, no location, no attendees.
+  emits a time range and nothing else - no title, no location, no attendees.
 - Both participants still see everything, because the attendee branch of
   `resolveEventVisibility` returns `FULL` **before** the ceiling clamp.
 
@@ -203,7 +203,7 @@ social plan; a handoff is an address. A consequence worth knowing before you
 report it as a bug: an owner's own "most anyone else can see" badge reads *Busy*
 on a handoff, and that is correct.
 
-**Cancelling deletes both calendar copies** rather than marking them cancelled —
+**Cancelling deletes both calendar copies** rather than marking them cancelled -
 unlike a cancelled event, which survives for its owner. A handoff that is off
 should leave no trace on anyone's week, because a slot that frees up at short
 notice is itself information. Either party may cancel, at any point before
@@ -211,7 +211,7 @@ completion, and no reason is asked for or stored.
 
 `location` is free text two people agreed between themselves. It is never
 auto-filled, never geocoded, and there is deliberately **no venue database, no
-map, and no location history** — each would mean accumulating a record of where
+map, and no location history** - each would mean accumulating a record of where
 our users physically meet.
 
 ## Reporting and moderation
@@ -246,7 +246,7 @@ well as naming them would.
 
 **Reporting survives a block.** The report actions are in `BLOCK_EXEMPT_ACTIONS`,
 because blocks are bidirectional and an abuser must not be able to block their
-victim into silence. Filing is still not seeing — the material is projected as
+victim into silence. Filing is still not seeing - the material is projected as
 the reporter before it is captured, so a blocked reporter can name the person and
 still read none of their content.
 

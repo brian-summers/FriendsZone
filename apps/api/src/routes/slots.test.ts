@@ -23,7 +23,7 @@ const config: Config = {
 
 const as = (id: string) => ({ [DEV_ACTOR_HEADER]: id });
 
-/** A fortnight from tomorrow — clear of whatever the seed put in this week. */
+/** A fortnight from tomorrow - clear of whatever the seed put in this week. */
 function window_(days = 14): { start: string; end: string } {
   const start = new Date();
   start.setDate(start.getDate() - 7);
@@ -58,7 +58,7 @@ describe('the slot finder', () => {
   describe('no information flows that was not already flowing', () => {
     it('lets a blocked requester learn nothing by including their blocker', async () => {
       // Alice has blocked Mallory. If including Alice changed the answer,
-      // Mallory could difference two queries and reconstruct Alice's week —
+      // Mallory could difference two queries and reconstruct Alice's week -
       // the exact attack ADR 0008 exists to close.
       const withAlice = await find(MALLORY, [ALICE, CAROL]);
       const withoutAlice = await find(MALLORY, [CAROL]);

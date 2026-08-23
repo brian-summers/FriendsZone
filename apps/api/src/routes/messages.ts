@@ -26,7 +26,7 @@ import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
 
 /**
- * Direct messages — a mailbox, not a chat.
+ * Direct messages - a mailbox, not a chat.
  *
  * Three rules govern this file:
  *
@@ -82,7 +82,7 @@ export function buildMessageRoutes(repos: Repositories) {
     /**
      * The mailbox.
      *
-     * Conversations with anyone in a block relationship are omitted entirely —
+     * Conversations with anyone in a block relationship are omitted entirely -
      * blocking someone should remove them from your inbox, not leave a row you
      * cannot open.
      */
@@ -119,7 +119,7 @@ export function buildMessageRoutes(repos: Repositories) {
     /**
      * One thread. Reading it moves *your* bookmark and nobody else's.
      *
-     * `WRITE` rather than `READ` because it mutates that bookmark — a read
+     * `WRITE` rather than `READ` because it mutates that bookmark - a read
      * bucket on a route that writes is exactly what `routes.test.ts` refuses.
      */
     defineRoute({
@@ -167,7 +167,7 @@ export function buildMessageRoutes(repos: Repositories) {
      * Send.
      *
      * Addressed by recipient. The conversation is found or created here, so a
-     * caller never names a thread — which means they can never name one they
+     * caller never names a thread - which means they can never name one they
      * are not on.
      */
     defineRoute({

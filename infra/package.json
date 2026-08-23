@@ -2,7 +2,7 @@
   "name": "@friendszone/infra",
   "version": "0.0.0",
   "private": true,
-  "description": "CDK app for the Friendszone AWS deployment. Deliberately NOT an npm workspace member — `npm run verify` at the repo root should not depend on CDK's type tree.",
+  "description": "CDK app for the Friendszone AWS deployment. Deliberately NOT an npm workspace member - `npm run verify` at the repo root should not depend on CDK's type tree.",
   "scripts": {
     "synth": "cdk synth --strict",
     "diff": "cdk diff",

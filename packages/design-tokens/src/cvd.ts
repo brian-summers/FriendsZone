@@ -2,7 +2,7 @@
  * Colour vision deficiency simulation, and perceptual distance.
  *
  * Friendszone encodes one thing with colour and one thing only: which
- * *category* an event belongs to. Visibility — the part that can hurt someone —
+ * *category* an event belongs to. Visibility - the part that can hurt someone -
  * is deliberately carried by four redundant channels, of which colour is the
  * least important (see `visibility.ts`).
  *
@@ -41,7 +41,7 @@ const delinearise = (c: number): number => {
  * Machado, Oliveira & Fernandes (2009), severity 1.0.
  *
  * Chosen over Brettel/Viénot because these are a single 3×3 per deficiency,
- * which keeps this file readable — and a reviewer being able to check the
+ * which keeps this file readable - and a reviewer being able to check the
  * arithmetic matters more here than the last few percent of fidelity.
  */
 const MATRICES: Record<CvdType, Matrix> = {
@@ -100,11 +100,11 @@ function toLab(hex: string): [number, number, number] {
 }
 
 /**
- * CIE76 ΔE — Euclidean distance in Lab.
+ * CIE76 ΔE - Euclidean distance in Lab.
  *
  * CIEDE2000 is more accurate, and considerably more code. CIE76 is sufficient
  * for the question actually being asked here, which is not "do these match?"
- * but "could anyone mistake these for each other at a glance?" — a coarse
+ * but "could anyone mistake these for each other at a glance?" - a coarse
  * judgement where the extra precision buys nothing a reviewer can verify.
  *
  * For reference: ~2.3 is the just-noticeable difference.

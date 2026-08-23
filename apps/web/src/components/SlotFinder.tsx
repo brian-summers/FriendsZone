@@ -8,7 +8,7 @@ import { api, ApiError } from '../lib/api.js';
  * The interface has one obligation the rest of the app does not: it must say
  * out loud when an answer is built on incomplete information. A participant who
  * shares nothing with you appears completely free, so a suggestion can be
- * confidently wrong — and a wrong suggestion a user can *explain* beats a right
+ * confidently wrong - and a wrong suggestion a user can *explain* beats a right
  * one built on data they were not entitled to
  * (docs/adr/0008-slot-finder-on-projections.md).
  *
@@ -207,7 +207,7 @@ export function SlotFinder({ actorId, people, onPick, onClose }: Props) {
                 <>
                   {' '}
                   {silent.map((p) => nameOf(p.userId)).join(' and ')}{' '}
-                  {silent.length === 1 ? "doesn't" : "don't"} — so{' '}
+                  {silent.length === 1 ? "doesn't" : "don't"} - so{' '}
                   {silent.length === 1 ? 'they’re' : 'they’re'} shown as free, and these
                   suggestions may be wrong.
                 </>

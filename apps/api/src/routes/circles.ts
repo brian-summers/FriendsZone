@@ -15,14 +15,14 @@ import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
 
 /**
- * Circles — the owner's private groupings of their friends.
+ * Circles - the owner's private groupings of their friends.
  *
  * The rule that governs this file: **a circle is visible only to its owner, and
  * its name most of all.** There is no route here that answers "which circles am
  * I in", and adding one would publish the taxonomy of someone's social life that
  * circles exist to keep private. The tempting version is a sharing checkup that
  * explains *why* a viewer can see something; the checkup already answers the
- * safe form of that question — *what* they can see.
+ * safe form of that question - *what* they can see.
  *
  * See docs/adr/0023-circle-management.md.
  */
@@ -36,8 +36,8 @@ export function buildCircleRoutes(repos: Repositories) {
   /**
    * Project a circle for its owner, marking members who are no longer friends.
    *
-   * Unfriending deliberately does not scrub rosters — `audienceMatches`
-   * re-checks friendship at read time, so a stale entry grants nothing — but
+   * Unfriending deliberately does not scrub rosters - `audienceMatches`
+   * re-checks friendship at read time, so a stale entry grants nothing - but
    * the owner is shown the truth rather than a quietly edited list.
    */
   const view = async (circle: Circle, ownerId: UserId): Promise<CircleView> => {
@@ -66,7 +66,7 @@ export function buildCircleRoutes(repos: Repositories) {
   /**
    * Keep only ids that are actually friends.
    *
-   * Not a security control — the friendship re-check at read time is that —
+   * Not a security control - the friendship re-check at read time is that -
    * but a roster full of people who can never match is a list that lies to its
    * owner about who can see their calendar.
    */

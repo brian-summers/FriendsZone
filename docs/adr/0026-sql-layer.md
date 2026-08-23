@@ -2,8 +2,8 @@
 
 **Status:** Accepted
 **Date:** 2026-08-02
-**Answers:** the question [ADR 0004](0004-persistence.md) deferred — *"Query
-builder: Drizzle preferred over an ORM. Not yet decided — that is a separate ADR
+**Answers:** the question [ADR 0004](0004-persistence.md) deferred - *"Query
+builder: Drizzle preferred over an ORM. Not yet decided - that is a separate ADR
 when someone starts the work."* Someone has started the work.
 
 ## Context
@@ -17,7 +17,7 @@ choice:
    turn rows into those types.
 2. **Zod already owns the boundary.** Every entity is validated by a schema on
    the way in. An ORM's type mapping would be a second, weaker description of
-   shapes that `packages/contracts` already defines exactly once — the thing
+   shapes that `packages/contracts` already defines exactly once - the thing
    [ADR 0003](0003-contracts-first.md) exists to prevent.
 3. The projection path reads *whole entities* and hands them to a pure kernel. It
    never filters on a title or sorts by a description. The queries are simple;
@@ -38,8 +38,8 @@ straightforward, the builder is a dependency, a codegen step, and a translation
 layer between a reviewer and the thing being reviewed.
 
 Parameterised **always**. There is no string interpolation of values anywhere in
-the adapter, and the one place identifiers are interpolated — table names in the
-generic helpers — takes them from a closed set defined in the same file, never
+the adapter, and the one place identifiers are interpolated - table names in the
+generic helpers - takes them from a closed set defined in the same file, never
 from input.
 
 ### Relational where it matters, `jsonb` for the payload
@@ -59,7 +59,7 @@ fully-normalised column per field would be a *third* description of every entity
 from one source. `jsonb` keeps that property, and the columns that do exist are
 precisely the ones a reviewer needs to check an index or an RLS policy against.
 
-It also keeps field-level encryption tractable — encrypting one `doc` is a
+It also keeps field-level encryption tractable - encrypting one `doc` is a
 smaller change than encrypting eleven columns, and ADR 0004 already flags that
 decision as one to make before, not after.
 
@@ -67,7 +67,7 @@ decision as one to make before, not after.
 
 Per ADR 0004: policies express **ownership only**, never the visibility lattice,
 which stays in `packages/policy` where it is readable and tested. `app.actor_id`
-is set with `SET LOCAL` inside a transaction — never per connection, because
+is set with `SET LOCAL` inside a transaction - never per connection, because
 pooled connections leak session state between requests.
 
 ADR 0004 did not anticipate something that now exists: **sanctioned cross-owner
@@ -89,7 +89,7 @@ the thing that decides.
 
 ### Tested against real Postgres, in process
 
-The suite runs against **PGlite** — Postgres 18 compiled to WebAssembly — so the
+The suite runs against **PGlite** - Postgres 18 compiled to WebAssembly - so the
 schema, the GiST index, the constraints, and the RLS policies are exercised by
 the actual engine on every `npm test`, with no server to install.
 

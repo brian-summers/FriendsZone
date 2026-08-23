@@ -115,7 +115,7 @@ describe('auth', () => {
       const sameHandle = await register({ email: 'other@example.com' });
 
       // One message for both, so a fresh handle does not cleanly answer
-      // "does this email exist" (ADR 0024 — a narrowing, not a fix).
+      // "does this email exist" (ADR 0024 - a narrowing, not a fix).
       expect(sameEmail.statusCode).toBe(sameHandle.statusCode);
       expect(sameEmail.body).toBe(sameHandle.body);
     });
@@ -183,7 +183,7 @@ describe('auth', () => {
       const second = tokenFrom((await login({ email: GOOD.email, password: GOOD.password })).headers['set-cookie']);
 
       expect(first).not.toBe(second);
-      // The earlier one still works — this is rotation on login, not a
+      // The earlier one still works - this is rotation on login, not a
       // single-session policy. Logging in on a phone must not sign out a laptop.
       expect(await repos.sessions.byTokenHash(hashSessionToken(first!))).not.toBeNull();
     });
@@ -270,7 +270,7 @@ describe('auth', () => {
     it('ignores the dev header entirely', async () => {
       /**
        * ADR 0006 made the absence of auth undeployable by throwing here. That
-       * throw is gone now that auth exists — but the property it protected is
+       * throw is gone now that auth exists - but the property it protected is
        * not, and this is the test that keeps it.
        */
       const prod = await createServer({
@@ -287,7 +287,7 @@ describe('auth', () => {
       expect(res.statusCode).toBe(401);
     });
 
-    it('still boots — the deferral guard is satisfied, not bypassed', async () => {
+    it('still boots - the deferral guard is satisfied, not bypassed', async () => {
       const prod = await createServer({
         config: { ...base, NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://friends-zone.app' },
         repos: createMemoryRepositories(createDemoSeed()),

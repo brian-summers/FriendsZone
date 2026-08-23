@@ -30,7 +30,7 @@ import type { Repositories } from '../repositories/ports.js';
  * Two properties this file exists to hold, both easy to lose in a refactor:
  *
  * 1. **Login never reveals whether an account exists.** Same status, same body,
- *    and — via `verifyAgainstNobody` — the same wall-clock cost whether the
+ *    and - via `verifyAgainstNobody` - the same wall-clock cost whether the
  *    email is unknown or the password is wrong. Account existence is social
  *    information in this product, so the timing side is not optional.
  *
@@ -62,7 +62,7 @@ export function buildAuthRoutes(repos: Repositories, config: Config) {
     /**
      * Create an account.
      *
-     * Handle collisions are reported — handles exist to be searched for, so the
+     * Handle collisions are reported - handles exist to be searched for, so the
      * directory already answers whether one is taken. **Email collisions are
      * not distinguished** in the message, which narrows but does not close the
      * enumeration gap; the real fix is a verification email, and it is recorded
@@ -135,7 +135,7 @@ export function buildAuthRoutes(repos: Repositories, config: Config) {
 
         if (identity?.secretHash === undefined) {
           /**
-           * No such account — and we still pay for a hash.
+           * No such account - and we still pay for a hash.
            *
            * Returning here immediately would make "no such account" answer in
            * microseconds while "wrong password" takes ~100 ms, which is a
@@ -153,7 +153,7 @@ export function buildAuthRoutes(repos: Repositories, config: Config) {
         if (profile === null) throw new ValidationError([BAD_CREDENTIALS.error]);
 
         /**
-         * A fresh session per login, never a reused one — rotation on
+         * A fresh session per login, never a reused one - rotation on
          * authentication is what stops a token fixed before login from being
          * valid after it (ADR 0006's constraint list, ADR 0024's implementation).
          */
@@ -170,7 +170,7 @@ export function buildAuthRoutes(repos: Repositories, config: Config) {
      * Log out.
      *
      * Revokes server-side *and* clears the cookie. Clearing the cookie alone
-     * would leave a token that still works if anyone kept a copy — which is the
+     * would leave a token that still works if anyone kept a copy - which is the
      * scenario logout exists for.
      */
     defineRoute({
@@ -189,7 +189,7 @@ export function buildAuthRoutes(repos: Repositories, config: Config) {
         const token = readCookie(ctx.cookieHeader, SESSION_COOKIE);
         if (token !== null) await repos.sessions.revoke(hashSessionToken(token));
 
-        // Same answer either way — logging out of nothing is not an error and
+        // Same answer either way - logging out of nothing is not an error and
         // not a signal.
         return withCookie({ ok: true }, clearedSessionCookie(config.PUBLIC_ORIGIN));
       },

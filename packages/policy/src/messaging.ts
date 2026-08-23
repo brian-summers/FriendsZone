@@ -16,7 +16,7 @@ import { PREVIEW_LENGTH } from '@friendszone/contracts';
  * Every value that shapes the answer arrives as an argument.
  *
  * The rule these functions exist to enforce is the one from
- * `projection.ts` — a stored entity never crosses the network boundary. A
+ * `projection.ts` - a stored entity never crosses the network boundary. A
  * `Conversation` carries **both** participants' read positions, and handing one
  * out would tell a sender exactly when their message was read. Everything below
  * builds a fresh object field by field; a `...conversation` spread anywhere in
@@ -53,7 +53,7 @@ export function readAtFor(conversation: Conversation, viewerId: UserId): string 
  *
  * The comparison is strictly `>`, which leaves one real edge: a message that
  * lands in the *same millisecond* as the reader's bookmark is treated as read.
- * `>=` is not the fix — it would count the reader's own read moment forever.
+ * `>=` is not the fix - it would count the reader's own read moment forever.
  * In production two writes to one conversation inside a millisecond is
  * vanishingly unlikely and costs at most one missing badge; in tests it is
  * common enough that `messages.test.ts` sequences its writes deliberately.
@@ -82,7 +82,7 @@ const previewOf = (body: string): string => {
  * One row of the mailbox.
  *
  * `messages` is this conversation's messages, oldest first. `withProfile` is
- * the other party's public profile — passed in rather than looked up, because
+ * the other party's public profile - passed in rather than looked up, because
  * this package does no I/O.
  */
 export function projectConversation(

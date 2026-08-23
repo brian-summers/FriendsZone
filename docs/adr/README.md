@@ -15,9 +15,9 @@ someone will inevitably re-propose.
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-typescript-monorepo.md) | TypeScript monorepo with npm workspaces | Accepted |
 | [0003](0003-contracts-first.md) | Contracts-first domain modelling with Zod | Accepted |
-| [0004](0004-persistence.md) | PostgreSQL with row-level security | Accepted — implemented, query layer in [0026](0026-sql-layer.md) |
+| [0004](0004-persistence.md) | PostgreSQL with row-level security | Accepted - implemented, query layer in [0026](0026-sql-layer.md) |
 | [0005](0005-policy-engine.md) | Authorization as a pure security kernel | Accepted |
-| [0006](0006-authentication-deferred.md) | Defer authentication, fail closed meanwhile | Accepted — implemented by [0024](0024-authentication.md) |
+| [0006](0006-authentication-deferred.md) | Defer authentication, fail closed meanwhile | Accepted - implemented by [0024](0024-authentication.md) |
 | [0007](0007-async-by-design.md) | No presence, no read receipts, ever | Accepted |
 | [0008](0008-slot-finder-on-projections.md) | The slot finder runs on projections, not raw calendars | Accepted |
 | [0009](0009-cache-the-input.md) | Cache the input, never the output | Proposed |
@@ -41,6 +41,7 @@ someone will inevitably re-propose.
 | [0027](0027-deploy-on-aws.md) | One origin on AWS; Cloudflare drops to DNS or nothing | Accepted |
 | [0028](0028-friend-requests-and-blocking.md) | A request is a pending friendship; blocks are directed, so unblocking cannot lift theirs | Accepted |
 | [0029](0029-direct-messages-and-discoverability.md) | Messages are a mailbox with no read receipts; discoverability has no friends-of-friends | Accepted |
+| [0030](0030-full-day-grid-and-quiet-hours.md) | The grid covers 00:00-24:00; quiet hours are a shaded region, never an event | Accepted |
 
 ## Template
 

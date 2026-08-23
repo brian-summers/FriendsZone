@@ -4,7 +4,7 @@ import type { ShareRule, VisibilityLevel } from '@friendszone/contracts';
  * Sharing presets, in user language.
  *
  * The domain model lets you compose arbitrary per-audience rules, but a
- * creation form that exposed the full lattice would be a privacy footgun — the
+ * creation form that exposed the full lattice would be a privacy footgun - the
  * most important control in the product should be a short list of understood
  * choices, not a rule builder. The per-event editor (not yet built) is where
  * finer control will live; here we offer the safe, legible options.
@@ -36,7 +36,7 @@ export const SHARE_PRESETS: readonly SharePreset[] = [
   {
     id: 'busy',
     label: 'Friends see I’m busy',
-    consequence: 'Friends see an unavailable block — no name, place, or notes.',
+    consequence: 'Friends see an unavailable block - no name, place, or notes.',
     ceiling: 'FULL',
     rules: [{ audience: { kind: 'FRIENDS' }, level: 'BUSY' }],
     widest: 'BUSY',

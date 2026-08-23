@@ -63,7 +63,7 @@ export const AccountExport = z.object({
   /**
    * Reports about you that a moderator opened a thread on.
    *
-   * `SubjectReportView` — no reporter identity, no reporter's words, no filing
+   * `SubjectReportView` - no reporter identity, no reporter's words, no filing
    * time. The anonymity guarantee does not weaken because the data left the
    * building in a JSON file.
    */
@@ -75,7 +75,7 @@ export type AccountExport = z.infer<typeof AccountExport>;
  * Deleting your account.
  *
  * Requires typing your own handle. Deletion is immediate and irreversible
- * (ADR 0022), so it costs more than a click — and a `POST` with a body rather
+ * (ADR 0022), so it costs more than a click - and a `POST` with a body rather
  * than `DELETE /v1/me`, which is one mis-scoped fetch away from firing.
  */
 export const DeleteAccountInput = z.object({

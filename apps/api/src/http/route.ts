@@ -7,7 +7,7 @@ import type { RateLimitClass } from './rate-limit.js';
  * How a route is authorized.
  *
  * The field is not optional on `RouteDefinition`, so there is no such thing as
- * a route that forgot to think about access control — omitting it is a compile
+ * a route that forgot to think about access control - omitting it is a compile
  * error. Making a route public is still possible, but it costs you a written
  * justification that shows up in review and in the route table.
  */
@@ -24,8 +24,8 @@ export type AuthzSpec =
       kind: 'POLICY';
       /**
        * The action the handler must be cleared for before it runs. The handler
-       * may perform additional per-record checks — and for calendars it must,
-       * since visibility is decided per event — but it may never perform
+       * may perform additional per-record checks - and for calendars it must,
+       * since visibility is decided per event - but it may never perform
        * *fewer*.
        */
       action: Action;
@@ -39,7 +39,7 @@ export type AuthzSpec =
  * put the bytes of a whole browse page through `JSON.parse`.
  *
  * This stays a *value returned by the handler* rather than a reply object handed
- * to it, so handlers still never touch Fastify — and the `onSend` hook that adds
+ * to it, so handlers still never touch Fastify - and the `onSend` hook that adds
  * `nosniff`, `no-store`, and the frame headers still runs over it, which is what
  * makes serving user-supplied bytes tolerable at all.
  */
@@ -66,7 +66,7 @@ export const isRawResponse = (value: unknown): value is RawResponse =>
  * A response that also sets a cookie.
  *
  * Like `RawResponse`, this stays a *value the handler returns* rather than a
- * reply object handed to it, so handlers still never touch Fastify — and the
+ * reply object handed to it, so handlers still never touch Fastify - and the
  * `onSend` hook that adds the security headers still runs over it.
  *
  * Only the auth routes use this. Nothing else in the product sets a cookie, and
@@ -97,7 +97,7 @@ export interface RequestContext<TParams, TQuery, TBody> {
   /**
    * The parsed, validated request body. `undefined` for routes that declare no
    * body schema. Because it is only ever the output of a Zod schema, a handler
-   * never touches unvalidated input — the same guarantee params and query have.
+   * never touches unvalidated input - the same guarantee params and query have.
    */
   readonly body: TBody;
   /** `null` when unauthenticated. Routes must not assume otherwise. */
@@ -123,8 +123,8 @@ export interface RequestContext<TParams, TQuery, TBody> {
  *
  * This matters for more than tidiness. Branded ids like `UserId` have a
  * different input type (`string`) from their output type (`string & Brand`), so
- * a `ZodType<T>` parameter collapses them back to a bare string and the brand —
- * our defence against passing the wrong id into a permission check — silently
+ * a `ZodType<T>` parameter collapses them back to a bare string and the brand -
+ * our defence against passing the wrong id into a permission check - silently
  * disappears. Keying off the schema and reading `z.output<>` preserves it.
  */
 export interface RouteDefinition<
@@ -147,14 +147,14 @@ export interface RouteDefinition<
   /**
    * Override the server-wide body cap for this route only.
    *
-   * The global limit is deliberately small — nothing this API accepts is
+   * The global limit is deliberately small - nothing this API accepts is
    * legitimately large. Photo upload is the one exception, and it has to say so
    * explicitly here rather than the global limit being raised to accommodate it,
    * which would quietly widen every other endpoint's DoS surface.
    */
   readonly bodyLimit?: number;
   /**
-   * Which bucket this route draws from. Omitted means `DEFAULT` — there is no
+   * Which bucket this route draws from. Omitted means `DEFAULT` - there is no
    * such thing as an unlimited route (docs/adr/0020-rate-limiting.md).
    */
   readonly rateLimit?: RateLimitClass;
@@ -170,8 +170,8 @@ export interface RouteDefinition<
 /**
  * The shape the route registry stores.
  *
- * `RouteDefinition` is invariant in its schema parameters — they appear both on
- * the schema fields and inside the handler's argument — so a concrete route is
+ * `RouteDefinition` is invariant in its schema parameters - they appear both on
+ * the schema fields and inside the handler's argument - so a concrete route is
  * not assignable to a "widened" one. Rather than fight that, the registry uses
  * a deliberately erased type. The erasure is safe because every route was fully
  * checked at its `defineRoute` call site; the registry only iterates.
@@ -182,8 +182,8 @@ export interface AnyRoute {
   readonly authz: AuthzSpec;
   readonly params: z.ZodTypeAny;
   readonly query: z.ZodTypeAny;
-  // Explicitly admits `undefined` so a body-less route — whose `body` field is
-  // typed `undefined` — is assignable here under exactOptionalPropertyTypes.
+  // Explicitly admits `undefined` so a body-less route - whose `body` field is
+  // typed `undefined` - is assignable here under exactOptionalPropertyTypes.
   readonly body?: z.ZodTypeAny | undefined;
   readonly bodyLimit?: number | undefined;
   readonly rateLimit?: RateLimitClass | undefined;

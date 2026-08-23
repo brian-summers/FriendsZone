@@ -7,6 +7,7 @@ import {
   ShortText,
   TimeRange,
   UserId,
+  TimeZone,
 } from './primitives.js';
 import { ShareRule, VisibilityLevel } from './visibility.js';
 
@@ -16,7 +17,7 @@ export type EventStatus = z.infer<typeof EventStatus>;
 /**
  * An entry on someone's calendar.
  *
- * This is the *stored* shape. It must never be returned to a client directly —
+ * This is the *stored* shape. It must never be returned to a client directly -
  * only `projectEvent()` output crosses the network boundary. Enforced by
  * convention here and by a test in packages/policy.
  */
@@ -41,17 +42,17 @@ export const CalendarEvent = z.object({
   /**
    * Per-event overrides. When empty, the owner's `SharingDefaults` apply.
    * Empty array and "no rules" are the same thing, and both mean *default*,
-   * not *deny* — the ceiling is how you deny.
+   * not *deny* - the ceiling is how you deny.
    */
   shareRules: z.array(ShareRule).max(50),
 
-  /** Confirmed participants. Attendees always see FULL — see the spec. */
+  /** Confirmed participants. Attendees always see FULL - see the spec. */
   attendeeIds: z.array(UserId).max(200),
 
   /**
    * Whether this event **exclusively blocks** its time.
    *
-   * Events overlap by default (`exclusive: false`) — useful for layered plans
+   * Events overlap by default (`exclusive: false`) - useful for layered plans
    * that share a block, and it means friends may request the time anyway. Such
    * an event contributes to `openBlocks`, not `busy`. Opting *out* of overlap
    * (`exclusive: true`) makes it a hard commitment: it goes to `busy`, and no
@@ -71,7 +72,7 @@ export type CalendarEvent = z.infer<typeof CalendarEvent>;
  * What a client may supply when creating an event.
  *
  * Pointedly *not* `CalendarEvent`. The server owns identity and timestamps, and
- * — critically — owns `ownerId`: it is taken from the authenticated actor, never
+ * - critically - owns `ownerId`: it is taken from the authenticated actor, never
  * from the body, so a request cannot create an event on someone else's
  * calendar by naming them. Everything a client is allowed to decide is here and
  * nothing it is not.
@@ -91,7 +92,7 @@ export const CreateEventInput = z.object({
 export type CreateEventInput = z.infer<typeof CreateEventInput>;
 
 /**
- * What a client may change about an event it owns. Every field optional — a
+ * What a client may change about an event it owns. Every field optional - a
  * PATCH touches only what it names. Still no `ownerId`: ownership does not move.
  * The sharing editor is just this input carrying new `shareRules` and
  * `visibilityCeiling`.
@@ -114,7 +115,7 @@ export type UpdateEventInput = z.infer<typeof UpdateEventInput>;
 
 /**
  * When a user is open to *receiving* hangout requests, expressed in their own
- * timezone. This is not availability in the free/busy sense — it is consent to
+ * timezone. This is not availability in the free/busy sense - it is consent to
  * be asked. A friend can propose a time inside these windows without it feeling
  * like an intrusion; outside them, the UI warns before sending.
  */
@@ -131,7 +132,7 @@ export const AvailabilityWindow = z.object({
 export type AvailabilityWindow = z.infer<typeof AvailabilityWindow>;
 
 // ---------------------------------------------------------------------------
-// Projections — the only event shapes permitted to leave the server.
+// Projections - the only event shapes permitted to leave the server.
 // ---------------------------------------------------------------------------
 
 /**
@@ -170,7 +171,7 @@ export const EventFullView = z.object({
 
   /**
    * Set when this event came from a hangout. Only ever reaches the FULL view,
-   * which for a hangout event only its participants receive — so it lets the
+   * which for a hangout event only its participants receive - so it lets the
    * two people involved manage the hangout (reschedule, cancel, edit) straight
    * from the calendar, and is invisible to everyone else.
    */
@@ -182,14 +183,14 @@ export const EventFullView = z.object({
    *
    * It is safe on this shape because a non-owner only reaches `FULL` by being
    * an attendee or an explicit grant, and the projection code never populates
-   * this field on those paths — a test in packages/policy asserts a friend's
+   * this field on those paths - a test in packages/policy asserts a friend's
    * FULL view never carries it. It is a summary for the owner, never a grant.
    */
   sharedAs: VisibilityLevel.optional(),
 
   /**
    * The event's own sharing rules and ceiling, so the owner can *edit* them.
-   * Owner-only, exactly like `sharedAs` — a non-owner must never learn how an
+   * Owner-only, exactly like `sharedAs` - a non-owner must never learn how an
    * event is shared, only what they personally received. Populated solely in
    * the owner branch of `projectCalendar`; asserted absent for others.
    */
@@ -209,14 +210,14 @@ export type HangoutHoldRole = z.infer<typeof HangoutHoldRole>;
  * a calendar as a soft hold.
  *
  * Holds are strictly participant-scoped. One appears only when the viewer is a
- * party to the request, so it discloses nothing — the viewer either proposed
+ * party to the request, so it discloses nothing - the viewer either proposed
  * these times or received them, and already knows them. That is why a hold can
  * carry its full title and the other party's id without a visibility check: it
  * is never shown to anyone who was not already entitled to the request.
  *
  * `role` is the *viewer's* role, which decides what they may do with it: an
  * invitee can accept this slot or decline the request; a proposer can withdraw.
- * A hold is never counted as busy — a maybe is not a commitment.
+ * A hold is never counted as busy - a maybe is not a commitment.
  */
 export const HangoutHold = z.object({
   requestId: HangoutRequestId,
@@ -239,11 +240,11 @@ export type HangoutHold = z.infer<typeof HangoutHold>;
  * correct operation over `busy` alone, and it means a client that ignores
  * `details` still cannot accidentally treat a titled event as free time.
  *
- * `holds` are tentative — pending hangout slots the viewer is a party to. They
+ * `holds` are tentative - pending hangout slots the viewer is a party to. They
  * are deliberately *not* in `busy`, because a pending ask is not a commitment
  * and must not make the owner look unavailable.
  *
- * `openBlocks` are times the owner is occupied by a *non-exclusive* event —
+ * `openBlocks` are times the owner is occupied by a *non-exclusive* event -
  * overlappable, and requestable. They are kept out of `busy` so they never
  * register as a hard conflict. Since events overlap by default, most occupied
  * time lands here; only events explicitly made exclusive land in `busy`.
@@ -251,6 +252,67 @@ export type HangoutHold = z.infer<typeof HangoutHold>;
  * There is deliberately no `hiddenCount`. Reporting how much was withheld is
  * itself a disclosure.
  */
+/**
+ * Quiet hours: a recurring daily window in which nobody may propose a plan.
+ *
+ * Stored as minutes from local midnight rather than as instants, because the
+ * rule is about wall-clock time and recurs every day. 23:00 to 09:00 is
+ * `{ startMinute: 1380, endMinute: 540 }`.
+ *
+ * **The window wraps when `startMinute > endMinute`.** That is the common case,
+ * not the edge case: most people are unavailable across midnight rather than
+ * inside a single day. Anything that reasons about this must handle the wrap,
+ * which is why `quietMinutes()` below exists rather than each caller comparing
+ * bounds itself.
+ *
+ * These are deliberately **not** calendar events. They carry no title, no id,
+ * and no occupancy - a quiet hour says "do not ask", not "I am busy". They
+ * render as a shaded region rather than a chip, and they never appear in
+ * `busy`, which means they never affect what anyone learns about how full a
+ * week is.
+ */
+export const QuietHours = z.object({
+  /** Minutes from local midnight, inclusive. 0 to 1439. */
+  startMinute: z.number().int().min(0).max(1439),
+  /** Minutes from local midnight, exclusive. 0 to 1439. */
+  endMinute: z.number().int().min(0).max(1439),
+  /**
+   * The zone those minutes are measured in, IANA form.
+   *
+   * Carried on the window rather than read from the user's profile, so the
+   * rule is self-describing: evaluating it needs nothing but the window and
+   * the instant. "Do not ask me after 23:00" means *the owner's* 23:00, and a
+   * proposer in another country must be refused on the owner's clock or the
+   * feature is useless to anyone with friends abroad.
+   *
+   * The trade: someone who moves country keeps the hours they set, in the zone
+   * they set them. That is arguably right - you chose 23:00 Pacific - and it
+   * is at least predictable. Changing it is a re-save away.
+   */
+  timeZone: TimeZone,
+});
+export type QuietHours = z.infer<typeof QuietHours>;
+
+/**
+ * Whether a local minute-of-day falls inside the window.
+ *
+ * Pure and total, including the wrapping case. A window whose bounds are equal
+ * is empty rather than all-day: "from 9 to 9" is a mistake, and reading it as
+ * "never available" would silently lock someone out of their own calendar.
+ */
+export const inQuietHours = (minuteOfDay: number, quiet: QuietHours): boolean => {
+  if (quiet.startMinute === quiet.endMinute) return false;
+  return quiet.startMinute < quiet.endMinute
+    ? minuteOfDay >= quiet.startMinute && minuteOfDay < quiet.endMinute
+    : minuteOfDay >= quiet.startMinute || minuteOfDay < quiet.endMinute;
+};
+
+export const UpdateQuietHoursInput = z.object({
+  /** `null` clears them. */
+  quietHours: QuietHours.nullable(),
+});
+export type UpdateQuietHoursInput = z.infer<typeof UpdateQuietHoursInput>;
+
 export const CalendarView = z.object({
   ownerId: UserId,
   window: TimeRange,
@@ -258,6 +320,15 @@ export const CalendarView = z.object({
   openBlocks: z.array(BusyBlock),
   details: z.array(EventView),
   holds: z.array(HangoutHold),
+  /**
+   * The owner's recurring unavailable window, or `null`.
+   *
+   * Projected to the owner and to accepted friends only. A stranger, a blocked
+   * viewer and an anonymous caller all receive `null`, so the field cannot be
+   * used to tell those three apart - the same reason the rest of this view is
+   * uniform across them.
+   */
+  quietHours: QuietHours.nullable(),
 });
 export type CalendarView = z.infer<typeof CalendarView>;
 
@@ -266,7 +337,7 @@ export type CalendarView = z.infer<typeof CalendarView>;
 /**
  * Participants in one query, including the requester.
  *
- * Bounded to hold fan-out down and to keep the inference surface small — see
+ * Bounded to hold fan-out down and to keep the inference surface small - see
  * docs/adr/0008-slot-finder-on-projections.md.
  */
 export const MAX_SLOT_PARTICIPANTS = 20;
@@ -274,7 +345,7 @@ export const MAX_SLOT_PARTICIPANTS = 20;
 /**
  * Suggestions are quantized to this grid.
  *
- * A free window is rounded *inward* — start up, end down — so a suggestion can
+ * A free window is rounded *inward* - start up, end down - so a suggestion can
  * never straddle time that is actually busy, and the exact boundary of the
  * event that created the gap is never visible. Both directions matter: rounding
  * outward would suggest busy time, and rounding start-only would still leak the
@@ -308,7 +379,7 @@ export type FindSlotsInput = z.infer<typeof FindSlotsInput>;
  * How a single participant contributed to the answer.
  *
  * `sharesAvailability: false` is the honest denominator the interface is
- * required to show. It says a *grant does not exist* — it carries nothing about
+ * required to show. It says a *grant does not exist* - it carries nothing about
  * that person's calendar, no content and no counts. Without it the feature
  * confidently reports a stranger as free all week
  * (docs/adr/0008-slot-finder-on-projections.md).

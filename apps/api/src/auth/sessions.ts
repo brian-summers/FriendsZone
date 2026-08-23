@@ -18,7 +18,7 @@ export const mintSessionToken = (): string => randomBytes(32).toString('base64ur
  *
  * A password is low-entropy and needs a slow, memory-hard hash to survive an
  * offline attack on the store. A 256-bit random token has nothing to grind, so
- * the only job here is to make the stored value non-presentable — and a fast
+ * the only job here is to make the stored value non-presentable - and a fast
  * hash is correct, because this runs on **every authenticated request**.
  */
 export const hashSessionToken = (token: string): string =>
@@ -49,7 +49,7 @@ export function readCookie(header: string | undefined, name: string): string | n
     const eq = part.indexOf('=');
     if (eq === -1) continue;
     if (part.slice(0, eq).trim() !== name) continue;
-    if (found !== null) return null; // repeated — refuse
+    if (found !== null) return null; // repeated - refuse
     found = part.slice(eq + 1).trim();
   }
   return found === null || found === '' ? null : found;
@@ -58,7 +58,7 @@ export function readCookie(header: string | undefined, name: string): string | n
 /**
  * Constant-time compare for token hashes.
  *
- * The stored value is already a hash, so this is belt-and-braces — but a
+ * The stored value is already a hash, so this is belt-and-braces - but a
  * lookup that short-circuits on the first differing character is a habit worth
  * not having anywhere near session handling.
  */

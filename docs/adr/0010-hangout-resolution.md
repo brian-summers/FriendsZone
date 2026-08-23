@@ -16,7 +16,7 @@ left open: who resolves a request, and what "accepted" does.
 
 **1:1 for now.** The create endpoint takes a single `inviteeId`, not a list. The
 stored request still uses `inviteeIds: [one]`, so the model is untouched and
-groups remain a forward-compatible extension — but the *input type* expresses
+groups remain a forward-compatible extension - but the *input type* expresses
 the constraint honestly rather than accepting a list and half-supporting it.
 
 Group requests are deferred because they need a genuinely different flow: the
@@ -26,7 +26,7 @@ is a proposer-confirms model. The 1:1 case is simpler and more immediate, and
 shipping it well beats shipping an ambiguous group version.
 
 **The invitee resolves it.** For a 1:1 request, the single invitee either
-accepts a slot or declines — there is no second round-trip waiting on the
+accepts a slot or declines - there is no second round-trip waiting on the
 proposer to confirm. This maps exactly onto the existing `hangout:respond` policy
 gate (invitee, pending), so no new authorization action was needed. The proposer
 can still `hangout:withdraw` while it is pending.
@@ -44,8 +44,8 @@ and the new status is persisted. No scheduler runs.
 
 - The cross-owner write needs a clear justification, because it appears to
   violate the rule that a writer owns only their own calendar. It does not: the
-  owner ids come from the *stored request's participants* — server-side trusted
-  state — never from the request body, and the write is authorized by the
+  owner ids come from the *stored request's participants* - server-side trusted
+  state - never from the request body, and the write is authorized by the
   semantics of accepting an invitation, not by the accepter's (nonexistent)
   rights over the proposer's calendar. This is the sanctioned exception the
   policy comments always anticipated ("invitations create events owned by each
@@ -54,7 +54,7 @@ and the new status is persisted. No scheduler runs.
   refused.
 - Lazy expiry means the effective status is correct on read without a job, and
   the same `isHangoutExpired` predicate answers for the store and for tests. The
-  cost is that a request only *becomes* EXPIRED when observed — fine, because
+  cost is that a request only *becomes* EXPIRED when observed - fine, because
   nobody acts on an unobserved request.
 - `resultingEventId` is singular but there are two event copies; it points at
   the accepter's own copy. A minor imprecision the two-copy model creates;
@@ -66,7 +66,7 @@ and the new status is persisted. No scheduler runs.
 ## Alternatives considered
 
 **Proposer confirms after collecting preferences.** The right model for groups,
-and overkill for 1:1 — it adds a round trip ("Bob says Thursday works" → "Alice
+and overkill for 1:1 - it adds a round trip ("Bob says Thursday works" → "Alice
 confirms Thursday") with no benefit when there is one invitee. Adopt it when
 group requests arrive; it does not replace this.
 

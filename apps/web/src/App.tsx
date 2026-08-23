@@ -37,7 +37,7 @@ const initials = (name: string): string =>
 export function App() {
   /**
    * `null` until we know. Three states, not two: "checking", "signed out", and
-   * "signed in" — collapsing the first two flashes the sign-in screen at
+   * "signed in" - collapsing the first two flashes the sign-in screen at
    * someone who is already signed in, on every load.
    */
   const [authState, setAuthState] = useState<'checking' | 'out' | 'in'>('checking');
@@ -64,7 +64,7 @@ export function App() {
    * Ask the server who we are, once, on load.
    *
    * The session is an HttpOnly cookie, so the client genuinely cannot know
-   * whether it is signed in without asking — which is the point of the cookie
+   * whether it is signed in without asking - which is the point of the cookie
    * being HttpOnly.
    */
   useEffect(() => {
@@ -111,7 +111,7 @@ export function App() {
     return () => controller.abort();
   }, [actorId, graph]);
 
-  // The inbox count. A quiet number, never a red pulsing badge — a request that
+  // The inbox count. A quiet number, never a red pulsing badge - a request that
   // demands to be dealt with now is the pressure this product removes (ADR 0007).
   useEffect(() => {
     const controller = new AbortController();
@@ -159,8 +159,8 @@ export function App() {
   const viewingPersonId = match?.pattern === '/people/:id' ? match.params.id : null;
 
   // Only the week routes bring their own scroll container; the rest rely on
-  // <main> to scroll for them. Getting this wrong is silent — the content is
-  // clipped at the fold rather than erroring — so it is derived from the route
+  // <main> to scroll for them. Getting this wrong is silent - the content is
+  // clipped at the fold rather than erroring - so it is derived from the route
   // rather than set per screen.
   /**
    * Screens that scroll their own panes rather than the page.
@@ -273,7 +273,7 @@ export function App() {
               aria-current={pathname === '/' || undefined}
               {...linkProps('/')}
             >
-              <span className="avatar">{me ? initials(me.displayName) : '—'}</span>
+              <span className="avatar">{me ? initials(me.displayName) : '·'}</span>
               <span>{me?.displayName ?? 'Loading…'}</span>
             </a>
 
@@ -301,7 +301,7 @@ export function App() {
               </p>
               <p className="side-note">
                 Switch who you’re “acting as” in the header, then open a calendar. The same week
-                looks different to each person — that’s the whole product.
+                looks different to each person - that’s the whole product.
               </p>
             </>
           )}

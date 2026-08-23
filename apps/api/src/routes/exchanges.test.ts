@@ -9,7 +9,7 @@ import { createServer } from '../server.js';
 /**
  * ALICE offers a skillet; BOB claims it; they arrange a handoff.
  *
- * CAROL is a friend of both and a party to neither — she is how every
+ * CAROL is a friend of both and a party to neither - she is how every
  * third-party leak is tested.
  */
 const config: Config = {
@@ -198,7 +198,7 @@ describe('the handoff', () => {
       const { claimId } = await acceptedClaim();
       const exchange = (await propose(claimId, ALICE)).json();
 
-      // Nothing booked yet — a proposal is not a commitment.
+      // Nothing booked yet - a proposal is not a commitment.
       expect((await calendarOf(ALICE, ALICE)).body).not.toContain('Handoff');
 
       const accepted = await respond(exchange.id, BOB, 'ACCEPT');

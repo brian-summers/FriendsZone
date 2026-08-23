@@ -13,7 +13,7 @@ fans out to twenty calendar projections per call, and every "gap" in the model i
 exploitable at scale precisely because scale is free.
 
 The privacy model makes this sharper than it would be elsewhere. A calendar view
-is *designed* to be safe to serve — a stranger gets an empty week, a friend gets
+is *designed* to be safe to serve - a stranger gets an empty week, a friend gets
 what they were granted. What it is not designed to survive is ten thousand of
 them a minute, because the aggregate of individually-safe reads is a scraping
 run, and [ADR 0008](0008-slot-finder-on-projections.md) explicitly leans on rate
@@ -34,7 +34,7 @@ the author guessed that afternoon, and nobody can answer "what are our limits"
 without reading every file. A closed set of classes is greppable, reviewable in
 one place, and forces a new route to say which kind of thing it is.
 
-Omitting the field is not "unlimited" — it is `DEFAULT`. There is no route
+Omitting the field is not "unlimited" - it is `DEFAULT`. There is no route
 without a bucket.
 
 ### Keyed by actor, falling back to client address
@@ -49,7 +49,7 @@ traffic, not a control, and the real answer arrives with
 
 There is a sharper problem while the dev authenticator is in play: `x-dev-actor-id`
 is caller-supplied, so a caller can claim any id and exhaust *someone else's*
-budget — a targeted denial of service against a named user. That is not
+budget - a targeted denial of service against a named user. That is not
 theoretical, it is trivial. It is acceptable only because the authenticator
 **refuses to construct in production**, and it is called out here so that
 whoever implements real sessions knows this bucket key becomes load-bearing the
@@ -63,7 +63,7 @@ The consequence, stated plainly because it will otherwise be discovered in an
 incident: **with N instances behind a load balancer, the effective limit is N
 times the configured one.** That is fine for one process and wrong for a fleet.
 Whoever adds the second instance owns replacing this with a shared counter, and
-the interface is deliberately narrow — `RateLimiter` has one method — so the swap
+the interface is deliberately narrow - `RateLimiter` has one method - so the swap
 is an adapter, not a rewrite.
 
 The store is **bounded**. An unbounded map keyed by remote address is itself a
@@ -86,7 +86,7 @@ production is a control that eventually is.
 - Every route now carries a bucket, so a new endpoint is limited by default
   rather than by remembering.
 - `429` responses carry `Retry-After`. That discloses only how long *you* must
-  wait — a fact about the caller, not about anyone else.
+  wait - a fact about the caller, not about anyone else.
 - Limits are per process. See above; this is the thing to fix first when scaling
   out.
 - The existing suite runs with limiting disabled, because 401 tests hammering
@@ -99,7 +99,7 @@ production is a control that eventually is.
 ## Alternatives considered
 
 **Fixed-window counters.** Simpler, and they permit a double-rate burst across a
-window boundary — exactly when a scraper is most likely to be hammering. A token
+window boundary - exactly when a scraper is most likely to be hammering. A token
 bucket smooths that for the same amount of code.
 
 **Sliding-window logs.** Precise, and they store a timestamp per request per key.
@@ -107,7 +107,7 @@ Storing more data to defend against volume is the wrong shape.
 
 **A reverse proxy or CDN rule.** Correct for crude volume, and it cannot key by
 authenticated actor, which is the key that actually matters here. Complementary
-rather than alternative — do both, eventually.
+rather than alternative - do both, eventually.
 
 **Rate limiting inside `packages/policy`.** Considered and rejected: the kernel
 is pure and may not hold state or read a clock, and "how many times have you

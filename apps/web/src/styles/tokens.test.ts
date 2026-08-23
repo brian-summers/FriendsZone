@@ -16,7 +16,7 @@ import {
  * it impossible to get away with: change a hex in one place and CI fails.
  *
  * A stale chrome colour would be cosmetic. A stale *hue* would be worse than it
- * looks — the palettes are measured for colour-vision separation in
+ * looks - the palettes are measured for colour-vision separation in
  * `cvd.test.ts`, and a CSS file that quietly disagreed with the values that
  * were measured would mean the whole guarantee was being checked against
  * numbers nobody was actually shipping.
@@ -119,7 +119,7 @@ describe('tokens.css mirrors @friendszone/design-tokens', () => {
 describe('the cascade resolves the way the app assumes', () => {
   it('lets an explicit mode override the OS in both directions', () => {
     // The toggle has to be able to force light on a dark OS, not just dark on
-    // a light one — so both blocks exist and both come after the media query.
+    // a light one - so both blocks exist and both come after the media query.
     expect(css.indexOf(":root[data-theme='dark']")).toBeGreaterThan(
       css.indexOf('@media (prefers-color-scheme: dark)'),
     );
@@ -133,7 +133,7 @@ describe('the cascade resolves the way the app assumes', () => {
      * The subtle one. `:root[data-theme='dark']` and `:root[data-palette='x']`
      * have *equal* specificity, so if a palette omitted its explicit
      * `[data-palette][data-theme]` block, the winner would be decided by source
-     * order — and a user on the Signal palette with dark mode forced would
+     * order - and a user on the Signal palette with dark mode forced would
      * silently get Verdigris's dark chrome against Signal's hues.
      */
     for (const name of PALETTE_NAMES) {

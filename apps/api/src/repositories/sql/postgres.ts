@@ -19,6 +19,7 @@ import type {
   ListingId,
   Message,
   MessageId,
+  QuietHours,
   Notification,
   PublicProfile,
   RelationshipKind,
@@ -130,7 +131,7 @@ class SqlSocialGraph implements SocialGraphPort {
     const [low, high] = pair(viewerId, ownerId);
 
     // One round trip for both facts. `blocks` is **directed**, so this checks
-    // both rows explicitly — a block either way is a block (ADR 0028).
+    // both rows explicitly - a block either way is a block (ADR 0028).
     const rows = await this.db.query<{ blocked: boolean; status: string | null }>(
       `select
          exists (
@@ -224,7 +225,7 @@ class SqlSocialGraph implements SocialGraphPort {
   }
 
   async unblock(blockerId: UserId, blockedId: UserId): Promise<void> {
-    // Only this caller's row — theirs, if any, survives. An undirected delete
+    // Only this caller's row - theirs, if any, survives. An undirected delete
     // here would hand one party control of the other's protection (ADR 0028).
     await this.db.query(`delete from blocks where blocker_id = $1 and blocked_id = $2`, [
       blockerId,
@@ -257,7 +258,7 @@ class SqlSocialGraph implements SocialGraphPort {
     ownerIds: readonly UserId[],
   ): Promise<Map<UserId, { relationship: RelationshipKind; sharedCircleIds: CircleId[] }>> {
     const out = new Map<UserId, { relationship: RelationshipKind; sharedCircleIds: CircleId[] }>();
-    // Every id asked about gets an entry, even one that does not exist — a
+    // Every id asked about gets an entry, even one that does not exist - a
     // missing key would distinguish "no such user" from "shares nothing".
     for (const ownerId of ownerIds) {
       out.set(ownerId, {
@@ -322,7 +323,7 @@ class SqlDirectory implements DirectoryPort {
   }
 
   async search(query: string, limit: number): Promise<PublicProfile[]> {
-    // Raw rows, unfiltered by blocks — the route removes anyone in a block
+    // Raw rows, unfiltered by blocks - the route removes anyone in a block
     // relationship so a blocked pair look exactly like people who do not
     // exist. Tombstoned accounts are dropped here: a deleted user is not
     // someone any caller could befriend (ADR 0028).
@@ -578,6 +579,26 @@ class SqlCalendar implements CalendarPort {
     return defaults;
   }
 
+  async quietHours(ownerId: UserId): Promise<QuietHours | null> {
+    const rows = await this.db.query<DocRow<QuietHours>>(
+      `select doc from quiet_hours where user_id = $1`,
+      [ownerId],
+    );
+    return firstDoc(rows);
+  }
+
+  async setQuietHours(ownerId: UserId, quiet: QuietHours | null): Promise<void> {
+    if (quiet === null) {
+      await this.db.query(`delete from quiet_hours where user_id = $1`, [ownerId]);
+      return;
+    }
+    await this.db.query(
+      `insert into quiet_hours (user_id, doc) values ($1, $2)
+       on conflict (user_id) do update set doc = excluded.doc`,
+      [ownerId, JSON.stringify(quiet)],
+    );
+  }
+
   async hasExplicitSharingDefaults(ownerId: UserId): Promise<boolean> {
     const rows = await this.db.query<{ chosen: boolean }>(
       `select exists (select 1 from sharing_defaults where user_id = $1) as chosen`,
@@ -588,8 +609,8 @@ class SqlCalendar implements CalendarPort {
 
   async scrubCircleRules(ownerId: UserId, circleId: CircleId): Promise<void> {
     // Read-modify-write rather than a jsonb path surgery: the rule shape is
-    // owned by `packages/contracts`, and expressing it twice — once in Zod and
-    // once in a jsonb expression — is exactly the drift this design avoids.
+    // owned by `packages/contracts`, and expressing it twice - once in Zod and
+    // once in a jsonb expression - is exactly the drift this design avoids.
     const drop = <T extends { shareRules?: unknown }>(doc: T): T => {
       const rules = (doc.shareRules ?? []) as Array<{
         audience: { kind: string; circleId?: string };
@@ -624,8 +645,8 @@ class SqlCalendar implements CalendarPort {
     await this.db.query(`delete from events where owner_id = $1`, [ownerId]);
     await this.db.query(`delete from sharing_defaults where user_id = $1`, [ownerId]);
 
-    // Someone else's event that named this user as an attendee survives — it is
-    // their record of their own week — but stops naming them (ADR 0022).
+    // Someone else's event that named this user as an attendee survives - it is
+    // their record of their own week - but stops naming them (ADR 0022).
     const attended = await this.db.query<DocRow<CalendarEvent>>(
       `select doc from events where doc -> 'attendeeIds' ? $1`,
       [ownerId],
@@ -825,7 +846,7 @@ class SqlListings implements ListingPort {
   }
 
   async recent(limit: number): Promise<Listing[]> {
-    // Raw rows, newest first, unfiltered by visibility — `projectListing`
+    // Raw rows, newest first, unfiltered by visibility - `projectListing`
     // decides what survives, and pushing the audience test in here would be the
     // second implementation of the lattice this architecture exists to prevent.
     return docs(
@@ -876,7 +897,7 @@ class SqlListings implements ListingPort {
     const photoKeys = mine.flatMap((r) => r.doc.photoKeys);
 
     // `claims` cascades from `listings`, so everyone's claims on a gone listing
-    // go with it — which is the behaviour the memory adapter implements by hand.
+    // go with it - which is the behaviour the memory adapter implements by hand.
     await this.db.query(`delete from listings where owner_id = $1`, [userId]);
     await this.db.query(`delete from claims where claimant_id = $1`, [userId]);
     return { photoKeys };
@@ -1086,7 +1107,7 @@ class SqlNotifications implements NotificationPort {
  * Development notifier.
  *
  * Mail delivery does not exist, and the pointer carries a reason and an id and
- * nothing else — the signature has no parameter that could hold content
+ * nothing else - the signature has no parameter that could hold content
  * (ADR 0018).
  */
 class LoggingNotifier implements NotifierPort {

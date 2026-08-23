@@ -9,7 +9,7 @@ import { Explainer } from './Explainer.js';
  * pointer, and it can always be dismissed.
  *
  * WCAG 1.4.13 is the reason. Content revealed on hover or focus must be
- * dismissible, hoverable, and persistent — a `:hover` div satisfies none of the
+ * dismissible, hoverable, and persistent - a `:hover` div satisfies none of the
  * three, which is why this is a click-toggled disclosure with a real button.
  */
 
@@ -32,7 +32,7 @@ describe('Explainer', () => {
   it('is a button with a real accessible name, not a bare glyph', () => {
     mount();
     // The visible character is `aria-hidden`, so the name has to come from the
-    // label — a screen reader must not announce this as "i".
+    // label - a screen reader must not announce this as "i".
     const button = screen.getByRole('button', { name: 'About sharing defaults' });
     expect(button.textContent).toBe('i');
   });
@@ -76,7 +76,7 @@ describe('Explainer', () => {
   });
 
   it('stays open when the panel itself is pressed', () => {
-    // Selecting the text inside must not dismiss it — "hoverable" in 1.4.13.
+    // Selecting the text inside must not dismiss it - "hoverable" in 1.4.13.
     mount();
     fireEvent.click(screen.getByRole('button'));
     fireEvent.pointerDown(screen.getByRole('note'));

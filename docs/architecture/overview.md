@@ -18,7 +18,7 @@ calendar's privacy semantics right and the rest inherits them.
 
 ## The one-sentence version of the design
 
-> Stored data is never returned to a client — only a **projection** computed for
+> Stored data is never returned to a client - only a **projection** computed for
 > one specific viewer by a pure function that has no database access.
 
 ## Layers
@@ -26,7 +26,7 @@ calendar's privacy semantics right and the rest inherits them.
 ```mermaid
 flowchart TD
     api["<b>apps/api</b><br/>transport · authn · error shaping<br/><i>owns NO authorization logic</i>"]
-    policy["<b>packages/policy</b> — THE SECURITY KERNEL<br/>can() · resolveEventVisibility() · projectCalendar()<br/><i>pure · no I/O · no dependency but contracts</i>"]
+    policy["<b>packages/policy</b> - THE SECURITY KERNEL<br/>can() · resolveEventVisibility() · projectCalendar()<br/><i>pure · no I/O · no dependency but contracts</i>"]
     contracts["<b>packages/contracts</b><br/>Zod schemas → inferred TS types<br/><i>one definition per domain concept</i>"]
     repos["<b>repositories/</b><br/>memory (tests) · PostgreSQL (production)"]
 
@@ -43,27 +43,27 @@ makes it work: the repositories implement interfaces the application declares,
 so the arrow of dependency runs opposite to the arrow of data. `packages/policy` cannot import
 from `apps/api`; it cannot import a database driver; it cannot read the clock or
 the environment. That constraint is what makes every authorization decision
-reproducible from its arguments, and therefore exhaustively testable — which is
+reproducible from its arguments, and therefore exhaustively testable - which is
 why the security-critical code is also the best-tested code in the repo.
 
 ## Request lifecycle
 
 Reading a friend's calendar, end to end:
 
-1. **Transport** — Fastify matches the route. Params and query are parsed by the
+1. **Transport** - Fastify matches the route. Params and query are parsed by the
    route's Zod schemas. A failure here is a `400` with no detail.
-2. **Authentication** — resolves an `actorId` or `null`. Never throws for
+2. **Authentication** - resolves an `actorId` or `null`. Never throws for
    anonymous; anonymity is a valid state, not an error.
-3. **Context** — the handler calls `ctx.viewerFor(ownerId)`, which builds a
+3. **Context** - the handler calls `ctx.viewerFor(ownerId)`, which builds a
    `ViewerContext` *for that owner specifically*. It cannot be built without
    naming whose data is about to be touched.
-4. **Coarse gate** — `can(viewer, { action: 'calendar:view', ownerId })`. This
+4. **Coarse gate** - `can(viewer, { action: 'calendar:view', ownerId })`. This
    rejects very little. Its job is to catch categorically forbidden actions, not
    to filter data.
-5. **Fetch** — the repository returns raw, unfiltered rows.
-6. **Projection** — `projectCalendar()` decides, per event, what this viewer
+5. **Fetch** - the repository returns raw, unfiltered rows.
+6. **Projection** - `projectCalendar()` decides, per event, what this viewer
    sees. This is where privacy actually happens.
-7. **Response** — headers include `cache-control: no-store`, because the payload
+7. **Response** - headers include `cache-control: no-store`, because the payload
    is viewer-specific and a shared cache serving it to someone else would defeat
    the entire model.
 
@@ -108,7 +108,7 @@ stateDiagram-v2
 ```
 
 Multiple claims may be `PENDING` at once and accepting one does not auto-decline
-the rest — the owner may want a backup if the first handoff falls through.
+the rest - the owner may want a backup if the first handoff falls through.
 
 Scheduling the handoff creates a calendar event for both parties with
 `visibilityCeiling: BUSY`. Third parties learn that someone is occupied. They
@@ -117,12 +117,12 @@ never learn where, or with whom. See the safety rationale in
 
 ## Where the interesting decisions are written down
 
-- [Visibility and privacy](visibility-and-privacy.md) — the normative spec for
+- [Visibility and privacy](visibility-and-privacy.md) - the normative spec for
   the projection algorithm. Read this before touching `packages/policy`.
-- [Domain model](domain-model.md) — entities, relationships, lifecycles.
-- [Threat model](../security/threat-model.md) — assets, adversaries, abuse cases.
-- [Authorization model](../security/authz-model.md) — how `can()` is meant to be used.
-- [ADRs](../adr/) — decisions with their reasoning and their alternatives.
+- [Domain model](domain-model.md) - entities, relationships, lifecycles.
+- [Threat model](../security/threat-model.md) - assets, adversaries, abuse cases.
+- [Authorization model](../security/authz-model.md) - how `can()` is meant to be used.
+- [ADRs](../adr/) - decisions with their reasoning and their alternatives.
 
 ## Current state
 

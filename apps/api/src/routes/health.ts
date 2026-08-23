@@ -4,7 +4,7 @@ import type { Repositories } from '../repositories/ports.js';
 
 /**
  * Liveness probe. One of the very few endpoints that is legitimately public,
- * and it earns that by returning a constant — no version string, no dependency
+ * and it earns that by returning a constant - no version string, no dependency
  * status, nothing an attacker could use to fingerprint the deployment.
  */
 export const healthRoute = defineRoute({
@@ -25,7 +25,7 @@ export const healthRoute = defineRoute({
  * Readiness probe. Distinct from liveness on purpose.
  *
  * `/healthz` says the process is running; a load balancer uses it to decide
- * whether to *restart* something. This says the process can serve traffic —
+ * whether to *restart* something. This says the process can serve traffic -
  * which, for this app, means the database answers. Conflating them means a
  * container whose database is briefly unreachable gets killed and restarted
  * into the same condition, in a loop.

@@ -202,7 +202,7 @@ describe('the two threads never cross', () => {
   });
 
   it('gives the reporter no evidence snapshot either', () => {
-    // They saw it — they reported it. A frozen copy would be a durable record
+    // They saw it - they reported it. A frozen copy would be a durable record
     // of content the author may since have deleted.
     const view = projectReportForReporter({ report: report(), notes });
     expect(view).not.toHaveProperty('evidence');

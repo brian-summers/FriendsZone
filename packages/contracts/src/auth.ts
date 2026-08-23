@@ -41,7 +41,7 @@ export type Email = z.infer<typeof Email>;
  * A way of proving you are a particular user.
  *
  * 🔴 Restricted. `secretHash` never leaves the process, is never logged, and is
- * never projected — there is no view type that includes it, which is the point.
+ * never projected - there is no view type that includes it, which is the point.
  */
 export const AuthIdentity = z.object({
   userId: UserId,
@@ -80,7 +80,7 @@ export type Session = z.infer<typeof Session>;
  * A length floor and nothing else. Composition rules ("one uppercase, one
  * symbol") measurably push people towards `Password1!` and are recommended
  * against by NIST; length is what actually helps. The 200-character ceiling is
- * a denial-of-service bound, not a security opinion — scrypt on an unbounded
+ * a denial-of-service bound, not a security opinion - scrypt on an unbounded
  * input is a free way to burn our CPU.
  */
 export const Password = z.string().min(12).max(200);
@@ -97,7 +97,7 @@ export type RegisterInput = z.infer<typeof RegisterInput>;
 export const LoginInput = z.object({
   email: Email,
   /**
-   * Not `Password` — a login must accept any string and fail, rather than
+   * Not `Password` - a login must accept any string and fail, rather than
    * rejecting a too-short one at the schema and thereby answering "that is not
    * even the right shape for this account's password".
    */
@@ -116,5 +116,5 @@ export type AuthResult = z.infer<typeof AuthResult>;
 /** The session cookie's name. One definition, used by server and tests. */
 export const SESSION_COOKIE = 'fz_session';
 
-/** Absolute session lifetime. Not sliding — see ADR 0024. */
+/** Absolute session lifetime. Not sliding - see ADR 0024. */
 export const SESSION_TTL_DAYS = 30;

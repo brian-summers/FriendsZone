@@ -8,9 +8,9 @@ that lost: [ADR 0027](../adr/0027-deploy-on-aws.md).
 flowchart LR
     dns(["friends-zone.app"]) --> cf["CloudFront"]
     cf -->|"/api/*"| app["App Runner"]
-    cf -->|"/*"| web[("S3 — built client")]
+    cf -->|"/*"| web[("S3 - built client")]
     app --> db[("Aurora Serverless v2")]
-    app --> photos[("S3 — listing photos")]
+    app --> photos[("S3 - listing photos")]
 ```
 
 **Two things to avoid, because they are most of the idle bill:** a NAT Gateway
@@ -114,7 +114,7 @@ about later.
 
 ---
 
-## 1. Database — Aurora Serverless v2, minimum 0 ACU
+## 1. Database - Aurora Serverless v2, minimum 0 ACU
 
 RDS Console → Create database → **Aurora (PostgreSQL Compatible)** → Serverless
 v2.
@@ -134,12 +134,12 @@ Note the cluster endpoint. The connection string is
 `postgres://USER:PASS@ENDPOINT:5432/friendszone`.
 
 **Cold starts:** at 0 ACU the first query after idle takes a few seconds. That is
-the right trade while evaluating and the wrong one once people are using it —
+the right trade while evaluating and the wrong one once people are using it -
 raise the minimum to 0.5 ACU at that point.
 
 ---
 
-## 2. Secrets — SSM Parameter Store
+## 2. Secrets - SSM Parameter Store
 
 Standard parameters are free; `SecureString` uses the free AWS-managed key.
 
@@ -154,7 +154,7 @@ Never in the task definition, never in the image, never in git.
 
 ---
 
-## 3. API — App Runner
+## 3. API - App Runner
 
 ```bash
 aws ecr create-repository --repository-name friendszone-api
@@ -168,7 +168,7 @@ App Runner → Create service → from ECR.
 | Setting | Value |
 |---|---|
 | Port | `8080` |
-| Health check | `/readyz` — readiness, not `/healthz`. See below |
+| Health check | `/readyz` - readiness, not `/healthz`. See below |
 | CPU / memory | 0.25 vCPU / 0.5 GB to start |
 | VPC connector | The database's VPC and subnets |
 | Environment | `NODE_ENV=production`, `PUBLIC_ORIGIN=https://friends-zone.app`, `TRUSTED_PROXY_HOPS=1`, `MODERATOR_IDS=<your user id>` |
@@ -185,12 +185,12 @@ whether to *restart* it; readiness says the database answers and decides whether
 to send traffic. Point a health check at the wrong one and a container whose
 database blinks gets restarted into the same condition, in a loop.
 
-The schema applies itself on boot — every statement is `if not exists`
-([ADR 0026](../adr/0026-sql-layer.md)) — so there is no migration step yet.
+The schema applies itself on boot - every statement is `if not exists`
+([ADR 0026](../adr/0026-sql-layer.md)) - so there is no migration step yet.
 
 ---
 
-## 4. Client — S3
+## 4. Client - S3
 
 ```bash
 aws s3 mb s3://friendszone-web
@@ -203,7 +203,7 @@ front door.
 
 ---
 
-## 5. CloudFront — one distribution, two behaviours
+## 5. CloudFront - one distribution, two behaviours
 
 This is the part that matters most, and the part easiest to get subtly wrong.
 
@@ -215,14 +215,14 @@ This is the part that matters most, and the part easiest to get subtly wrong.
 
 **Behaviour** `/api/*` → the App Runner origin
   - Cache policy: **`CachingDisabled`**
-  - Origin request policy: `AllViewerExceptHostHeader` — the API needs the
+  - Origin request policy: `AllViewerExceptHostHeader` - the API needs the
     `Cookie` header, and a policy that strips it silently signs everyone out
-  - Allowed methods: **all** — `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
+  - Allowed methods: **all** - `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
 
 > **Caching must be off for `/api/*`.** Every API response already carries
 > `cache-control: no-store`, but a CDN behaviour that caches by default is one
 > misconfiguration away from serving one viewer's calendar projection to
-> another — which would defeat the entire privacy model. Set it explicitly and
+> another - which would defeat the entire privacy model. Set it explicitly and
 > treat a change to it as a security review.
 
 One distribution serving both is what keeps the client and API **same-origin**.
@@ -235,7 +235,7 @@ require one and would break `SameSite=Lax` on the session cookie
 
 ## 6. Domain
 
-ACM certificate in **`us-east-1`** — CloudFront reads certificates only from
+ACM certificate in **`us-east-1`** - CloudFront reads certificates only from
 there, whatever region the rest of the stack is in. Attach it, add
 `friends-zone.app` as an alternate domain name, and point DNS at the
 distribution.
@@ -250,7 +250,7 @@ removed ([ADR 0027](../adr/0027-deploy-on-aws.md)).
 
 ```bash
 curl -s https://friends-zone.app/healthz                     # {"status":"ok"}
-curl -s https://friends-zone.app/readyz                      # {"status":"ready"} — proves the DB
+curl -s https://friends-zone.app/readyz                      # {"status":"ready"} - proves the DB
 curl -sI https://friends-zone.app/api/v1/me | grep -i \
   -e content-security-policy -e strict-transport -e cache-control
 ```
@@ -260,7 +260,7 @@ Then, by hand, the things a smoke test cannot assert:
 - [ ] Register an account; confirm the session cookie is `Secure` and `HttpOnly`
 - [ ] Sign out, sign back in
 - [ ] Create an event; hard-refresh a deep link and confirm the SPA fallback works
-- [ ] Restart the App Runner service and confirm you are **still signed in** —
+- [ ] Restart the App Runner service and confirm you are **still signed in** -
       sessions are in Postgres, not memory
 - [ ] Two accounts: confirm one cannot see the other's private event
 
@@ -276,7 +276,7 @@ Then, by hand, the things a smoke test cannot assert:
 | **Total** | **~$6–8/mo** | **~$15–35/mo** |
 
 No NAT Gateway, no ALB. If the bill is materially higher than this, one of those
-two has appeared — check first.
+two has appeared - check first.
 
 ---
 
@@ -284,12 +284,12 @@ two has appeared — check first.
 
 In rough order, and none of it is a re-architecture:
 
-1. **Aurora minimum off 0** — kills cold starts. One number.
-2. **App Runner instances up** — it autoscales; raise the ceiling.
-3. **Shared rate-limit store** — buckets are per-process, so N instances means
+1. **Aurora minimum off 0** - kills cold starts. One number.
+2. **App Runner instances up** - it autoscales; raise the ceiling.
+3. **Shared rate-limit store** - buckets are per-process, so N instances means
    N× the limit ([ADR 0020](../adr/0020-rate-limiting.md)). `RateLimiter` has one
    method so this is an adapter. **Do this before step 2 goes past one instance.**
-4. **Photos to S3** — they are in a `bytea` column today
+4. **Photos to S3** - they are in a `bytea` column today
    ([ADR 0004](../adr/0004-persistence.md)). Right for cost and right for the
    database.
-5. **Aurora read replica** — the projection path is read-heavy.
+5. **Aurora read replica** - the projection path is read-heavy.

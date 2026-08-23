@@ -20,7 +20,7 @@ const PALETTE_KEY = 'friendszone:palette';
  * have to trade dark mode for legibility.
  *
  * `mode: 'system'` removes `data-theme` entirely so the media query governs.
- * The palette attribute is *always* stamped, including for the default —
+ * The palette attribute is *always* stamped, including for the default -
  * `tokens.css` gives every palette all four palette-and-mode combinations, and
  * that only resolves deterministically if the attribute is present.
  */

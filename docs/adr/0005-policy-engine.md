@@ -7,7 +7,7 @@
 
 Authorization in a typical application is scattered: a middleware check, an `if`
 in a controller, a `WHERE user_id = ?` in a query, a conditional in a template.
-Each is individually reasonable. Together they are unreviewable — nobody can
+Each is individually reasonable. Together they are unreviewable - nobody can
 answer "who can see Alice's calendar?" without reading the whole codebase, and
 the answer changes every time anyone adds an endpoint.
 
@@ -28,14 +28,14 @@ All authorization lives in `packages/policy`, which is a **pure kernel**:
 
 Two entry points:
 
-- `can(viewer, request)` — the coarse gate. "May this actor attempt this?"
-- `resolveEventVisibility` / `projectCalendar` — per-record filtering. "What
+- `can(viewer, request)` - the coarse gate. "May this actor attempt this?"
+- `resolveEventVisibility` / `projectCalendar` - per-record filtering. "What
   does this specific viewer actually get?"
 
 The purity is not aesthetic. Because the engine performs no I/O, an attacker
 cannot influence a decision by poisoning something the engine fetched on its
 own. Every input is explicit, so every decision is reproducible from its
-arguments — which is why the security-critical code is also the most thoroughly
+arguments - which is why the security-critical code is also the most thoroughly
 tested code in the repo, at ~55 focused unit tests with no mocks anywhere.
 
 ## Consequences
@@ -54,13 +54,13 @@ tested code in the repo, at ~55 focused unit tests with no mocks anywhere.
 ## Alternatives considered
 
 **Middleware-only authorization.** Cannot express per-record visibility, which
-is the entire product. Would have forced "friend sees everything" — the exact
+is the entire product. Would have forced "friend sees everything" - the exact
 model Friendszone exists to avoid.
 
 **Database row-level security as the primary control.** Postgres RLS cannot
 express a four-level lattice with per-event ceilings without unreadable SQL, and
 policy bugs would only be discoverable against a live database. RLS is planned
-as *defence in depth* instead — see [ADR 0004](0004-persistence.md).
+as *defence in depth* instead - see [ADR 0004](0004-persistence.md).
 
 **An external policy engine (OPA, Cedar).** Genuinely good for multi-service
 deployments. Here it adds a second language, a deployment dependency, and a

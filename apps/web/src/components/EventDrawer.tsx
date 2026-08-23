@@ -21,14 +21,14 @@ interface Props {
 /**
  * Detail for a single event.
  *
- * It renders exactly the fields present on the `EventView` it was handed — the
+ * It renders exactly the fields present on the `EventView` it was handed - the
  * server already decided what this viewer may see, so there is nothing to
  * filter here.
  *
  * When the event is a confirmed FIXED hangout (it carries an
  * `originHangoutRequestId`, which only its participants ever receive), the
- * drawer loads the hangout and offers in-place management — edit, reschedule,
- * cancel — right on the calendar.
+ * drawer loads the hangout and offers in-place management - edit, reschedule,
+ * cancel - right on the calendar.
  */
 export function EventDrawer({
   event,
@@ -106,7 +106,7 @@ export function EventDrawer({
           {event.visibility === 'FULL' &&
             (event.exclusive ? (
               <div className="consequence">
-                <span className="level-tag">🔒 Blocks this time</span> Exclusive — nothing overlaps
+                <span className="level-tag">🔒 Blocks this time</span> Exclusive - nothing overlaps
                 it, and friends can’t request the slot.
               </div>
             ) : (
@@ -149,7 +149,7 @@ export function EventDrawer({
                   'Only you. No one else knows it exists.'
                 ) : (
                   <>
-                    The most anyone else sees is <strong>{shared.label}</strong> — {shared.meaning}
+                    The most anyone else sees is <strong>{shared.label}</strong> - {shared.meaning}
                   </>
                 )
               ) : (
@@ -224,7 +224,7 @@ export function EventDrawer({
               className="notice"
               style={{ margin: 'var(--space-md) 0 0', padding: 'var(--space-sm)' }}
             >
-              Part of a standing invitation — manage the whole series from your Inbox.
+              Part of a standing invitation - manage the whole series from your Inbox.
             </p>
           )}
         </div>

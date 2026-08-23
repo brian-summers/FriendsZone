@@ -3,6 +3,7 @@ import {
   type BusyBlock,
   type CalendarEvent,
   type CalendarView,
+  type QuietHours,
   type Claim,
   type EventView,
   type Exchange,
@@ -45,8 +46,8 @@ export type EventProjection =
  * Build the viewer's copy of an event at a resolved visibility level.
  *
  * This function is the only sanctioned way to turn a `CalendarEvent` into
- * something that crosses the network boundary. It is written as a whitelist —
- * each level names the fields it emits — so that adding a field to
+ * something that crosses the network boundary. It is written as a whitelist -
+ * each level names the fields it emits - so that adding a field to
  * `CalendarEvent` cannot leak it by default. A spread of `...event` anywhere in
  * this file would be a security bug; adding one should fail review.
  */
@@ -153,8 +154,10 @@ export function projectCalendar(args: {
   viewer: ViewerContext;
   ownerDefaults: SharingDefaults;
   window: TimeRange;
+  /** The owner's recurring unavailable window, if they set one. */
+  ownerQuietHours?: QuietHours | null;
 }): CalendarView {
-  const { ownerId, events, viewer, ownerDefaults, window } = args;
+  const { ownerId, events, viewer, ownerDefaults, window, ownerQuietHours } = args;
 
   const isOwner = viewer.viewerId !== null && viewer.viewerId === ownerId;
   const busyRanges: TimeRange[] = [];
@@ -193,7 +196,7 @@ export function projectCalendar(args: {
 
         // Owner-only annotation: the widest level anyone else could see, so the
         // client can render a who-can-see-this badge. Set *only* on the owner's
-        // own view — a non-owner reaching FULL (attendee, explicit grant) never
+        // own view - a non-owner reaching FULL (attendee, explicit grant) never
         // gets it, which projection.test.ts asserts.
         if (isOwner && projection.view.visibility === 'FULL') {
           details.push({
@@ -217,6 +220,20 @@ export function projectCalendar(args: {
   return {
     ownerId,
     window,
+    /**
+     * Quiet hours reach the owner and accepted friends, and nobody else.
+     *
+     * A stranger, a blocked viewer and an anonymous caller all get `null`.
+     * That uniformity is the point: this view is otherwise identical for those
+     * three, and a field that varied between them would be exactly the oracle
+     * the rest of the projection works to remove.
+     *
+     * They are deliberately absent from `busy`. A quiet hour says "do not
+     * ask", not "I am occupied", so folding it into busy would overstate how
+     * full a week is and would publish a sleeping pattern as a commitment.
+     */
+    quietHours:
+      isOwner || viewer.relationship === 'FRIEND' ? (ownerQuietHours ?? null) : null,
     busy: mergeBusyBlocks(busyRanges),
     openBlocks: mergeBusyBlocks(openRanges),
     details,
@@ -233,7 +250,7 @@ export function projectCalendar(args: {
  * why it lives in the security kernel rather than the route: a hold is emitted
  * only when **both** the calendar's owner and the viewer are parties to the
  * request. That guarantee is what makes it safe for a hold to carry its full
- * title — it is never shown to anyone who was not already entitled to the
+ * title - it is never shown to anyone who was not already entitled to the
  * request's contents.
  *
  * `role` is the viewer's, so the client can offer the right action (an invitee
@@ -307,13 +324,13 @@ const ownerClaimView = (claim: Claim, exchange?: ExchangeView): OwnerClaimView =
  * A stored `Listing` reduced to what one viewer may see, or `null` if they may
  * see nothing at all.
  *
- * `null` — rather than a redacted stub — is what keeps a listing the viewer is
+ * `null` - rather than a redacted stub - is what keeps a listing the viewer is
  * not in the audience for indistinguishable from one that does not exist.
  * Callers filter lists on it and return 404 for a single fetch.
  *
  * The gate is `can()` rather than an inline audience test, because the block
  * check lives at the top of `can()` and an inline `audienceMatches` would
- * silently drop it — a blocked viewer would start seeing listings again.
+ * silently drop it - a blocked viewer would start seeing listings again.
  *
  * Every field is whitelisted by hand. A spread here would ship `audience`, the
  * owner's sharing configuration, to whoever asked.
@@ -326,7 +343,7 @@ export function projectListing(args: {
   /**
    * Live handoffs, keyed by claim id.
    *
-   * Passed in rather than fetched — the kernel does no I/O. Both parties to a
+   * Passed in rather than fetched - the kernel does no I/O. Both parties to a
    * claim are entitled to its handoff, and `projectExchange` has already
    * refused anyone else, so what arrives here is safe to attach.
    */
@@ -339,7 +356,7 @@ export function projectListing(args: {
   const isOwner = isSelf(viewer, listing.ownerId);
 
   // The viewer's own claim, and only theirs. An owner has none by construction
-  // — `listing:claim` refuses the owner — so this stays undefined for them.
+  // - `listing:claim` refuses the owner - so this stays undefined for them.
   const own =
     viewer.viewerId === null
       ? undefined
@@ -366,7 +383,7 @@ export function projectListing(args: {
     /**
      * Owner-only, and *absent* rather than empty for everyone else.
      *
-     * An empty array would be a count — zero is a number, and a client that
+     * An empty array would be a count - zero is a number, and a client that
      * renders "0 interested" for a stranger and nothing for a friend has leaked
      * the distinction. Absent means the question was never answered.
      */
@@ -394,7 +411,7 @@ const notesFor = (notes: readonly ReportNote[], audience: NoteAudience): NoteVie
 /**
  * A report as its reporter sees it.
  *
- * No evidence snapshot: they already saw the material — they reported it — and
+ * No evidence snapshot: they already saw the material - they reported it - and
  * handing back a frozen copy would give them a durable record of content the
  * author may since have deleted. No subject identity beyond what they already
  * knew, and none of the subject's thread.
@@ -421,15 +438,15 @@ export function projectReportForReporter(args: {
  * This is the projection the whole feature turns on, so it is worth stating what
  * is missing and why:
  *
- *  - **`reporterId`** — the entire point. Never present at any status.
- *  - **`detail`** — the reporter's own words, which routinely identify them
+ *  - **`reporterId`** - the entire point. Never present at any status.
+ *  - **`detail`** - the reporter's own words, which routinely identify them
  *    ("he keeps messaging me about the bike"). The subject gets the reason
  *    *category* and the moderator's composed message, nothing rawer.
- *  - **`createdAt`** — filing time correlates with whoever they just argued
+ *  - **`createdAt`** - filing time correlates with whoever they just argued
  *    with. A timestamp is a weak identifier but it is not no identifier.
- *  - **`evidence`** — it is their own material; re-serving it adds nothing and
+ *  - **`evidence`** - it is their own material; re-serving it adds nothing and
  *    would confirm exactly which item drew the report.
- *  - **the reporter's thread** — filtered out by audience, structurally.
+ *  - **the reporter's thread** - filtered out by audience, structurally.
  */
 export function projectReportForSubject(args: {
   report: Report;

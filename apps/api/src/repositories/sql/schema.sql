@@ -123,7 +123,7 @@ create index if not exists friendships_pending_idx
 -- you (ADR 0004, ADR 0022). No `on delete cascade` here, deliberately.
 -- **Directed**, one row per direction, unlike `friendships`. If Alice blocks
 -- Bob and Bob blocks Alice there are two rows, so Alice unblocking cannot take
--- Bob's block with it — which an undirected pair would (ADR 0028). `relationship()`
+-- Bob's block with it - which an undirected pair would (ADR 0028). `relationship()`
 -- still collapses to BLOCKED if a row exists either way.
 create table if not exists blocks (
   blocker_id uuid not null,
@@ -177,6 +177,13 @@ create index if not exists events_span_idx on events using gist (span);
 create index if not exists events_owner_idx on events (owner_id);
 
 create table if not exists sharing_defaults (
+  user_id uuid primary key references users (id) on delete cascade,
+  doc     jsonb not null
+);
+
+-- A recurring daily window in which nobody may propose a plan. Config, not
+-- content: no id, no title, and never an entry on the calendar.
+create table if not exists quiet_hours (
   user_id uuid primary key references users (id) on delete cascade,
   doc     jsonb not null
 );
@@ -304,7 +311,7 @@ $$;
 
 -- ── Row-level security ──────────────────────────────────────────────
 --
--- Ownership only. `app.actor_id` is set with SET LOCAL inside a transaction —
+-- Ownership only. `app.actor_id` is set with SET LOCAL inside a transaction -
 -- never per connection, because a pooled connection leaks session state between
 -- requests.
 --
@@ -324,6 +331,7 @@ $$;
 
 alter table events           enable row level security;
 alter table sharing_defaults enable row level security;
+alter table quiet_hours      enable row level security;
 alter table circles          enable row level security;
 alter table listings         enable row level security;
 
@@ -331,6 +339,7 @@ alter table listings         enable row level security;
 -- bypasses them, which is why this is a backstop and not the control.
 alter table events           force row level security;
 alter table sharing_defaults force row level security;
+alter table quiet_hours      force row level security;
 alter table circles          force row level security;
 alter table listings         force row level security;
 
@@ -344,12 +353,19 @@ create policy sharing_defaults_owner on sharing_defaults
   using (user_id = app_actor_id())
   with check (user_id = app_actor_id());
 
+-- Ownership only, like every other policy here: RLS is a backstop, never the
+-- control. The lattice stays in packages/policy (ADR 0026).
+drop policy if exists quiet_hours_owner on quiet_hours;
+create policy quiet_hours_owner on quiet_hours
+  using (user_id = app_actor_id())
+  with check (user_id = app_actor_id());
+
 drop policy if exists circles_owner on circles;
 create policy circles_owner on circles
   using (owner_id = app_actor_id())
   with check (owner_id = app_actor_id());
 
--- Listings are *read* by their audience, which RLS deliberately does not model —
+-- Listings are *read* by their audience, which RLS deliberately does not model -
 -- that is the lattice, and it stays in the kernel. Reads are open here and the
 -- projection decides; writes are the owner's alone.
 drop policy if exists listings_read on listings;

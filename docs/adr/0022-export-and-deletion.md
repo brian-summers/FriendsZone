@@ -5,7 +5,7 @@
 
 ## Context
 
-Account export and deletion is a Tier 0 obligation — legally, and as
+Account export and deletion is a Tier 0 obligation - legally, and as
 [the roadmap](../product/roadmap.md) puts it, "the honest counterpart to a
 privacy-first pitch". A product that argues this hard about what friends can see
 of each other looks silly if a user cannot get their own data out or make it
@@ -45,8 +45,8 @@ would hand a reported person the identity of whoever reported them, in a
 downloadable file, as a *privacy feature*. That is the single worst thing this
 feature could do, and it is the obvious implementation.
 
-Anything genuinely private to the user that has no projection — their own
-sharing defaults, their own claim messages — is exported directly, because they
+Anything genuinely private to the user that has no projection - their own
+sharing defaults, their own claim messages - is exported directly, because they
 are its author and sole audience.
 
 ### Deletion erases, then tombstones
@@ -55,8 +55,8 @@ The user row is not removed. It is **emptied and marked deleted**: id retained,
 every human-meaningful field cleared, handle released, display name replaced with
 a neutral placeholder.
 
-Removing the row outright would dangle every foreign reference in the product —
-a hangout Bob still has, an exchange Carol is party to, a moderation case — and
+Removing the row outright would dangle every foreign reference in the product -
+a hangout Bob still has, an exchange Carol is party to, a moderation case - and
 dangling references in a system whose safety depends on resolving ids correctly
 is how a deleted user's data reappears attached to the wrong person. A tombstone
 keeps every join resolvable and every join *empty*.
@@ -71,7 +71,7 @@ participant**. Deleting your account removes yours. It does not reach into
 someone else's calendar and delete theirs.
 
 Their copy is their record of their own week. It survives, showing a tombstoned
-name — the same way a photograph you are in stays in someone else's album when
+name - the same way a photograph you are in stays in someone else's album when
 you close your account. Any other rule lets one person quietly rewrite another's
 history, and a "delete everything I ever touched" button is a weapon in exactly
 the disputes this product's safety features exist for.

@@ -17,7 +17,7 @@ interface Props {
 const LEVELS: VisibilityLevel[] = ['HIDDEN', 'BUSY', 'TITLE', 'FULL'];
 const rank = (l: VisibilityLevel) => LEVELS.indexOf(l);
 
-/** Per-audience wording — "Private" reads better than "Hidden" for a person. */
+/** Per-audience wording - "Private" reads better than "Hidden" for a person. */
 const levelLabel = (l: VisibilityLevel): string =>
   l === 'HIDDEN' ? 'Private' : encodingFor(l).label;
 
@@ -31,14 +31,14 @@ const levelFor = (rules: ShareRule[], kind: 'FRIENDS' | 'PUBLIC'): VisibilityLev
  *
  * This is the screen the product is really about, so it is careful:
  *
- *  - Audiences are **rows**, levels an **ordinal slider** — the lattice is
+ *  - Audiences are **rows**, levels an **ordinal slider** - the lattice is
  *    ordered, so the control says so.
  *  - Each choice states its **consequence** in plain words, not the schema's
  *    vocabulary.
  *  - **Circle rules are preserved.** The client has no circle list, so it edits
  *    only the Friends and Everyone rows and leaves any circle grants untouched
  *    rather than silently dropping them.
- *  - It never computes visibility itself — it writes rules and lets the server's
+ *  - It never computes visibility itself - it writes rules and lets the server's
  *    projection be the source of truth. Reopening the event shows the result.
  */
 export function SharingEditor({

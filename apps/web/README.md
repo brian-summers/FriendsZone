@@ -10,11 +10,11 @@ The React client. Run it with `npm run dev:web` from the repo root, alongside
 There is no copy of the visibility lattice here, no sharing rules on the client,
 no "hide it in the UI" filtering. The server sends exactly what the viewer is
 entitled to and the client draws it. Any code here that starts computing
-visibility is a second implementation of the security model — it will drift from
+visibility is a second implementation of the security model - it will drift from
 `packages/policy`, and when it does it will be reassuring someone about a state
 that is not true.
 
-When the UI needs to know what another person can see — the sharing checkup —
+When the UI needs to know what another person can see - the sharing checkup -
 it asks the server via `/v1/me/calendar/preview`, which runs the real engine.
 
 ## Layout
@@ -30,7 +30,7 @@ src/
     WeekGrid.tsx           the calendar grid
     EventDrawer.tsx        one event's details; edit / share / delete your own
     EventEditForm.tsx      edit or delete a plain event (PATCH/DELETE /v1/events)
-    SharingEditor.tsx      change who sees an event (PATCH shareRules) — inline panel
+    SharingEditor.tsx      change who sees an event (PATCH shareRules) - inline panel
     HangoutManage.tsx      edit / reschedule / cancel a hangout in place
     HoldDrawer.tsx         accept / decline / withdraw a tentative hold
     NewEventDialog.tsx     create an event via POST /v1/events
@@ -52,7 +52,7 @@ src/
 ## Routing
 
 `lib/router.ts` is a ~40-line History-API router built on
-`useSyncExternalStore` — no dependency, because the app has five routes and no
+`useSyncExternalStore` - no dependency, because the app has five routes and no
 need for loaders or nested layouts. Real URLs (`/`, `/people/:id`, `/inbox`,
 `/things`, `/settings`), working back/forward, deep-linkable. `matchRoute` is
 unit-tested. If routing needs grow (query state, guards, nested layouts), this
@@ -63,7 +63,7 @@ is the moment to adopt a real router rather than extend this one.
 **`tokens.css` is hand-written, not generated.** The palette has to exist before
 any JavaScript runs or every cold load flashes the wrong theme. The duplication
 is safe because `tokens.test.ts` parses this file and asserts every value
-matches the TypeScript source — change one and CI fails.
+matches the TypeScript source - change one and CI fails.
 
 **Requests go to `/api/*` and Vite proxies them.** Everything stays same-origin,
 so there is no CORS configuration in the project at all, and therefore no
@@ -82,7 +82,7 @@ permissive `Access-Control-Allow-Origin` that can leak into production.
   plain-language consequences and the calendar reflects the result on save; a
   "what Bob would see if you save this" preview needs a project-with-unsaved-
   rules endpoint (deferred).
-- **No optimistic updates** — a successful mutation refetches the week.
+- **No optimistic updates** - a successful mutation refetches the week.
 - **Category colours are derived from the owner id**, because event categories
   are not modelled yet. Hue is deliberately independent of the visibility
   channels, so this cannot misrepresent who can see something.

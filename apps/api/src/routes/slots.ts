@@ -25,7 +25,7 @@ import type { Repositories } from '../repositories/ports.js';
  *
  * Read docs/adr/0008-slot-finder-on-projections.md before changing anything.
  * The single load-bearing line in this file is that every participant's
- * availability comes from `projectCalendar` **computed for the requester** —
+ * availability comes from `projectCalendar` **computed for the requester** -
  * the identical output they would get by opening that person's calendar.
  *
  * Swapping that for `repos.calendar.eventsInWindow` directly would look like an
@@ -65,7 +65,7 @@ export function buildSlotRoutes(repos: Repositories) {
         /**
          * Deduplicate, and drop the requester if they named themselves.
          *
-         * They are always a participant — it is "when are *we* free" — so
+         * They are always a participant - it is "when are *we* free" - so
          * including them twice would be harmless but listing them twice in the
          * denominator would be confusing.
          */
@@ -73,7 +73,7 @@ export function buildSlotRoutes(repos: Repositories) {
         const everyone: UserId[] = [actorId, ...others];
         if (everyone.length > MAX_SLOT_PARTICIPANTS) throw new ValidationError(['participantIds']);
 
-        // One batched lookup rather than N round trips — the reason
+        // One batched lookup rather than N round trips - the reason
         // `contextsFor` exists (ADR 0008).
         const contexts = await repos.social.contextsFor(actorId, everyone);
 
@@ -105,7 +105,7 @@ export function buildSlotRoutes(repos: Repositories) {
           /**
            * The honest denominator.
            *
-           * True when this person's sharing actually reaches the requester —
+           * True when this person's sharing actually reaches the requester -
            * either their defaults grant at least BUSY, or something in the
            * window resolved that far. The first disjunct matters for someone
            * who shares availability and simply has a free week; without it they

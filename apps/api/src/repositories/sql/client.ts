@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 /**
  * The whole database interface: two methods.
  *
- * Small on purpose. `pg` runs it in production and PGlite — real Postgres,
- * compiled to WebAssembly — runs it in tests, so **the adapter under test is
+ * Small on purpose. `pg` runs it in production and PGlite - real Postgres,
+ * compiled to WebAssembly - runs it in tests, so **the adapter under test is
  * the adapter that ships**. Untested SQL is the failure mode this design is
  * most exposed to, and one interface closes it
  * (docs/adr/0026-sql-layer.md).
@@ -17,7 +17,7 @@ export interface SqlClient {
    * Run `fn` inside a transaction, rolling back if it throws.
    *
    * `actorId` becomes `app.actor_id` via `SET LOCAL`, which is scoped to the
-   * transaction — never to the connection, because a pooled connection would
+   * transaction - never to the connection, because a pooled connection would
    * carry one request's identity into the next.
    *
    * `crossOwner` admits the sanctioned writes that touch another person's rows
@@ -36,7 +36,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 /**
  * Apply the schema.
  *
- * Idempotent — every statement is `if not exists` or `create or replace` — so
+ * Idempotent - every statement is `if not exists` or `create or replace` - so
  * this runs on every boot rather than needing a migration runner for a schema
  * that has never yet been migrated. The moment a column has to *change*, this
  * becomes an ordered set of files and a `schema_migrations` table, and not
@@ -75,13 +75,13 @@ export async function createPgliteClient(dataDir?: string): Promise<SqlClient> {
   } catch {
     /**
      * PGlite is a *dev* dependency, so a production image built with
-     * `npm prune --omit=dev` does not have it — correctly, because production
+     * `npm prune --omit=dev` does not have it - correctly, because production
      * should be pointed at a real server. Say that, rather than letting a bare
      * "Cannot find package" stand as the explanation.
      */
     throw new Error(
       'DATABASE_URL uses pglite:// but @electric-sql/pglite is not installed. ' +
-        'It is a dev dependency and is pruned from production images — use postgres:// instead.',
+        'It is a dev dependency and is pruned from production images - use postgres:// instead.',
     );
   }
 

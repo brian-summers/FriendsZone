@@ -1,7 +1,7 @@
 /**
  * Friendszone color tokens.
  *
- * The palette is verdigris and brass — oxidised copper against aged metal.
+ * The palette is verdigris and brass - oxidised copper against aged metal.
  * That is not an arbitrary mood board. Friendszone is a scheduling product whose
  * whole thesis is the absence of urgency, so the palette deliberately avoids
  * the alerting vocabulary every other social product is built from: no
@@ -22,16 +22,16 @@ export interface ColorScheme {
   ground: string;
   /** Raised card / panel. */
   surface: string;
-  /** Recessed well — inputs, the calendar grid behind events. */
+  /** Recessed well - inputs, the calendar grid behind events. */
   sunken: string;
   /** Hairlines and dividers. */
   rule: string;
 
   /** Primary text. */
   ink: string;
-  /** Secondary text — supporting copy, metadata. */
+  /** Secondary text - supporting copy, metadata. */
   ink2: string;
-  /** Muted text — timestamps, captions. Still AA on every ground. */
+  /** Muted text - timestamps, captions. Still AA on every ground. */
   ink3: string;
 
   /** Primary action and brand. */
@@ -43,7 +43,7 @@ export interface ColorScheme {
    * Light and dark need opposite answers here: white on verdigris is 6.42:1 in
    * light but only 2.16:1 in dark, because the dark-theme verdigris is lifted
    * to stay legible on a dark ground. Hard-coding `#fff` on buttons is
-   * therefore a bug that only shows up in one theme — a token removes the
+   * therefore a bug that only shows up in one theme - a token removes the
    * chance to make it.
    */
   onVerdigris: string;
@@ -51,7 +51,7 @@ export interface ColorScheme {
   /** Secondary accent. Marketplace tags, RSVP-yes, warm highlights. */
   brass: string;
 
-  /** Semantic. Deliberately desaturated — see the note below. */
+  /** Semantic. Deliberately desaturated - see the note below. */
   madder: string;
   amber: string;
 }
@@ -62,8 +62,8 @@ export interface ColorScheme {
  * `madder` is a muted rose-brick, not a fire-engine red, and `amber` is closer
  * to old gold than to a hazard sign. In a product built to lower the stakes of
  * social scheduling, a destructive action should read as *serious*, not as an
- * emergency. The one place we do want genuine alarm — a safety report on an
- * exchange — earns it through weight and iconography rather than by turning the
+ * emergency. The one place we do want genuine alarm - a safety report on an
+ * exchange - earns it through weight and iconography rather than by turning the
  * whole palette up.
  */
 export const LIGHT: ColorScheme = {

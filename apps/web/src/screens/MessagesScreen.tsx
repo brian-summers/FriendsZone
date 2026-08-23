@@ -8,7 +8,7 @@ import type {
 import { api, ApiError } from '../lib/api.js';
 
 /**
- * Messages — a mailbox, deliberately.
+ * Messages - a mailbox, deliberately.
  *
  * A list on the left, a thread on the right, and a box to write in. What this
  * screen does *not* have is the vocabulary of a chat app: no presence dot, no
@@ -173,7 +173,7 @@ export function MessagesScreen({ actorId, people, startWith, onActivity }: Props
                     {c.lastMessageFromYou ? 'You: ' : ''}
                     {c.preview}
                   </span>
-                  {/* Quiet, never a red pulsing badge — the same restraint the
+                  {/* Quiet, never a red pulsing badge - the same restraint the
                       inbox count uses (ADR 0007). */}
                   {c.unread > 0 && <span className="nav-count">{c.unread}</span>}
                 </button>

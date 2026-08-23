@@ -43,7 +43,7 @@ describe('can', () => {
     it('still lets a blocked viewer ask for a calendar, so the answer looks ordinary', () => {
       // Denying here would return 404 where a stranger gets an empty 200, and
       // that difference tells the blocked user they were blocked. The empty
-      // result is guaranteed by the visibility engine, not by this decision —
+      // result is guaranteed by the visibility engine, not by this decision -
       // see BLOCK_EXEMPT_ACTIONS and the projection tests it points at.
       expect(decide(asBlocked(), { action: 'calendar:view', ownerId: ALICE }).allowed).toBe(true);
     });
@@ -83,7 +83,7 @@ describe('can', () => {
     });
 
     it('keeps a friend list private even from friends', () => {
-      // One hop of graph traversal is one hop too many — see the threat model.
+      // One hop of graph traversal is one hop too many - see the threat model.
       expect(decide(asOwner(), { action: 'friends:list', ownerId: ALICE }).allowed).toBe(true);
       expect(decide(asFriend(), { action: 'friends:list', ownerId: ALICE })).toMatchObject({
         allowed: false,
@@ -138,7 +138,7 @@ describe('can', () => {
 
   describe('calendar', () => {
     it('lets you preview only your own calendar through someone else’s eyes', () => {
-      // The dangerous inverse — borrowing eyes on someone else's calendar —
+      // The dangerous inverse - borrowing eyes on someone else's calendar -
       // is not expressible: the request names the owner, and it must be you.
       expect(decide(asOwner(), { action: 'calendar:preview', ownerId: ALICE }).allowed).toBe(true);
       expect(decide(asFriend(), { action: 'calendar:preview', ownerId: ALICE })).toMatchObject({
@@ -435,7 +435,7 @@ describe('can', () => {
     });
 
     it('refuses a second claim from the same person', () => {
-      // One person, one entry — otherwise a lottery is won by whoever scripts
+      // One person, one entry - otherwise a lottery is won by whoever scripts
       // the most entries.
       expect(
         decide(asFriend(), claiming(friendsListing, { viewerHasClaimed: true })),
@@ -769,8 +769,8 @@ describe('can', () => {
 
   /**
    * Coverage for the report gates lives here so the `ALL_ACTIONS` backstop
-   * below sees it. The substantive per-party leak tests — which thread reaches
-   * whom, and what each projection withholds — are in `moderation.test.ts`.
+   * below sees it. The substantive per-party leak tests - which thread reaches
+   * whom, and what each projection withholds - are in `moderation.test.ts`.
    */
   describe('reporting and moderation', () => {
     const openReport = {
@@ -873,7 +873,7 @@ describe('can', () => {
 
     it('blocks a request between a blocked pair', () => {
       // The block gate runs above the switch, so no `existing` value can
-      // reopen it — including the 'NONE' a naive caller might pass.
+      // reopen it - including the 'NONE' a naive caller might pass.
       expect(
         decide(asBlocked(), { action: 'friend:request', targetId: ALICE, existing: 'NONE' }),
       ).toMatchObject({ allowed: false, reason: 'BLOCKED' });
@@ -889,7 +889,7 @@ describe('can', () => {
       ).toMatchObject({ allowed: true });
 
       // BOB asked, so BOB may not answer. Agreeing with yourself is not
-      // agreement — the same rule the handoff uses.
+      // agreement - the same rule the handoff uses.
       expect(
         decide(asStranger(), {
           action: 'friend:respond',
@@ -990,7 +990,7 @@ describe('can', () => {
       });
     });
 
-    it('refuses a pending request — asking is not a channel', () => {
+    it('refuses a pending request - asking is not a channel', () => {
       // `PENDING` grants nothing anywhere else in this system, and must not
       // become a way to talk at someone who has not answered (ADR 0028).
       expect(

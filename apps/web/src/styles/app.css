@@ -149,7 +149,7 @@ button { font: inherit; color: inherit; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 /* The week grid scrolls itself (.cal-scroll) so .cal-head can stay sticky and
-   the drag geometry has one stable scroll container — which is why .main clips
+   the drag geometry has one stable scroll container - which is why .main clips
    instead of scrolling. Every other screen has no inner scroller, so .main has
    to be the one that scrolls, or its content is simply cut off at the fold.
    Scrolling here rather than on .inbox/.settings keeps the scrollbar at the
@@ -331,7 +331,7 @@ button.chip { cursor: pointer; display: block; width: calc(100% - 4px); }
 }
 .chip .meta { display: block; font-size: 0.625rem; opacity: 0.85; }
 
-/* BUSY — hatched. The oldest convention for "blocked out". */
+/* BUSY - hatched. The oldest convention for "blocked out". */
 .chip.v-BUSY {
   z-index: 1;
   border: 1px solid color-mix(in srgb, var(--hue) 50%, transparent);
@@ -352,8 +352,8 @@ button.chip { cursor: pointer; display: block; width: calc(100% - 4px); }
 
 .chip.v-FULL {
   /* The border, not the fill, is what makes a chip a distinguishable shape.
-     A light hue cannot reach 3:1 against a light ground at all — the
-     arithmetic forbids it — so the edge is mixed toward ink, which darkens it
+     A light hue cannot reach 3:1 against a light ground at all - the
+     arithmetic forbids it - so the edge is mixed toward ink, which darkens it
      in light mode and lightens it in dark. Ratio lives in
      packages/design-tokens/src/palettes.ts and is verified by cvd.test.ts. */
   border: 2px solid color-mix(in srgb, var(--hue) 65%, var(--ink));
@@ -365,7 +365,7 @@ button.chip { cursor: pointer; display: block; width: calc(100% - 4px); }
 
 .chip.cancelled .ttl { text-decoration: line-through; opacity: 0.7; }
 
-/* Non-exclusive (overlappable) time — occupied but negotiable. A soft brass
+/* Non-exclusive (overlappable) time - occupied but negotiable. A soft brass
    outline, distinct from the hard hatched BUSY wall. */
 .chip.v-OPEN {
   z-index: 1;
@@ -385,7 +385,7 @@ button.chip { cursor: pointer; display: block; width: calc(100% - 4px); }
   background: color-mix(in srgb, var(--hue) 55%, var(--surface));
 }
 
-/* Pending hangout hold — the tentative entry you can act on. Distinct from
+/* Pending hangout hold - the tentative entry you can act on. Distinct from
    BUSY (which is opaque unavailability): dashed, brass-tinted, with a clock. */
 button.chip.hold,
 .chip.hold {
@@ -408,7 +408,7 @@ button.chip.hold:hover {
 }
 .chip.hold .lvl { color: var(--brass); }
 
-/* Legend — quiet key to firm / tentative / busy. */
+/* Legend - quiet key to firm / tentative / busy. */
 .cal-legend {
   display: flex;
   align-items: center;
@@ -438,7 +438,7 @@ button.chip.hold:hover {
 .legend-note { color: var(--brass); font-family: var(--font-mono); font-size: 0.6875rem; }
 
 /* Owner-only "who can see this" marker. A quiet corner tag, not competing
-   with the event's own label — it answers a different question. */
+   with the event's own label - it answers a different question. */
 .seen-badge {
   position: absolute;
   right: 3px;
@@ -458,7 +458,7 @@ button.chip.hold:hover {
   max-width: calc(100% - 6px);
 }
 /* The glyph never shrinks and never truncates. The word may ellipsize on a
-   narrow chip, and when it does the glyph is what keeps the level readable —
+   narrow chip, and when it does the glyph is what keeps the level readable -
    so the two are separate elements rather than one truncating string. Four
    redundant channels is the rule; this is what makes the fourth degrade
    gracefully instead of vanishing. See packages/design-tokens/src/visibility.ts. */
@@ -760,7 +760,7 @@ button.chip.hold:hover {
 .seg button:last-child { border-right: 0; }
 .seg button.seg-on { background: var(--verdigris); color: var(--on-verdigris); font-weight: 600; }
 
-/* ── Nav count — quiet, never a red alert ──────────────────────────── */
+/* ── Nav count - quiet, never a red alert ──────────────────────────── */
 .nav-count {
   display: inline-block;
   margin-left: 0.4rem;
@@ -832,7 +832,7 @@ button.chip.hold:hover {
 .add-slot:hover { border-color: var(--verdigris); color: var(--ink); }
 .hint-note { font-size: 0.75rem; color: var(--ink3); margin: var(--space-2xs) 0 0; }
 
-/* ── Toast — a calm confirmation, not an alert ─────────────────────── */
+/* ── Toast - a calm confirmation, not an alert ─────────────────────── */
 .toast {
   margin: var(--space-md) var(--space-md) 0;
   padding: var(--space-sm) var(--space-md);
@@ -1100,7 +1100,7 @@ button.chip.hold:hover {
   flex-direction: column;
   gap: var(--space-xs);
 }
-/* Settled listings stay legible rather than being greyed into unreadability —
+/* Settled listings stay legible rather than being greyed into unreadability -
    an item you were declined for is still information you may want. */
 .thing-settled { background: var(--sunken); }
 
@@ -1117,7 +1117,7 @@ button.chip.hold:hover {
 .thing-top { display: flex; align-items: baseline; gap: var(--space-xs); }
 .thing-title { margin: 0; font-size: 1rem; font-weight: 600; flex: 1; }
 
-/* The mode is named in words as well as coloured — the same four-channel rule
+/* The mode is named in words as well as coloured - the same four-channel rule
    the calendar follows. Colour alone must never carry a meaning. */
 .mode-pill {
   font-size: 0.6875rem;
@@ -1127,7 +1127,7 @@ button.chip.hold:hover {
   color: var(--ink2);
   white-space: nowrap;
 }
-/* Slots, not colour names — these differ per palette. The pills also carry a
+/* Slots, not colour names - these differ per palette. The pills also carry a
    text label, so the colour is reinforcement and never the sole channel. */
 .mode-first_come { border-color: var(--hue-1); color: var(--hue-1); }
 .mode-lottery { border-color: var(--hue-3); color: var(--hue-3); }
@@ -1304,7 +1304,7 @@ button.chip.hold:hover {
 .report-dialog h3 { margin: 0; font-size: 1rem; }
 
 /* The promise the product makes to someone in a bad moment. Styled to be read,
-   not skimmed past — it is the reason people file at all. */
+   not skimmed past - it is the reason people file at all. */
 .report-reassure {
   margin: 0;
   padding: var(--space-xs) var(--space-sm);
@@ -1417,7 +1417,7 @@ button.chip.hold:hover {
   border: 1px solid var(--rule);
 }
 
-/* Two columns, never merged into one conversation — a single time-sorted list
+/* Two columns, never merged into one conversation - a single time-sorted list
    is how a moderator quotes the reporter into a message meant for the subject. */
 .mod-threads { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
 
@@ -1515,7 +1515,7 @@ button.chip.hold:hover {
 
 .handoff-none { margin: 0; font-size: 0.8125rem; color: var(--ink3); }
 
-/* The one moment the product asks someone to meet a person. Marked in brass —
+/* The one moment the product asks someone to meet a person. Marked in brass -
    a caution, not an alarm; the point is to be read, not to frighten. */
 .handoff-safety {
   margin: 0;
@@ -1602,7 +1602,7 @@ button.chip.hold:hover {
 
 .slot-results { display: grid; gap: var(--space-xs); }
 
-/* The honest denominator. Deliberately prominent and above the answers — it is
+/* The honest denominator. Deliberately prominent and above the answers - it is
    the feature being truthful about its own limits, not a disclaimer to bury.
    See docs/adr/0008-slot-finder-on-projections.md. */
 .slot-denominator {
@@ -1644,7 +1644,7 @@ button.chip.hold:hover {
 
 /* ── Sharing presets ───────────────────────────────────────────────── */
 
-/* The onboarding note. A card, shown once, never a modal — a privacy prompt
+/* The onboarding note. A card, shown once, never a modal - a privacy prompt
    that pesters is one people learn to dismiss unread (ADR 0021). */
 .onboard-note {
   margin: 0 0 var(--space-sm);
@@ -1674,7 +1674,7 @@ button.chip.hold:hover {
 .preset-card strong { font-size: 0.875rem; color: var(--ink); }
 .preset-card small { font-size: 0.8125rem; color: var(--ink3); line-height: 1.4; }
 
-/* Selection is carried by the border, the fill, *and* aria-pressed — never by
+/* Selection is carried by the border, the fill, *and* aria-pressed - never by
    colour alone, like every other state in the product. */
 .preset-on { border-color: var(--verdigris); background: var(--sunken); }
 .preset-on strong::after {
@@ -1684,7 +1684,7 @@ button.chip.hold:hover {
 
 /* ── Danger zone ───────────────────────────────────────────────────── */
 
-/* Bordered in madder and placed after the ordinary settings — visible, not
+/* Bordered in madder and placed after the ordinary settings - visible, not
    hidden, because a legal-obligation control people cannot find is not one. */
 .danger-card { border-color: var(--madder); }
 .danger-card h2 { color: var(--madder); }
@@ -1755,6 +1755,53 @@ button.chip.hold:hover {
   font-size: 0.875rem;
   max-width: 20rem;
 }
+
+/* ── Quiet hours ───────────────────────────────────────────────────── */
+
+/* A region, never a chip. Behind every event layer, non-interactive, and
+   carrying no border or label of its own so it cannot be mistaken for an
+   entry. Diagonal hatching rather than a flat tint so it still reads as
+   "unavailable" in monochrome and to a viewer who cannot see the hue. */
+.legend-swatch.quiet {
+  background-color: color-mix(in srgb, var(--ink) 6%, transparent);
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--ink) 30%, transparent) 0 2px,
+    transparent 2px 5px
+  );
+  border: 1px solid var(--rule);
+}
+
+.quiet-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: color-mix(in srgb, var(--ink) 5%, transparent);
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--ink) 7%, transparent) 0 3px,
+    transparent 3px 8px
+  );
+}
+
+.quiet-toggle { flex-direction: row; align-items: center; gap: var(--space-xs); }
+.quiet-row { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-xs); }
+
+.timefield { display: inline-flex; align-items: center; gap: var(--space-3xs); }
+.timefield select {
+  font: inherit;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  padding: var(--space-2xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+}
+.timefield select:focus { border-color: var(--verdigris); }
+.timefield-sep { color: var(--ink3); font-family: var(--font-mono); }
 
 /* ── People screen ─────────────────────────────────────────────────── */
 
@@ -1926,7 +1973,7 @@ button.chip.hold:hover {
   cursor: pointer;
 }
 .palette-option:hover { border-color: var(--ink3); }
-/* Selection is carried by the border, the word "In use", and aria-pressed —
+/* Selection is carried by the border, the word "In use", and aria-pressed -
    never by colour alone, which would be self-defeating on this control of all
    controls. */
 .palette-option.palette-on { border-color: var(--verdigris); border-width: 2px; padding: calc(var(--space-sm) - 1px); }
@@ -1951,7 +1998,7 @@ button.chip.hold:hover {
 .palette-blurb { color: var(--ink3); font-size: 0.8125rem; line-height: 1.5; }
 
 /* ── Explainer popover ─────────────────────────────────────────────────
-   Orientation text only. Consequence text stays on the page — see the
+   Orientation text only. Consequence text stays on the page - see the
    rationale in apps/web/src/components/Explainer.tsx. */
 
 .explainer { position: relative; display: inline-flex; vertical-align: middle; }

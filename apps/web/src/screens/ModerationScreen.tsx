@@ -114,7 +114,7 @@ export function ModerationScreen({ actorId }: { actorId: string }) {
         <div>
           <h2>Moderation</h2>
           <p className="things-blurb">
-            Reports, the material they were filed about, and two separate threads — one with the
+            Reports, the material they were filed about, and two separate threads - one with the
             reporter, one with the person reported. Neither can see the other.
           </p>
         </div>
@@ -200,7 +200,7 @@ function CaseFile({
         </div>
       )}
 
-      {/* The evidence snapshot — what the material looked like when reported,
+      {/* The evidence snapshot - what the material looked like when reported,
           which is what a moderator judges rather than whatever it says now. */}
       <div className="mod-block">
         <h4>
@@ -208,7 +208,7 @@ function CaseFile({
         </h4>
         {report.evidence.fields.length === 0 && report.evidence.photoKeys.length === 0 ? (
           <p className="side-note">
-            No material captured — this was filed about a person rather than one item.
+            No material captured - this was filed about a person rather than one item.
           </p>
         ) : (
           <>

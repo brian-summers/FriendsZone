@@ -12,8 +12,8 @@ import { DARK, LIGHT } from './color.js';
  * ## Category hues are measured, not asserted
  *
  * Colour carries exactly one thing in Friendszone: which *calendar* an event
- * belongs to, and which claim mode a listing uses. Visibility — the part that
- * can hurt someone — is carried by four redundant channels and never by hue
+ * belongs to, and which claim mode a listing uses. Visibility - the part that
+ * can hurt someone - is carried by four redundant channels and never by hue
  * (`visibility.ts`).
  *
  * Even so, the shipped palette had a real defect, and it was invisible until it
@@ -34,7 +34,7 @@ import { DARK, LIGHT } from './color.js';
  *
  * ## Why `signal` uses Okabe–Ito rather than something optimised
  *
- * A search maximising separation reaches ΔE 35 — and produces neon cyan and
+ * A search maximising separation reaches ΔE 35 - and produces neon cyan and
  * lime, which is not this product. Above roughly 20 the extra distance buys
  * nothing a person can perceive, so `signal`'s light hues are the published
  * Okabe–Ito qualitative palette exactly. It is the reference every other
@@ -49,8 +49,8 @@ export interface CategoryHue {
    * Text on a `v-FULL` chip, whose fill *is* the hue.
    *
    * Per-hue rather than one token per theme, because the colourblind-safe hues
-   * span a wide lightness range on purpose — that spread is what survives
-   * red-green deficiency — and five of Okabe–Ito's six need dark text while the
+   * span a wide lightness range on purpose - that spread is what survives
+   * red-green deficiency - and five of Okabe–Ito's six need dark text while the
    * sixth needs white. A single `onHue` would have forced every hue dark, which
    * is precisely what collapsed the separation in the first attempt.
    */
@@ -76,13 +76,13 @@ const K = '#0D1412';
 
 const hue = (hex: string, on: string): CategoryHue => ({ hex, on });
 
-// ── verdigris — the default ───────────────────────────────────────
+// ── verdigris - the default ───────────────────────────────────────
 // Chrome is unchanged from the original palette: oxidised copper against aged
 // metal, and no reason to move it. Only the category hues are retuned, because
 // the originals were the ones that failed measurement.
 
 const VERDIGRIS_HUES_LIGHT: readonly CategoryHue[] = [
-  hue('#136B58', W), // teal — the brand hue, kept as slot 1
+  hue('#136B58', W), // teal - the brand hue, kept as slot 1
   hue('#C9A227', K), // gold
   hue('#4A3A78', W), // indigo
   hue('#7FCFC4', K), // pale aqua
@@ -99,7 +99,7 @@ const VERDIGRIS_HUES_DARK: readonly CategoryHue[] = [
   hue('#C795C7', K),
 ];
 
-// ── harbor — cool, for people who find the green warm ─────────────
+// ── harbor - cool, for people who find the green warm ─────────────
 
 const HARBOR_LIGHT: ColorScheme = {
   ground: '#EFF2F6',
@@ -151,7 +151,7 @@ const HARBOR_HUES_DARK: readonly CategoryHue[] = [
   hue('#993D56', W),
 ];
 
-// ── signal — colourblind-first ────────────────────────────────────
+// ── signal - colourblind-first ────────────────────────────────────
 // Neutral chrome on purpose. In the other palettes the brand colour competes
 // with the category hues for attention; here the only saturated colour on
 // screen is the one carrying information.
@@ -259,7 +259,7 @@ export const SAFE_HUE_SEPARATION = 15;
  * How much hue is left in a `v-FULL` chip's border: `color-mix(hue 65%, ink)`.
  *
  * A chip's *fill* cannot carry identifiability on its own. Okabe–Ito's orange
- * is inherently light, and no light colour reaches 3:1 against a light ground —
+ * is inherently light, and no light colour reaches 3:1 against a light ground -
  * the arithmetic simply does not allow it. So the border does that work, mixed
  * toward `ink`, which darkens it in light mode and lightens it in dark mode.
  * One ratio for every hue in every palette, verified by `cvd.test.ts`.

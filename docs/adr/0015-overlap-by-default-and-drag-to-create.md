@@ -12,8 +12,8 @@ unaffected.
 [ADR 0013](0013-floating-and-open-to-conflict.md) gave events an `openToConflict`
 flag: an event blocked its time by default, and you *opted in* to let it be
 overlapped/requested. In practice the more useful default is the opposite. Many
-real plans coexist in the same block — a broad "co-working" afternoon with two
-calls inside it, an "on call" week overlapping specific meetings — and treating
+real plans coexist in the same block - a broad "co-working" afternoon with two
+calls inside it, an "on call" week overlapping specific meetings - and treating
 every event as an exclusive wall makes those awkward to express and makes the
 calendar unable to show layered plans.
 
@@ -26,18 +26,18 @@ expected gesture.
 **Events overlap by default; exclusivity is an opt-out.** `openToConflict` is
 replaced by `exclusive` (default `false`). A non-exclusive event is
 overlappable and *soft*: it contributes to `openBlocks`, not `busy`, and friends
-may request the time. Opting out — `exclusive: true` — makes it a hard block:
+may request the time. Opting out - `exclusive: true` - makes it a hard block:
 it goes to `busy`, and nothing overlaps it or can be requested over it.
 
 The projection routing inverts accordingly: `event.exclusive ? busy : openBlocks`.
-Everything else about the two fields is unchanged — `openBlocks` still carries
+Everything else about the two fields is unchanged - `openBlocks` still carries
 the same visibility gating as `busy` and still must never be folded into it.
 
 Consequences of the new default:
 
 - Most occupied time now lands in `openBlocks`. `busy` means specifically
   "a hard commitment you can't be pulled from." Accepted **hangouts book
-  exclusive events** — a confirmed plan with a friend is a real commitment.
+  exclusive events** - a confirmed plan with a friend is a real commitment.
 - Overlapping events are laid out in **side-by-side columns** on the week grid
   (standard interval-graph packing), so layered plans read as "several things
   in this block" rather than chips stacked illegibly. Pure client rendering;
@@ -65,7 +65,7 @@ does not itself create anything, keeping the write path exactly as before.
 
 ## Alternatives considered
 
-**Keep `openToConflict`, just flip its default.** The name would then lie — a
+**Keep `openToConflict`, just flip its default.** The name would then lie - a
 field called "open to conflict" that defaults to true reads as "conflicts are
 open," which is the behaviour, but the mental model the user asked for is
 "exclusive is the exception you opt into." Naming the exception (`exclusive`)

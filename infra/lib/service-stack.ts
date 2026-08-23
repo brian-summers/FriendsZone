@@ -20,7 +20,7 @@ import type { Construct } from 'constructs';
 export interface ServiceStackProps extends StackProps {
   readonly vpc: ec2.IVpc;
   readonly cluster: rds.IDatabaseCluster;
-  /** Created in the data stack — see the cycle note there. */
+  /** Created in the data stack - see the cycle note there. */
   readonly connectorSecurityGroup: ec2.ISecurityGroup;
   readonly repository: ecr.IRepository;
   readonly databaseUrl: secretsmanager.ISecret;
@@ -31,7 +31,7 @@ export interface ServiceStackProps extends StackProps {
    * There is a genuine cycle here: App Runner needs this to set the session
    * cookie's `Secure` flag correctly, and CloudFront needs App Runner's URL as
    * its origin. It is resolved with a **two-pass deploy** rather than a custom
-   * resource — pass one uses the placeholder, pass two passes the real
+   * resource - pass one uses the placeholder, pass two passes the real
    * distribution domain as `-c publicOrigin=...`. Two passes is honest and
    * greppable; a custom resource that mutates a service's environment is not.
    */
@@ -130,7 +130,7 @@ export class ServiceStack extends Stack {
               { name: 'REPORTS_EMAIL', value: 'reports@friends-zone.app' },
               { name: 'RATE_LIMIT_ENABLED', value: 'true' },
               // Exactly one proxy (CloudFront) sits in front. Never `true`,
-              // and never higher than the number actually deployed — see
+              // and never higher than the number actually deployed - see
               // ADR 0027: X-Forwarded-For is caller-supplied.
               { name: 'TRUSTED_PROXY_HOPS', value: '1' },
               { name: 'MODERATOR_IDS', value: props.moderatorIds },
@@ -150,7 +150,7 @@ export class ServiceStack extends Stack {
       networkConfiguration: {
         egressConfiguration: {
           // All outbound goes through the VPC. There is no NAT, so the service
-          // has no internet route — which is correct: its only dependency is
+          // has no internet route - which is correct: its only dependency is
           // Aurora, and anything else should be an explicit VPC endpoint.
           egressType: 'VPC',
           vpcConnectorArn: vpcConnector.attrVpcConnectorArn,
@@ -174,7 +174,7 @@ export class ServiceStack extends Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
-      // The client is a build artefact — rebuildable from the repo in seconds,
+      // The client is a build artefact - rebuildable from the repo in seconds,
       // so unlike the database it does not need to survive a teardown.
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
@@ -220,7 +220,7 @@ function handler(event) {
      * `/index.html` with status **200**, which was a genuine defect: this API
      * answers *denied* with 404 by design, so every denial came back as an
      * HTML page with a success code. CloudFront custom error responses cannot
-     * be scoped to one behaviour — a function can.
+     * be scoped to one behaviour - a function can.
      *
      * A path with no file extension is a client route; anything else is an
      * asset and is left alone so a genuinely missing file still 404s.
@@ -290,7 +290,7 @@ function handler(event) {
      * decision rather than a cost one.**
      *
      * An access log records the concrete request URI. This API's URIs carry
-     * the subject's identity — `/api/v1/users/<uuid>/calendar` — so the log
+     * the subject's identity - `/api/v1/users/<uuid>/calendar` - so the log
      * would be a durable record of who looked at whose calendar and when.
      * docs/security/data-classification.md is explicit that what may be logged
      * is the *route pattern*, `/v1/users/:ownerId/calendar`, never the
@@ -341,8 +341,8 @@ function handler(event) {
         {
           id: 'AwsSolutions-S1',
           reason:
-            'The bucket is reachable only through CloudFront Origin Access Control — it has ' +
-            'no public policy and no other principal — so a server access log would record ' +
+            'The bucket is reachable only through CloudFront Origin Access Control - it has ' +
+            'no public policy and no other principal - so a server access log would record ' +
             'nothing that is not already an edge request.',
         },
       ],

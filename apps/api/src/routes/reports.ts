@@ -39,7 +39,7 @@ import type { Repositories } from '../repositories/ports.js';
  * Two things in this file carry the whole design, and both are easy to undo by
  * accident:
  *
- * 1. **Every context here is built against the caller** — `viewerFor(actorId)`,
+ * 1. **Every context here is built against the caller** - `viewerFor(actorId)`,
  *    never `viewerFor(subjectUserId)`. A report is about a pair of people who
  *    have very often blocked each other, and a context built against the other
  *    party would come back `BLOCKED` and deny the victim access to their own
@@ -135,7 +135,7 @@ export function buildReportRoutes(repos: Repositories) {
          * "This person is harassing me" is the case a blocked victim needs, and
          * a block means there is nothing of theirs left to capture. Requiring
          * evidence here would make the report impossible for exactly the person
-         * who most needs to file it — so the moderator gets the reporter's
+         * who most needs to file it - so the moderator gets the reporter's
          * account and works from there.
          */
         const profile = await repos.directory.profile(subject.userId);
@@ -173,7 +173,7 @@ export function buildReportRoutes(repos: Repositories) {
       body: FileReportInput,
       handler: async (ctx): Promise<ReporterReportView> => {
         const actorId = requireActor(ctx.actorId, 'report:create');
-        // Against the caller, never the subject — see the note at the top.
+        // Against the caller, never the subject - see the note at the top.
         const viewer = await ctx.viewerFor(actorId);
 
         const subjectUserId = await subjectUserOf(ctx.body.subject);
@@ -367,7 +367,7 @@ export function buildReportRoutes(repos: Repositories) {
 
         const report = await repos.reports.byId(ctx.params.id);
         // A non-moderator never reaches here, so a plain 404 for a bad id is
-        // safe — the existence of a report is not secret from a moderator.
+        // safe - the existence of a report is not secret from a moderator.
         if (report === null) throw new PolicyDeniedError('moderation:review', 'NOT_PARTICIPANT');
 
         return projectReportForModerator({
@@ -381,7 +381,7 @@ export function buildReportRoutes(repos: Repositories) {
      * Write into one thread.
      *
      * Writing to the `SUBJECT` thread is what first tells a reported person
-     * anything at all — it flips `subjectNotified`. Until a moderator does this
+     * anything at all - it flips `subjectNotified`. Until a moderator does this
      * deliberately, the subject cannot see the report, cannot reply, and cannot
      * confirm it exists.
      */
@@ -408,7 +408,7 @@ export function buildReportRoutes(repos: Repositories) {
           reportId: report.id,
           audience: ctx.body.audience,
           // `null`, never the moderator's id. A party learns that a moderator
-          // replied, never which one — stored that way so no future projection
+          // replied, never which one - stored that way so no future projection
           // can ship an identity that was never recorded.
           authorId: null,
           body: ctx.body.body,
@@ -490,7 +490,7 @@ export function buildReportRoutes(repos: Repositories) {
      *
      * This is the one place a moderator reads user-supplied bytes, and the key
      * must be in *this report's* snapshot. Without that check the moderation
-     * role would be a read-anything capability over the whole photo store —
+     * role would be a read-anything capability over the whole photo store -
      * which is precisely the master key ADR 0018 refuses to grant.
      */
     defineRoute({

@@ -17,9 +17,12 @@ import {
   type TimeRange,
   type UserId,
 } from '@friendszone/contracts';
-import { assertAllowed, can, PolicyDeniedError } from '@friendszone/policy';
+import { assertAllowed, can, PolicyDeniedError,
+  overlapsQuietHours,
+} from '@friendszone/policy';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { ValidationError } from '../http/errors.js';
 import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
 
@@ -42,7 +45,7 @@ const settleAll = (repos: Repositories, requests: HangoutRequest[], now: string)
 
 const participantsOf = (r: HangoutRequest): UserId[] => [r.proposerId, ...r.inviteeIds];
 
-/** Everyone on the hangout except `actorId` — who a notification is *for*. */
+/** Everyone on the hangout except `actorId` - who a notification is *for*. */
 const othersThan = (r: HangoutRequest, actorId: UserId): UserId[] =>
   participantsOf(r).filter((id) => id !== actorId);
 
@@ -65,7 +68,7 @@ function participantEvent(
     visibilityCeiling: 'FULL',
     shareRules: [],
     attendeeIds: participants,
-    // A booked hangout is a firm commitment — it exclusively blocks its slot.
+    // A booked hangout is a firm commitment - it exclusively blocks its slot.
     exclusive: true,
     originHangoutRequestId: request.id,
     createdAt: now,
@@ -78,7 +81,7 @@ function participantEvent(
 /**
  * Record a heads-up for the other party.
  *
- * There is no delivery here — see ADR 0007 and the `Notification` contract. The
+ * There is no delivery here - see ADR 0007 and the `Notification` contract. The
  * message is composed and stored for the recipient to find; that is what
  * "notify them" honestly means without a real-time nudge.
  */
@@ -124,7 +127,7 @@ async function loadOr(
 
 export const buildHangoutRoutes = (repos: Repositories) => [
   /**
-   * Propose a hangout to a friend — FIXED (candidate slots) or FLOATING (a
+   * Propose a hangout to a friend - FIXED (candidate slots) or FLOATING (a
    * standing invitation over a period).
    *
    * `proposerId` is the session, never the body. The friendship requirement is
@@ -145,6 +148,22 @@ export const buildHangoutRoutes = (repos: Repositories) => [
       const recipientId = ctx.body.inviteeId;
       const viewer = await ctx.viewerFor(recipientId);
       assertAllowed(can(viewer, { action: 'hangout:send', recipientId }));
+
+      /**
+       * Refuse anything inside the invitee's quiet hours.
+       *
+       * The client shades these, but shading is presentation and this is the
+       * control: a request built by hand, or by an older client, must be
+       * refused just the same. `ValidationError` rather than a policy denial
+       * because it is a malformed proposal, not a permission problem - and the
+       * proposer can already see the shaded region, so naming the reason
+       * discloses nothing new.
+       */
+      const inviteeQuiet = await repos.calendar.quietHours(recipientId);
+      const offending = ctx.body.proposedSlots.filter((slot) =>
+        overlapsQuietHours(slot, inviteeQuiet),
+      );
+      if (offending.length > 0) throw new ValidationError(['proposedSlots']);
 
       const now = new Date().toISOString();
       // A FLOATING invitation expires at the end of its period; a FIXED one uses
@@ -213,7 +232,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /**
    * Respond to a FIXED request you received: accept a slot, or decline.
    *
-   * Accepting books the hangout on *both* calendars — the one sanctioned
+   * Accepting books the hangout on *both* calendars - the one sanctioned
    * cross-owner write (ADR 0010). Owner ids come from the stored request's
    * participants, never the body.
    */
@@ -231,7 +250,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
       const request = await loadOr(repos, ctx.params.id, 'NOT_PARTICIPANT', 'hangout:respond', now);
 
       // Counterparty is the proposer, so a block that appeared after sending
-      // still denies — `can` short-circuits on BLOCKED.
+      // still denies - `can` short-circuits on BLOCKED.
       const viewer = await ctx.viewerFor(request.proposerId);
       assertAllowed(
         can(viewer, {
@@ -280,7 +299,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
     },
   }),
 
-  /** Read a single hangout you are a party to — used to manage it in place. */
+  /** Read a single hangout you are a party to - used to manage it in place. */
   defineRoute({
     method: 'GET',
     rateLimit: 'READ',
@@ -397,7 +416,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
   /**
    * Move a hangout in time.
    *
-   * A still-pending FIXED request gets fresh proposed slots — a re-ask. A
+   * A still-pending FIXED request gets fresh proposed slots - a re-ask. A
    * confirmed one is re-booked to a single new time on both calendars, and the
    * other party is notified so they can bow out if it no longer works.
    */
@@ -581,7 +600,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
         ),
       );
 
-      // Stays PENDING — a floating invitation can be booked again.
+      // Stays PENDING - a floating invitation can be booked again.
       return repos.hangouts.save({
         ...request,
         resultingEventIds: [...request.resultingEventIds, ...created.map((e) => e.id)],
@@ -590,7 +609,7 @@ export const buildHangoutRoutes = (repos: Repositories) => [
     },
   }),
 
-  /** Your notifications. Yours alone — the port scopes to the actor. */
+  /** Your notifications. Yours alone - the port scopes to the actor. */
   defineRoute({
     method: 'GET',
     rateLimit: 'READ',

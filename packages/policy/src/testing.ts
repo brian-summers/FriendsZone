@@ -58,7 +58,7 @@ export const asAnonymous = (): ViewerContext =>
 /**
  * A moderator looking at someone else's material.
  *
- * `relationship: 'NONE'` on purpose — moderation power must be demonstrably
+ * `relationship: 'NONE'` on purpose - moderation power must be demonstrably
  * independent of friendship, so the fixture gives them no social standing at
  * all with the person they are reviewing.
  */
@@ -94,8 +94,8 @@ export const event = (overrides: Partial<CalendarEvent> = {}): CalendarEvent => 
     shareRules: [],
     attendeeIds: [],
     // The fixture defaults to *exclusive* so tests that reason about `busy`
-    // exercise a hard commitment. The product default is the opposite —
-    // non-exclusive/overlappable — which the "overlap by default" tests set
+    // exercise a hard commitment. The product default is the opposite -
+    // non-exclusive/overlappable - which the "overlap by default" tests set
     // explicitly.
     exclusive: true,
     createdAt: '2026-02-01T00:00:00.000Z',
@@ -116,7 +116,7 @@ export const DAVE = '44444444-4444-4444-8444-444444444444' as UserId;
 /**
  * A friendship row, accepted by default.
  *
- * `requestedBy` defaults to BOB — the fixture viewer — so a test about
+ * `requestedBy` defaults to BOB - the fixture viewer - so a test about
  * responding must set it explicitly to ALICE and thereby *say* who asked. The
  * rule that the sender cannot accept their own request is the one this fixture
  * exists to keep testable.

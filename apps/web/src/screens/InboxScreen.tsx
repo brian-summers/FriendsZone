@@ -32,7 +32,7 @@ const STATUS_COPY: Record<HangoutRequestStatus, string> = {
 
 function expiryLine(iso: string): string {
   const d = new Date(iso);
-  // A date, never a countdown — see ADR 0007. "In 2 days" is a deadline.
+  // A date, never a countdown - see ADR 0007. "In 2 days" is a deadline.
   return `No longer needs an answer after ${d.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -40,11 +40,11 @@ function expiryLine(iso: string): string {
 }
 
 /**
- * The inbox — requests you received, and the ones you sent.
+ * The inbox - requests you received, and the ones you sent.
  *
  * Deliberately absent: any "seen" or "new since" state. Requests do not announce
  * that you've looked at them, and nothing here nudges. Expiry is shown as a
- * date. This is the async promise of the product made literal — see ADR 0007.
+ * date. This is the async promise of the product made literal - see ADR 0007.
  */
 export function InboxScreen({ actorId, peopleById, onActivity }: Props) {
   const [tab, setTab] = useState<Tab>('received');
@@ -102,7 +102,7 @@ export function InboxScreen({ actorId, peopleById, onActivity }: Props) {
       refresh();
       onActivity();
     } catch {
-      setError('That didn’t go through. It may have already been answered — refreshing.');
+      setError('That didn’t go through. It may have already been answered - refreshing.');
       refresh();
     }
   }
@@ -161,7 +161,7 @@ export function InboxScreen({ actorId, peopleById, onActivity }: Props) {
           <h2>{tab === 'received' ? 'Nothing waiting' : 'Nothing sent'}</h2>
           <p>
             {tab === 'received'
-              ? 'When a friend proposes a time, it lands here. No rush to answer — that’s the point.'
+              ? 'When a friend proposes a time, it lands here. No rush to answer - that’s the point.'
               : 'Open a friend’s calendar and use “Request time” to propose some options.'}
           </p>
         </div>
@@ -328,7 +328,7 @@ function ReceivedCard({
       ) : (
         <p className="expiry">
           {request.status === 'ACCEPTED'
-            ? 'Booked — it’s on your calendar.'
+            ? 'Booked - it’s on your calendar.'
             : STATUS_COPY[request.status]}
         </p>
       )}
@@ -377,7 +377,7 @@ function SentCard({
       ) : (
         <p className="expiry">
           {request.status === 'ACCEPTED'
-            ? `${inviteeName} picked a time — it’s on your calendar.`
+            ? `${inviteeName} picked a time - it’s on your calendar.`
             : STATUS_COPY[request.status]}
         </p>
       )}

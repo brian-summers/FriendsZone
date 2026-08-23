@@ -57,6 +57,93 @@ describe('hangout requests', () => {
     await boot();
   });
 
+  describe('quiet hours', () => {
+    const setQuiet = (of: string, body: { quietHours: unknown }) =>
+      app.inject({ method: 'PUT', url: '/v1/me/quiet-hours', headers: as(of), payload: body });
+
+    /** A slot at a fixed UTC hour on a day a few out, so it is always future. */
+    const slotAtUtcHour = (hour: number) => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() + 3);
+      d.setUTCHours(hour, 0, 0, 0);
+      const end = new Date(d);
+      end.setUTCHours(hour + 1);
+      return { start: d.toISOString(), end: end.toISOString() };
+    };
+
+    it('refuses a proposal inside the invitee’s unavailable hours', async () => {
+      // BOB is unavailable 23:00 to 09:00 UTC. 02:00 is inside that.
+      await setQuiet(BOB, {
+        quietHours: { startMinute: 23 * 60, endMinute: 9 * 60, timeZone: 'UTC' },
+      });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/hangouts',
+        headers: as(ALICE),
+        payload: { inviteeId: BOB, title: 'Late one', proposedSlots: [slotAtUtcHour(2)] },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('allows a proposal clear of them', async () => {
+      await setQuiet(BOB, {
+        quietHours: { startMinute: 23 * 60, endMinute: 9 * 60, timeZone: 'UTC' },
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/hangouts',
+        headers: as(ALICE),
+        payload: { inviteeId: BOB, title: 'Lunch', proposedSlots: [slotAtUtcHour(12)] },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('refuses when only one of several slots offends', async () => {
+      // Otherwise a proposer could smuggle a 3am option in behind a good one.
+      await setQuiet(BOB, {
+        quietHours: { startMinute: 23 * 60, endMinute: 9 * 60, timeZone: 'UTC' },
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/hangouts',
+        headers: as(ALICE),
+        payload: {
+          inviteeId: BOB,
+          title: 'Either',
+          proposedSlots: [slotAtUtcHour(12), slotAtUtcHour(3)],
+        },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('applies the invitee’s window, not the proposer’s', async () => {
+      // ALICE is unavailable at 02:00; BOB is not. A proposal from ALICE to
+      // BOB at 02:00 must go through - the rule protects the person being
+      // asked, not the person asking.
+      await setQuiet(ALICE, {
+        quietHours: { startMinute: 23 * 60, endMinute: 9 * 60, timeZone: 'UTC' },
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/hangouts',
+        headers: as(ALICE),
+        payload: { inviteeId: BOB, title: 'Late', proposedSlots: [slotAtUtcHour(2)] },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('is off by default', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/hangouts',
+        headers: as(ALICE),
+        payload: { inviteeId: BOB, title: 'Late', proposedSlots: [slotAtUtcHour(2)] },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+  });
+
   describe('sending', () => {
     it('lets a friend propose a hangout', async () => {
       const res = await app.inject({
@@ -330,7 +417,7 @@ describe('hangout requests', () => {
       expect(carolView.body).not.toContain('Private plan');
     });
 
-    it('is not counted as busy — a maybe is not a commitment', async () => {
+    it('is not counted as busy - a maybe is not a commitment', async () => {
       const availUrl = `/v1/users/${ALICE}/availability?${weekWindowQs()}`;
       const before = await app.inject({ method: 'GET', url: availUrl, headers: as(ALICE) });
 
@@ -670,7 +757,7 @@ describe('hangout requests', () => {
       expect(asBob.statusCode).toBe(200); // Bob is the invitee
 
       const asCarol = await app.inject({ method: 'GET', url: `/v1/hangouts/${req.id}`, headers: as(CAROL) });
-      expect(asCarol.statusCode).toBe(404); // not a party — indistinguishable from missing
+      expect(asCarol.statusCode).toBe(404); // not a party - indistinguishable from missing
     });
   });
 

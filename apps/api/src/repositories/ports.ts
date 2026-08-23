@@ -18,6 +18,7 @@ import type {
   Listing,
   ListingId,
   Message,
+  QuietHours,
   Notification,
   PublicProfile,
   RelationshipKind,
@@ -37,7 +38,7 @@ import type {
  *
  * The first pass ships an in-memory adapter so the architecture can be exercised
  * end to end before a database exists. Swapping in Postgres means writing a new
- * implementation of these ports and changing one line in `server.ts` — no route
+ * implementation of these ports and changing one line in `server.ts` - no route
  * or policy code moves. See docs/adr/0004-persistence.md.
  */
 
@@ -78,7 +79,7 @@ export interface SocialGraphPort {
   /** Create or replace one. The caller has decided it is allowed. */
   saveFriendship(friendship: Friendship): Promise<Friendship>;
 
-  /** Remove it. Covers unfriend, withdraw, and decline — one write, three words. */
+  /** Remove it. Covers unfriend, withdraw, and decline - one write, three words. */
   removeFriendship(a: UserId, b: UserId): Promise<void>;
 
   /** Pending requests involving this user, either direction. */
@@ -93,7 +94,7 @@ export interface SocialGraphPort {
   /** Remove only *this* caller's block. Idempotent. */
   unblock(blockerId: UserId, blockedId: UserId): Promise<void>;
 
-  /** Who this user has blocked. Theirs alone — never projected to anyone else. */
+  /** Who this user has blocked. Theirs alone - never projected to anyone else. */
   blockedBy(blockerId: UserId): Promise<UserId[]>;
 
   /**
@@ -127,8 +128,8 @@ export interface CalendarPort {
    *
    * The port takes a fully-formed `CalendarEvent`: the caller has already set
    * `ownerId` from the authenticated actor and minted the id. Keeping identity
-   * assignment in the route rather than here means the trust boundary — "the
-   * owner is the caller, never the request body" — lives next to the auth
+   * assignment in the route rather than here means the trust boundary - "the
+   * owner is the caller, never the request body" - lives next to the auth
    * check, where a reviewer can see both at once.
    */
   create(event: CalendarEvent): Promise<CalendarEvent>;
@@ -152,7 +153,7 @@ export interface CalendarPort {
    * and sharing defaults.
    *
    * Called when a circle is deleted. A rule naming a gone circle already fails
-   * closed — `sharedCircles` cannot return an id that no longer exists — so
+   * closed - `sharedCircles` cannot return an id that no longer exists - so
    * this is tidiness backed by a safe default, not the control itself
    * (ADR 0023).
    */
@@ -173,6 +174,18 @@ export interface CalendarPort {
    * fallback would otherwise hide (ADR 0021).
    */
   hasExplicitSharingDefaults(ownerId: UserId): Promise<boolean>;
+
+  /**
+   * The owner's recurring unavailable window, or `null` if they set none.
+   *
+   * Lives here beside sharing defaults because both are per-user calendar
+   * configuration rather than calendar *content*. Quiet hours are deliberately
+   * not events: they have no id, no title, and never occupy time.
+   */
+  quietHours(ownerId: UserId): Promise<QuietHours | null>;
+
+  /** `null` clears them. */
+  setQuietHours(ownerId: UserId, quiet: QuietHours | null): Promise<void>;
 }
 
 export interface NotificationPort {
@@ -190,7 +203,7 @@ export interface DirectoryPort {
    *
    * "No such user" and "not allowed to see this user" must be the same
    * observable outcome at the HTTP edge, so the port deliberately does not
-   * distinguish them either — a thrown NotFound here would tempt a handler
+   * distinguish them either - a thrown NotFound here would tempt a handler
    * into a distinguishable error path.
    */
   profile(userId: UserId): Promise<PublicProfile | null>;
@@ -200,7 +213,7 @@ export interface DirectoryPort {
 
   /**
    * Create a profile. The caller has already minted the id and checked that
-   * the handle is free — the port stores what it is given.
+   * the handle is free - the port stores what it is given.
    */
   create(profile: PublicProfile): Promise<PublicProfile>;
 
@@ -213,8 +226,8 @@ export interface DirectoryPort {
    * Implementations MUST honour each row's own `discoverability`:
    * `EVERYONE` matches handle prefix or display-name substring, `EXACT_HANDLE`
    * matches only a complete handle, and `NOBODY` never matches. That is a
-   * *match* rule rather than an authorization one — it says what the query
-   * means for that row, not what this particular viewer may see — which is why
+   * *match* rule rather than an authorization one - it says what the query
+   * means for that row, not what this particular viewer may see - which is why
    * it lives here alongside the tombstone filter, while the viewer-relative
    * block filter stays in the route.
    *
@@ -255,15 +268,15 @@ export interface HangoutPort {
 
   byId(id: HangoutRequestId): Promise<HangoutRequest | null>;
 
-  /** Requests where `userId` is an invitee — their inbox. Newest first. */
+  /** Requests where `userId` is an invitee - their inbox. Newest first. */
   received(userId: UserId): Promise<HangoutRequest[]>;
 
-  /** Requests `userId` proposed — their outbox. Newest first. */
+  /** Requests `userId` proposed - their outbox. Newest first. */
   sent(userId: UserId): Promise<HangoutRequest[]>;
 
   /**
    * Pending requests `userId` is a party to (as proposer or invitee). Feeds the
-   * tentative holds shown on their calendar. Terminal requests are excluded —
+   * tentative holds shown on their calendar. Terminal requests are excluded -
    * they are no longer tentative.
    */
   pendingInvolving(userId: UserId): Promise<HangoutRequest[]>;
@@ -286,11 +299,11 @@ export interface HangoutPort {
  * Circles: the owner's private groupings of their friends.
  *
  * Every method takes the owner's id and the route proves it is the caller.
- * There is deliberately no lookup by *member* — "which circles am I in" is a
+ * There is deliberately no lookup by *member* - "which circles am I in" is a
  * question this product does not answer (ADR 0023).
  */
 /**
- * Credentials and sessions. 🔴 Restricted — nothing here is ever projected.
+ * Credentials and sessions. 🔴 Restricted - nothing here is ever projected.
  *
  * Kept apart from `DirectoryPort` on purpose: profiles are read on almost every
  * request, credentials on two routes. A store that answers both is a store where
@@ -305,7 +318,7 @@ export interface CredentialPort {
 
   create(identity: AuthIdentity): Promise<AuthIdentity>;
 
-  /** Replace the stored secret — a password change. */
+  /** Replace the stored secret - a password change. */
   save(identity: AuthIdentity): Promise<AuthIdentity>;
 
   eraseUser(userId: UserId): Promise<void>;
@@ -351,7 +364,7 @@ export interface ListingPort {
 
   /**
    * The most recently created listings, newest first, **unfiltered by
-   * visibility** — like every other port, this returns raw rows and leaves
+   * visibility** - like every other port, this returns raw rows and leaves
    * filtering to the policy engine.
    *
    * `limit` is required rather than defaulted: an unbounded listing feed is a
@@ -362,7 +375,7 @@ export interface ListingPort {
    * that as a *pre-narrowing* (owner is self, a friend, or the listing is
    * public) is fine and necessary. Doing it as a *replacement* for
    * `projectListing` is the second implementation of the visibility model that
-   * this architecture exists to prevent — the projection must still run.
+   * this architecture exists to prevent - the projection must still run.
    */
   recent(limit: number): Promise<Listing[]>;
 
@@ -379,7 +392,7 @@ export interface ListingPort {
    * Remove this user's listings and their claims.
    *
    * Returns the photo keys that were referenced, so the caller can erase the
-   * bytes too — the blob store has no index by owner and should not grow one.
+   * bytes too - the blob store has no index by owner and should not grow one.
    */
   eraseUser(userId: UserId): Promise<{ photoKeys: string[] }>;
 }
@@ -387,8 +400,8 @@ export interface ListingPort {
 /**
  * Binary storage for listing photos.
  *
- * Separate from `ListingPort` because the backing store is different in kind —
- * object storage rather than a row — and because photos are the one place the
+ * Separate from `ListingPort` because the backing store is different in kind -
+ * object storage rather than a row - and because photos are the one place the
  * product accepts arbitrary bytes from a user. Keeping that surface behind its
  * own interface makes it easy to see what touches it.
  *
@@ -468,8 +481,8 @@ export interface ReportPort {
    * deletion is an escape hatch from moderation: harass, get reported, delete,
    * and the case evaporates (ADR 0022).
    *
-   * Reports this user *filed* are retained too — the case protects someone
-   * else — but the filer is already tombstoned by then, so anonymity holds.
+   * Reports this user *filed* are retained too - the case protects someone
+   * else - but the filer is already tombstoned by then, so anonymity holds.
    */
   eraseUser(userId: UserId): Promise<void>;
 }
@@ -477,7 +490,7 @@ export interface ReportPort {
 /**
  * Outbound mail.
  *
- * One method, and it takes no content — see
+ * One method, and it takes no content - see
  * docs/adr/0018-reporting-and-moderation.md. The signature is the control: a
  * notifier that cannot be handed a title or a name cannot leak one, whatever
  * the adapter behind it does with what it gets.

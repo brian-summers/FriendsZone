@@ -40,6 +40,7 @@ import type {
   Notification,
   PublicProfile,
   RescheduleHangoutInput,
+  QuietHours,
   SendMessageInput,
   SharingDefaults,
   ThreadView,
@@ -56,7 +57,7 @@ import type {
  * against, and none of Zod ends up in the browser bundle.
  *
  * Requests go to `/api/*` and Vite proxies them to the API in development. That
- * keeps everything same-origin, so there is no CORS configuration anywhere —
+ * keeps everything same-origin, so there is no CORS configuration anywhere -
  * and therefore no permissive `Access-Control-Allow-Origin` to leak into
  * production by accident.
  */
@@ -96,7 +97,7 @@ async function get<T>(path: string, actorId: string | null, signal?: AbortSignal
   const response = await fetch(`/api${path}`, {
     headers,
     // The session lives in an HttpOnly cookie, so it has to be sent explicitly
-    // — `same-origin` is the default in modern browsers but stating it means a
+    // - `same-origin` is the default in modern browsers but stating it means a
     // future change of base URL fails loudly rather than silently signing
     // everyone out (docs/adr/0024-authentication.md).
     credentials: 'same-origin',
@@ -183,7 +184,7 @@ export const api = {
   /**
    * The sharing checkup: your own calendar, as a specific person sees it.
    * The server computes this with the same projection engine that serves the
-   * real thing, so it is not an approximation — it is what they see.
+   * real thing, so it is not an approximation - it is what they see.
    */
   previewAs: (
     viewerId: string,
@@ -207,7 +208,7 @@ export const api = {
   deleteEvent: (id: string, actorId: string | null) =>
     del<{ deleted: true }>(`/v1/events/${id}`, actorId),
 
-  /** Carries `preset` and `chosen` alongside the rules — see ADR 0021. */
+  /** Carries `preset` and `chosen` alongside the rules - see ADR 0021. */
   sharingDefaults: (actorId: string | null, signal?: AbortSignal) =>
     get<SharingDefaultsView>('/v1/me/sharing-defaults', actorId, signal),
 
@@ -249,7 +250,7 @@ export const api = {
     get<{ notifications: Notification[] }>('/v1/notifications', actorId, signal),
 
   /**
-   * "When are we all free?" — an intersection over per-viewer projections.
+   * "When are we all free?" - an intersection over per-viewer projections.
    *
    * A POST because the participant list is a body, not because it writes.
    */
@@ -259,7 +260,7 @@ export const api = {
   // ── Friends, requests, and blocking ───────────────────────────────
   //
   // `status` on a search result comes from the server, like everything else
-  // here. The client never derives who can see what — that is the one rule
+  // here. The client never derives who can see what - that is the one rule
   // apps/web has (docs/adr/0028-friend-requests-and-blocking.md).
   searchPeople: (q: string, actorId: string | null, signal?: AbortSignal) =>
     get<{ results: PersonSearchResult[] }>(
@@ -280,7 +281,7 @@ export const api = {
     actorId: string | null,
   ) => post<{ status: 'FRIEND' | 'NONE' }>(`/v1/me/friend-requests/${userId}`, actorId, { decision }),
 
-  /** Unfriend, or withdraw a request you sent — one call, because one write. */
+  /** Unfriend, or withdraw a request you sent - one call, because one write. */
   removeFriendship: (userId: string, actorId: string | null) =>
     del<{ removed: true }>(`/v1/people/${userId}/friendship`, actorId),
 
@@ -288,7 +289,7 @@ export const api = {
     put<{ blocked: true }>(`/v1/people/${userId}/block`, actorId, {}),
 
   /**
-   * Lifts **your** block only. If they also blocked you, that stands — there
+   * Lifts **your** block only. If they also blocked you, that stands - there
    * is no call here that could change it, and there is no call anywhere that
    * would tell you it exists.
    */
@@ -297,6 +298,13 @@ export const api = {
 
   blockedPeople: (actorId: string | null, signal?: AbortSignal) =>
     get<{ blocked: PublicProfile[] }>('/v1/me/blocks', actorId, signal),
+
+  // ── Quiet hours ───────────────────────────────────────────────────
+  quietHours: (actorId: string | null, signal?: AbortSignal) =>
+    get<{ quietHours: QuietHours | null }>('/v1/me/quiet-hours', actorId, signal),
+
+  setQuietHours: (quietHours: QuietHours | null, actorId: string | null) =>
+    put<{ quietHours: QuietHours | null }>('/v1/me/quiet-hours', actorId, { quietHours }),
 
   // ── Discoverability ───────────────────────────────────────────────
   //
@@ -326,7 +334,7 @@ export const api = {
   // ── Circles ───────────────────────────────────────────────────────
   //
   // Owner-only. There is deliberately no "circles I am in" call, because there
-  // is no such endpoint — see docs/adr/0023-circle-management.md.
+  // is no such endpoint - see docs/adr/0023-circle-management.md.
   circles: (actorId: string | null, signal?: AbortSignal) =>
     get<{ circles: CircleView[] }>('/v1/me/circles', actorId, signal),
 
@@ -416,7 +424,7 @@ export const api = {
   /**
    * Reports about you that a moderator has opened a thread on.
    *
-   * A separate call from `myReports`, deliberately — the two carry different
+   * A separate call from `myReports`, deliberately - the two carry different
    * projections and merging them client-side is how a reporter's words end up
    * rendered to the person they reported.
    */

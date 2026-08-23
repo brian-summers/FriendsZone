@@ -21,7 +21,7 @@ export function audienceMatches(audience: Audience, viewer: ViewerContext): bool
   switch (audience.kind) {
     case 'SELF':
       // Owner access is decided before rules are consulted, so a SELF rule can
-      // only ever match someone who is not the owner — i.e. nobody.
+      // only ever match someone who is not the owner - i.e. nobody.
       return false;
 
     case 'FRIENDS':
@@ -63,14 +63,14 @@ function grantedLevel(rules: readonly ShareRule[], viewer: ViewerContext): Visib
  *
  * Order of evaluation is deliberate and must not be rearranged:
  *
- *   1. Owner — always FULL. Nothing can hide your own calendar from you.
- *   2. Block — always HIDDEN, and checked before any grant is considered, so
+ *   1. Owner - always FULL. Nothing can hide your own calendar from you.
+ *   2. Block - always HIDDEN, and checked before any grant is considered, so
  *      that no sharing rule (not even PUBLIC) can be used to route around it.
- *   3. Attendee — FULL, bypassing the ceiling. Someone invited to a thing
+ *   3. Attendee - FULL, bypassing the ceiling. Someone invited to a thing
  *      already knows where and when it is; withholding it from them would be
  *      theatre, not privacy.
- *   4. Rules — per-event if present, otherwise the owner's defaults.
- *   5. Ceiling — clamps whatever step 4 produced.
+ *   4. Rules - per-event if present, otherwise the owner's defaults.
+ *   5. Ceiling - clamps whatever step 4 produced.
  */
 export function resolveEventVisibility(
   event: Pick<
@@ -97,11 +97,11 @@ export function resolveEventVisibility(
 }
 
 /**
- * The widest level any *other* person could see for this event — the answer to
+ * The widest level any *other* person could see for this event - the answer to
  * "who can see this?" that the owner sees at a glance on their own calendar.
  *
  * This is a summary for the owner's benefit, never a grant. It is the maximum
- * over the effective rules, clamped by the ceiling — i.e. the most that the
+ * over the effective rules, clamped by the ceiling - i.e. the most that the
  * most-privileged audience gets. `SELF`-only rules contribute nothing, so an
  * event shared with no one summarises as `HIDDEN` ("only you"), which is
  * exactly what we want to surface.
@@ -137,7 +137,7 @@ export function widestSharedLevel(
  * Deliberately reads *defaults* only. Per-event rules can widen access for a
  * particular event, but "do they share availability with me" is a property of
  * how someone has configured their calendar, not of what happens to be on it
- * this week — and answering from events would make the reply wobble as their
+ * this week - and answering from events would make the reply wobble as their
  * week changed.
  */
 export function sharesAvailabilityWith(

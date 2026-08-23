@@ -5,7 +5,7 @@
 | If you want to… | Read |
 |---|---|
 | Understand the system | [architecture/overview.md](architecture/overview.md) |
-| Change anything in `packages/policy` | [architecture/visibility-and-privacy.md](architecture/visibility-and-privacy.md) — **normative** |
+| Change anything in `packages/policy` | [architecture/visibility-and-privacy.md](architecture/visibility-and-privacy.md) - **normative** |
 | Add a feature | [playbooks/add-a-feature.md](playbooks/add-a-feature.md) |
 | Review a diff | [security/review-checklist.md](security/review-checklist.md) |
 | Know what we are defending against | [security/threat-model.md](security/threat-model.md) |
@@ -13,25 +13,25 @@
 
 ## Product and design
 
-- [Roadmap](product/roadmap.md) — feature expansion, cost at scale, and the
+- [Roadmap](product/roadmap.md) - feature expansion, cost at scale, and the
   anti-features we are refusing on purpose
-- [Design system](design/design-system.md) — palette, typography, motion, voice
-- [Interface design](design/interface.md) — screen-level decisions
+- [Design system](design/design-system.md) - palette, typography, motion, voice
+- [Interface design](design/interface.md) - screen-level decisions
 
 ## Architecture
 
-- [Overview](architecture/overview.md) — layers, request lifecycle, key flows
-- [Domain model](architecture/domain-model.md) — entities, lifecycles, invariants
-- [Visibility and privacy](architecture/visibility-and-privacy.md) — the
+- [Overview](architecture/overview.md) - layers, request lifecycle, key flows
+- [Domain model](architecture/domain-model.md) - entities, lifecycles, invariants
+- [Visibility and privacy](architecture/visibility-and-privacy.md) - the
   normative spec for the projection algorithm
 
 ## Security
 
-- [Threat model](security/threat-model.md) — assets, STRIDE, abuse cases
-- [Authorization model](security/authz-model.md) — how `can()` is meant to be used
-- [Data classification](security/data-classification.md) — tiers, logging rules,
+- [Threat model](security/threat-model.md) - assets, STRIDE, abuse cases
+- [Authorization model](security/authz-model.md) - how `can()` is meant to be used
+- [Data classification](security/data-classification.md) - tiers, logging rules,
   retention
-- [Review checklist](security/review-checklist.md) — per-change gates
+- [Review checklist](security/review-checklist.md) - per-change gates
 
 ## Decisions
 
@@ -50,4 +50,4 @@ commit.
 **Descriptive** documents (`overview.md`, `domain-model.md`) explain the
 present. Keep them current, but they are not a contract.
 
-**ADRs** are immutable. Supersede, never rewrite — the trail is the value.
+**ADRs** are immutable. Supersede, never rewrite - the trail is the value.

@@ -4,8 +4,8 @@ import { z } from 'zod';
  * Configuration is validated once, at boot, and the process exits if anything
  * is wrong.
  *
- * The alternative — reading `process.env` at the point of use with a `??`
- * fallback — is how security controls quietly turn themselves off in
+ * The alternative - reading `process.env` at the point of use with a `??`
+ * fallback - is how security controls quietly turn themselves off in
  * production. A missing `SESSION_SECRET` should be a crash, not a default.
  */
 const ConfigSchema = z.object({
@@ -17,7 +17,7 @@ const ConfigSchema = z.object({
    *
    *   `postgres://…` / `postgresql://…`  a real server, via `pg`
    *   `pglite://<dir>`                   Postgres 18 in-process, persisted to
-   *                                      `<dir>` — a real engine with nothing
+   *                                      `<dir>` - a real engine with nothing
    *                                      to install (docs/adr/0026-sql-layer.md)
    *   `memory://`                        the in-memory adapters; tests and a
    *                                      throwaway demo only, and a boot
@@ -36,7 +36,7 @@ const ConfigSchema = z.object({
    * tricked into granting, and a role on the profile is one careless projection
    * away from being public. This one changes only by redeploying.
    *
-   * Empty by default — a deployment with no moderators has a moderation queue
+   * Empty by default - a deployment with no moderators has a moderation queue
    * nobody can open, which is the correct fail-closed posture for an
    * unconfigured system. See docs/adr/0018-reporting-and-moderation.md.
    */
@@ -55,7 +55,7 @@ const ConfigSchema = z.object({
   REPORTS_EMAIL: z.string().email().default('reports@friends-zone.app'),
 
   /**
-   * Rate limiting. On by default, and **undisableable in production** — see the
+   * Rate limiting. On by default, and **undisableable in production** - see the
    * boot check below and docs/adr/0020-rate-limiting.md.
    *
    * The flag exists for the test suite, which hammers `app.inject` hundreds of
@@ -74,9 +74,9 @@ const ConfigSchema = z.object({
    * `request.ip` feeds the anonymous rate-limit bucket, so getting this wrong
    * matters in both directions:
    *
-   *   too low  — every anonymous caller behind the CDN shares one bucket, and
+   *   too low  - every anonymous caller behind the CDN shares one bucket, and
    *              one abuser rate-limits everybody
-   *   too high — `X-Forwarded-For` is caller-supplied, so a client can prepend
+   *   too high - `X-Forwarded-For` is caller-supplied, so a client can prepend
    *              a fake hop and get a fresh bucket per request
    *
    * Defaults to **0**, which trusts nothing. That is the safe direction: it

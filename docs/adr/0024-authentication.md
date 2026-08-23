@@ -30,11 +30,11 @@ the store gets hashes they cannot present as credentials. A session token is a
 bearer credential, so it deserves the same treatment a password gets.
 
 The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` whenever
-`PUBLIC_ORIGIN` is https. Never `localStorage`, which any XSS can read — ADR 0006
+`PUBLIC_ORIGIN` is https. Never `localStorage`, which any XSS can read - ADR 0006
 is explicit about that and it is the whole reason for the cookie.
 
 Rotation: **a new session on every login**, and every other session revoked on
-password change. Expiry is absolute — 30 days — not sliding, because a sliding
+password change. Expiry is absolute - 30 days - not sliding, because a sliding
 window means a stolen token stays alive as long as it is used.
 
 **CSRF** is covered by two things together: `SameSite=Lax` stops cross-site
@@ -42,14 +42,14 @@ cookie-bearing POSTs, and every mutating route requires `content-type:
 application/json`, which an HTML form cannot send. Neither alone is enough;
 together they cover the browser cases without a token round-trip.
 
-### scrypt, not Argon2id — the one deviation
+### scrypt, not Argon2id - the one deviation
 
 ADR 0006 requires Argon2id. This ships **scrypt** from `node:crypto`, at
 `N=2^16, r=8, p=1`.
 
 The reason is dependency shape, not cryptography. Every Argon2id implementation
 for Node is a native module (`node-gyp` or a napi prebuild). This repo has three
-runtime dependencies in total — Fastify, Zod, React — and putting a compiled
+runtime dependencies in total - Fastify, Zod, React - and putting a compiled
 binary on the password path adds a supply-chain surface and an install failure
 mode to the most security-sensitive code we have. scrypt is memory-hard, is in
 the standard library, and is explicitly listed by OWASP as the acceptable
@@ -100,7 +100,7 @@ column on `User`:
 | `GOOGLE` | the provider's `sub` | absent |
 
 One user may hold several. Adding Google means adding a provider and an OAuth
-callback that resolves to an identity — no change to `User`, to sessions, or to
+callback that resolves to an identity - no change to `User`, to sessions, or to
 anything downstream. Deliberately **not** built here: OAuth needs a client
 secret, a redirect allowlist, and state/PKCE handling, and bolting it on beside
 a first password implementation is two large surfaces at once.
@@ -115,7 +115,7 @@ an accidentally-serialised `User` from being a contact leak.
 `NODE_ENV !== 'production'` exactly as before, and is now checked *after* the
 session cookie rather than instead of it.
 
-ADR 0006's boot refusal is removed — that was the point of it — but the property
+ADR 0006's boot refusal is removed - that was the point of it - but the property
 it protected is kept and now has its own test: **in production the dev header is
 ignored entirely**, whatever it contains.
 
@@ -138,7 +138,7 @@ ignored entirely**, whatever it contains.
 
 **Delegate to Auth0 / Clerk / WorkOS.** ADR 0006 called this "genuinely
 reasonable and still on the table". It remains so, and it is a vendor commitment
-that puts the identity of every user in a third party — for a product whose pitch
+that puts the identity of every user in a third party - for a product whose pitch
 is that it holds as little as possible about you. Revisit if operating this
 becomes the bottleneck rather than the point.
 
@@ -150,7 +150,7 @@ immediately; a stateless token cannot do that honestly.
 audit surface than `node:crypto`. Worth revisiting when a well-maintained one is
 obvious; the stored hash format is ready for it.
 
-**Magic links only, no passwords.** Genuinely attractive — no password to leak —
+**Magic links only, no passwords.** Genuinely attractive - no password to leak -
 and it requires mail delivery, which is the dependency this ADR is routing
 around. Reconsider once email exists; the identity model already allows it as
 another provider.

@@ -44,7 +44,7 @@ export const atLeast = (level: VisibilityLevel, floor: VisibilityLevel): boolean
  *
  * There is no "everyone except X" audience by design. Negative audiences are
  * where privacy models go to die: they are hard to reason about, and a bug in
- * the exclusion list fails *open*. Every audience here fails closed — if the
+ * the exclusion list fails *open*. Every audience here fails closed - if the
  * viewer does not affirmatively match, they get nothing.
  */
 export const Audience = z.discriminatedUnion('kind', [
@@ -100,7 +100,7 @@ export type SharingPresetOrCustom = z.infer<typeof SharingPresetOrCustom>;
  * **There is deliberately no `FULL` preset and no `PUBLIC` preset.** `FULL`
  * shares description, location, and guests; as a choice about one event that is
  * fine, and the per-event editor offers it. As an account default it is a
- * standing grant over every event you will ever create — the stalking abuse case
+ * standing grant over every event you will ever create - the stalking abuse case
  * written as a settings row. Widening past `TITLE` stays possible and costs a
  * deliberate act (ADR 0021).
  */
@@ -113,7 +113,7 @@ export const SHARING_PRESETS: Readonly<
   },
   BUSY_TO_FRIENDS: {
     rules: [{ audience: { kind: 'FRIENDS' }, level: 'BUSY' }],
-    consequence: 'Friends see that you’re busy — no name, place, or guests.',
+    consequence: 'Friends see that you’re busy - no name, place, or guests.',
   },
   OPEN_TO_FRIENDS: {
     rules: [{ audience: { kind: 'FRIENDS' }, level: 'TITLE' }],
@@ -137,7 +137,7 @@ export const CONSERVATIVE_SHARING_DEFAULTS: SharingDefaults = Object.freeze({
  *
  * Order-insensitive, so a stored rule set that happens to be serialised
  * differently is still recognised. Returns `CUSTOM` rather than rounding to the
- * nearest preset — someone who composed something specific should be told their
+ * nearest preset - someone who composed something specific should be told their
  * configuration is specific, not shown a preset they did not choose.
  */
 export function presetOf(defaults: SharingDefaults): SharingPresetOrCustom {
@@ -157,7 +157,7 @@ export function presetOf(defaults: SharingDefaults): SharingPresetOrCustom {
 /**
  * Your sharing defaults, as the settings screen reads them.
  *
- * `chosen: false` means no explicit choice has ever been saved — the user is
+ * `chosen: false` means no explicit choice has ever been saved - the user is
  * running on the conservative fallback. The flag makes that state legible; it
  * does not make it less safe, and the fallback stays `BUSY_TO_FRIENDS` because
  * an absent row is not consent to share more.

@@ -8,6 +8,7 @@ import {
   DAY_START_HOUR,
   DAY_END_HOUR,
   HOUR_PX,
+  quietHoursToBands,
 } from './time.js';
 
 const at = (h: number) => `2026-03-02T${String(h).padStart(2, '0')}:00:00.000Z`;
@@ -147,5 +148,36 @@ describe('yToMinutes', () => {
   it('clamps to the visible range', () => {
     expect(yToMinutes(-500)).toBe(DAY_START_HOUR * 60);
     expect(yToMinutes(100_000)).toBe(DAY_END_HOUR * 60);
+  });
+});
+
+describe('quietHoursToBands', () => {
+  it('is empty when there is no window, or the window is empty', () => {
+    expect(quietHoursToBands(null)).toEqual([]);
+    expect(quietHoursToBands(undefined)).toEqual([]);
+    expect(quietHoursToBands({ startMinute: 540, endMinute: 540 })).toEqual([]);
+  });
+
+  it('draws one band for a window inside a single day', () => {
+    const bands = quietHoursToBands({ startMinute: 13 * 60, endMinute: 14 * 60 });
+    expect(bands).toHaveLength(1);
+    expect(bands[0]).toEqual({ top: 13 * HOUR_PX, height: HOUR_PX });
+  });
+
+  it('draws TWO bands for a window that wraps midnight', () => {
+    // The case the feature exists for. Treating 23:00-to-09:00 as one span
+    // would compute a negative height and draw nothing, or draw it inverted.
+    const bands = quietHoursToBands({ startMinute: 23 * 60, endMinute: 9 * 60 });
+    expect(bands).toHaveLength(2);
+    // Midnight to 09:00 at the top of the day...
+    expect(bands[0]).toEqual({ top: 0, height: 9 * HOUR_PX });
+    // ...and 23:00 to the end of the day at the bottom.
+    expect(bands[1]).toEqual({ top: 23 * HOUR_PX, height: HOUR_PX });
+  });
+
+  it('covers the whole column when the two bands meet', () => {
+    const bands = quietHoursToBands({ startMinute: 23 * 60, endMinute: 9 * 60 });
+    const covered = bands.reduce((n, b) => n + b.height, 0);
+    expect(covered).toBe(10 * HOUR_PX);
   });
 });

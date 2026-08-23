@@ -2,7 +2,7 @@
 
 A repeatable order of operations. Following it means the security-relevant
 decisions get made before the code that depends on them exists, rather than
-being retrofitted onto a working feature — which is when they get skipped.
+being retrofitted onto a working feature - which is when they get skipped.
 
 Written to be executable by an agent as well as a person.
 
@@ -24,7 +24,7 @@ Add or extend schemas in [`packages/contracts`](../../packages/contracts/src/).
 
 **Stop and ask** if the feature seems to need a new visibility level or a
 negative audience ("everyone except…"). Both are load-bearing refusals, not
-gaps — see [the visibility spec](../architecture/visibility-and-privacy.md).
+gaps - see [the visibility spec](../architecture/visibility-and-privacy.md).
 
 ## 2. Policy next
 
@@ -73,7 +73,7 @@ In `apps/api/src/server.test.ts`, via `app.inject`. At minimum:
 - an unauthorised viewer gets an answer **indistinguishable** from "nonexistent";
 - a blocked viewer gets exactly what a stranger gets;
 - malformed input yields `400` with a bare code;
-- serialised output does not contain sensitive strings — assert on
+- serialised output does not contain sensitive strings - assert on
   `response.body`, not just the parsed object.
 
 ## 7. Documentation

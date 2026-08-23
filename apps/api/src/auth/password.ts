@@ -35,7 +35,7 @@ const SALT_LENGTH = 16;
  * `scrypt$N$r$p$salt$hash`, base64url throughout.
  *
  * Self-describing on purpose: the algorithm and its cost travel with the hash,
- * so raising the parameters — or moving to Argon2id — can verify old hashes and
+ * so raising the parameters - or moving to Argon2id - can verify old hashes and
  * re-hash on next successful login rather than needing a flag day.
  */
 export async function hashPassword(password: string): Promise<string> {
@@ -96,7 +96,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
  * Computed once at boot and verified against when a login names an email we do
  * not have. Without this, "no such account" returns in microseconds while
  * "wrong password" takes ~100 ms, and that difference is a perfectly good
- * account-existence oracle — which matters more here than in most products,
+ * account-existence oracle - which matters more here than in most products,
  * because account existence is social information.
  */
 let dummyHash: Promise<string> | null = null;

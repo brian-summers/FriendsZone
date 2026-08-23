@@ -21,8 +21,8 @@ const config: Config = {
  * Perimeter invariants.
  *
  * These tests do not check that any particular endpoint behaves correctly.
- * They check properties of the *whole route table*, so that a future route —
- * one nobody reviewing this file has seen — still cannot ship without an
+ * They check properties of the *whole route table*, so that a future route -
+ * one nobody reviewing this file has seen - still cannot ship without an
  * authorization story. This is the difference between a convention and a
  * control.
  */

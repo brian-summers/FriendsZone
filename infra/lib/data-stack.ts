@@ -40,8 +40,8 @@ export class DataStack extends Stack {
      * **No NAT Gateway.** ADR 0027 names it as one of two cost traps (~$32/mo
      * each), and this workload does not need one: photos live in Postgres
      * rather than S3, and the API's only outbound dependency is the database,
-     * which is inside the VPC. If a future feature needs egress — SES for
-     * email is the likely one — add an interface endpoint for that service
+     * which is inside the VPC. If a future feature needs egress - SES for
+     * email is the likely one - add an interface endpoint for that service
      * rather than a NAT.
      */
     this.vpc = new ec2.Vpc(this, 'Vpc', {
@@ -49,7 +49,7 @@ export class DataStack extends Stack {
       natGateways: 0,
       subnetConfiguration: [
         { name: 'public', subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
-        // Isolated, not "private with egress" — that variant implies a NAT.
+        // Isolated, not "private with egress" - that variant implies a NAT.
         { name: 'data', subnetType: ec2.SubnetType.PRIVATE_ISOLATED, cidrMask: 24 },
       ],
     });
@@ -84,7 +84,7 @@ export class DataStack extends Stack {
      * It is one half of a pair, and the rule that joins them has to be written
      * from one side or the other. Writing it from the service stack mutates a
      * data-stack resource while the service stack already depends on the data
-     * stack — a dependency cycle CDK rejects at synth. Both groups and the one
+     * stack - a dependency cycle CDK rejects at synth. Both groups and the one
      * rule between them therefore live together, and the service stack only
      * *reads* the connector group.
      */
@@ -100,7 +100,7 @@ export class DataStack extends Stack {
      * The single most consequential setting on this stack: a minimum of zero
      * means an idle database costs storage only, which is what makes a
      * production deployment affordable before there are users. It is also why
-     * the first request after a quiet period is slow — a deliberate trade,
+     * the first request after a quiet period is slow - a deliberate trade,
      * documented in the playbook so nobody "fixes" it by raising the floor.
      */
     this.cluster = new rds.DatabaseCluster(this, 'Database', {
@@ -200,7 +200,7 @@ export class DataStack extends Stack {
      * Secret rotation is deferred, deliberately and with a date on it.
      *
      * Rotating the Aurora credential needs a Lambda inside the VPC, and this
-     * VPC has no NAT by design — so it would also need an interface endpoint
+     * VPC has no NAT by design - so it would also need an interface endpoint
      * for Secrets Manager (~$7/mo, more than the database costs at rest).
      * Buying that before the service has users is the wrong order. It is a
      * named pre-GA item in docs/product/road-to-ga.md.

@@ -118,7 +118,7 @@ describe('things', () => {
         payload: { title: '', condition: 'NOPE', audience: { kind: 'FRIENDS' }, claimMode: 'X' },
       });
       expect(res.statusCode).toBe(400);
-      // No field names, no submitted values — the response is a code and nothing else.
+      // No field names, no submitted values - the response is a code and nothing else.
       expect(res.json()).toEqual({ error: 'invalid_request' });
     });
   });
@@ -145,7 +145,7 @@ describe('things', () => {
       expect(blocked.statusCode).toBe(404);
     });
 
-    it('answers 404 — never 403 — for a listing outside your audience', async () => {
+    it('answers 404 - never 403 - for a listing outside your audience', async () => {
       const id = (await offer({ audience: { kind: 'CIRCLE', circleId: CLIMBING_CREW } })).json().id;
       // Carol is a friend, but not in the climbing circle.
       const res = await app.inject({ method: 'GET', url: `/v1/listings/${id}`, headers: as(CAROL) });
@@ -196,7 +196,7 @@ describe('things', () => {
 
     it('refuses a claim once the deadline has passed', async () => {
       // Created with a live deadline, then moved into the past directly through
-      // the port — the create route refuses a past deadline, as it should.
+      // the port - the create route refuses a past deadline, as it should.
       const repos = createMemoryRepositories(createDemoSeed());
       const local = await createServer({ config, repos });
       await local.ready();
@@ -243,7 +243,7 @@ describe('things', () => {
       await claim(id, BOB, 'I would love this');
       const res = await claim(id, CAROL, 'me too please');
 
-      // Carol sees her own entry and nothing about Bob — not his id, not his
+      // Carol sees her own entry and nothing about Bob - not his id, not his
       // message, and not a count that would reveal he exists.
       expect(res.json().yourClaim.message).toBe('me too please');
       expect(res.body).not.toContain(BOB);
@@ -470,7 +470,7 @@ describe('things', () => {
 
     it('cannot move a listing to another mode after the fact', async () => {
       // `UpdateListingInput` has no `claimMode`, so this is ignored rather than
-      // refused — the schema is the enforcement.
+      // refused - the schema is the enforcement.
       const id = (await offer({ claimMode: 'OWNER_SELECTS' })).json().id;
       const res = await app.inject({
         method: 'PATCH',

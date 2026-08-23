@@ -16,7 +16,7 @@ COPY packages/design-tokens/package.json  packages/design-tokens/
 COPY apps/api/package.json                apps/api/
 COPY apps/web/package.json                apps/web/
 
-# `npm ci` — the lockfile is authoritative. A build that resolves fresh versions
+# `npm ci` - the lockfile is authoritative. A build that resolves fresh versions
 # is a build that can differ from the one that was tested.
 RUN npm ci
 

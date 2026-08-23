@@ -13,7 +13,7 @@ import {
  *
  * A mailbox, deliberately: a list of conversations, an unread count, and a
  * thread you open. What it is *not* is a chat. There are no typing indicators,
- * no presence, no delivery ticks, and — the one worth stating outright — **no
+ * no presence, no delivery ticks, and - the one worth stating outright - **no
  * read receipts**.
  *
  * That last omission is the same decision as ADR 0007's "no read receipts, no
@@ -26,7 +26,7 @@ import {
  *
  * ## Who may message whom
  *
- * Accepted friends only. Not `PENDING` — a friend request grants nothing
+ * Accepted friends only. Not `PENDING` - a friend request grants nothing
  * anywhere else in this system and must not become a channel for talking at
  * someone who has not answered it. A block ends it in both directions, and the
  * refusal is indistinguishable from messaging an account that does not exist.
@@ -38,7 +38,7 @@ import {
  * Canonically ordered like `Friendship`, so a pair has one row and cannot drift
  * into two half-conversations. Unlike `blocks`, one row is correct here: a
  * conversation is a shared object, and there is no per-direction state that one
- * party must be able to change without touching the other's — except read
+ * party must be able to change without touching the other's - except read
  * position, which is why there are two of those.
  */
 export const Conversation = z.object({
@@ -60,7 +60,7 @@ export const Conversation = z.object({
 });
 export type Conversation = z.infer<typeof Conversation>;
 
-/** 🟠 Sensitive. Free text between two named people — never logged. */
+/** 🟠 Sensitive. Free text between two named people - never logged. */
 export const MessageBody = z.string().trim().min(1).max(4000);
 
 export const Message = z.object({
@@ -80,7 +80,7 @@ export type Message = z.infer<typeof Message>;
  * One row of the mailbox.
  *
  * Note what is absent: the other party's `readAt`. It is not merely omitted
- * from the projection — asking for it is not a question this API answers.
+ * from the projection - asking for it is not a question this API answers.
  */
 export const ConversationView = z.object({
   id: ConversationId,

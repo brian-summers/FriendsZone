@@ -12,10 +12,10 @@
  * So the rule is: **visibility is never encoded by color alone.** Every level
  * carries four independent, redundant channels:
  *
- *   1. FILL      — an ordinal ramp: none → hatched → tinted → solid
- *   2. BORDER    — dashed → hatched-edge → solid → solid heavy
- *   3. GLYPH     — a distinct icon per level
- *   4. LABEL     — a literal word, always rendered, never a tooltip
+ *   1. FILL      - an ordinal ramp: none → hatched → tinted → solid
+ *   2. BORDER    - dashed → hatched-edge → solid → solid heavy
+ *   3. GLYPH     - a distinct icon per level
+ *   4. LABEL     - a literal word, always rendered, never a tooltip
  *
  * A user with any form of color vision deficiency, on a monochrome display, or
  * glancing at a phone in sunlight still gets three working channels. This is
@@ -36,7 +36,7 @@ export interface VisibilityTreatment {
   rank: number;
   /** Alpha applied to the event's hue for the chip fill. */
   fillAlpha: number;
-  /** `none` | `hatch` — hatching reads as "deliberately obscured". */
+  /** `none` | `hatch` - hatching reads as "deliberately obscured". */
   pattern: 'none' | 'hatch' | 'solid';
   borderStyle: 'dashed' | 'solid';
   borderWidth: number;
@@ -100,7 +100,7 @@ export const VISIBILITY_TREATMENTS: Readonly<
  * Copy shown when the user is about to widen visibility.
  *
  * Widening is the direction that causes harm, so it is the direction that gets
- * friction. Narrowing is instant and unconfirmed — a user retreating toward
+ * friction. Narrowing is instant and unconfirmed - a user retreating toward
  * privacy should never be slowed down or asked whether they are sure.
  */
 export const WIDENING_CONFIRMATIONS: Readonly<Partial<Record<VisibilityLevelName, string>>> =

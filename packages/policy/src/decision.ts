@@ -7,7 +7,7 @@
  * username, an event title, or a location along with it.
  *
  * Critically, these codes are for *operators*. They are never returned to the
- * caller verbatim — see `docs/security/authz-model.md` on why the HTTP layer
+ * caller verbatim - see `docs/security/authz-model.md` on why the HTTP layer
  * collapses most of them into an indistinguishable 404.
  */
 export type DenyReason =

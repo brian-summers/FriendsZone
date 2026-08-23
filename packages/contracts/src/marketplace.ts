@@ -22,7 +22,7 @@ export type ListingStatus = z.infer<typeof ListingStatus>;
 /**
  * How the owner decided this item would be given away.
  *
- * Fixed at creation and immutable once anyone has claimed — changing it
+ * Fixed at creation and immutable once anyone has claimed - changing it
  * afterwards would rewrite the terms people already acted on. See
  * docs/adr/0017-claim-modes-and-deadlines.md.
  */
@@ -75,7 +75,7 @@ export const Listing = z.object({
 
   claimMode: ClaimMode,
   /**
-   * When claiming closes. Optional — an offer may stay open indefinitely.
+   * When claiming closes. Optional - an offer may stay open indefinitely.
    *
    * One meaning in every mode: after this instant no new claim is accepted.
    * What happens *next* is what varies by mode, which is why this is one field
@@ -92,14 +92,14 @@ export const ClaimStatus = z.enum(['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED
 export type ClaimStatus = z.infer<typeof ClaimStatus>;
 
 /**
- * "I'd like that" — or, under `LOTTERY`, "enter me".
+ * "I'd like that" - or, under `LOTTERY`, "enter me".
  *
  * What a claim *means* depends on the listing's `claimMode`, but the record is
  * the same shape in all three, so there is one lifecycle to reason about
  * instead of three (ADR 0017).
  *
  * Multiple claims may be PENDING at once. Under `OWNER_SELECTS`, accepting one
- * deliberately does **not** auto-decline the others — the owner may want a
+ * deliberately does **not** auto-decline the others - the owner may want a
  * backup if the handoff falls through. A `LOTTERY` draw is the exception: it
  * declines every entry it did not select, because leaving them pending forever
  * is the guilt pile the product exists to avoid.
@@ -150,7 +150,7 @@ export type Exchange = z.infer<typeof Exchange>;
 // Nothing above this line crosses the network. `Listing` and `Claim` are
 // stored shapes; what a client receives is a `ListingView` built by
 // `projectListing()`, which whitelists fields per viewer. Handing back a
-// stored `Listing` would ship `audience` — the owner's sharing configuration —
+// stored `Listing` would ship `audience` - the owner's sharing configuration -
 // to whoever asked.
 
 /**
@@ -176,7 +176,7 @@ export type CreateListingInput = z.infer<typeof CreateListingInput>;
 /**
  * Editing a listing. Every field optional; absent means "leave alone".
  *
- * `claimMode` is absent by design — it is immutable once anyone has claimed,
+ * `claimMode` is absent by design - it is immutable once anyone has claimed,
  * and permitting it here would mean the route had to police a rule the schema
  * could simply not express. `audience` *is* editable, because narrowing who can
  * see a thing must always be possible.
@@ -204,7 +204,7 @@ export const ClaimDecisionInput = z.object({
 export type ClaimDecisionInput = z.infer<typeof ClaimDecisionInput>;
 
 /**
- * A photo, base64-encoded, with **no `data:` URL prefix** — the client strips
+ * A photo, base64-encoded, with **no `data:` URL prefix** - the client strips
  * it before sending.
  *
  * Deliberately not accepting the prefix: it carries a client-declared MIME type
@@ -225,7 +225,7 @@ export type UploadedPhoto = z.infer<typeof UploadedPhoto>;
  * Proposing a handoff. Time and place, agreed between two people.
  *
  * `location` is `ShortText` a person typed. There is no venue id, no
- * coordinates, and no field that could be auto-filled from anything we store —
+ * coordinates, and no field that could be auto-filled from anything we store -
  * we hold no addresses, and building a place database would mean accumulating a
  * record of where our users physically meet
  * (docs/adr/0019-the-handoff.md).
@@ -267,7 +267,7 @@ export const ExchangeView = z.object({
 export type ExchangeView = z.infer<typeof ExchangeView>;
 
 /**
- * A claim as its own claimant sees it. No `claimantId` — the viewer is the
+ * A claim as its own claimant sees it. No `claimantId` - the viewer is the
  * claimant, so echoing the id back adds nothing and invites the field being
  * reused in a context where it would be someone else's.
  */
@@ -285,7 +285,7 @@ export type OwnClaimView = z.infer<typeof OwnClaimView>;
  * A claim as the listing's *owner* sees it, in order to select or draw.
  *
  * The owner is the one party entitled to know who wants their item. Everyone
- * else — including other claimants — gets nothing about anyone but themselves.
+ * else - including other claimants - gets nothing about anyone but themselves.
  */
 export const OwnerClaimView = z.object({
   id: ClaimId,
@@ -326,7 +326,7 @@ export const ListingView = z.object({
   isOwner: z.boolean(),
   /** The viewer's own claim, if they have one. Never anyone else's. */
   yourClaim: OwnClaimView.optional(),
-  /** Owner-only. Absent — not empty — for every other viewer. */
+  /** Owner-only. Absent - not empty - for every other viewer. */
   claims: z.array(OwnerClaimView).optional(),
 });
 export type ListingView = z.infer<typeof ListingView>;

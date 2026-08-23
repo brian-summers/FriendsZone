@@ -10,7 +10,7 @@ import { ReportDialog } from '../components/ReportDialog.js';
 import { Handoff } from '../components/Handoff.js';
 
 /**
- * Things — give a well-loved object a second life.
+ * Things - give a well-loved object a second life.
  *
  * Like every other screen, this renders what the server sent and re-derives no
  * visibility decision. In particular it never counts or infers other people's
@@ -102,7 +102,7 @@ export function ThingsScreen({ actorId, peopleById, onActivity }: Props) {
       setError(
         err instanceof ApiError
           ? err.status === 409
-            ? 'Too late — that one’s already settled.'
+            ? 'Too late - that one’s already settled.'
             : `That didn’t work (${err.status}).`
           : 'Could not reach the API.',
       );
@@ -186,7 +186,7 @@ export function ThingsScreen({ actorId, peopleById, onActivity }: Props) {
 
       <p className="things-gate">
         Once a claim is accepted you can arrange the handoff. Agreeing puts it on both your
-        calendars — and everyone else only ever sees that you’re busy.
+        calendars - and everyone else only ever sees that you’re busy.
       </p>
     </div>
   );
@@ -316,14 +316,14 @@ function ListingCard({
         <p className={`your-claim your-claim-${listing.yourClaim.status.toLowerCase()}`}>
           {listing.yourClaim.status === 'PENDING' &&
             (listing.claimMode === 'LOTTERY' ? 'You’re in the draw.' : 'You asked for this.')}
-          {listing.yourClaim.status === 'ACCEPTED' && 'It’s yours — sort out the handoff together.'}
+          {listing.yourClaim.status === 'ACCEPTED' && 'It’s yours - sort out the handoff together.'}
           {listing.yourClaim.status === 'DECLINED' && 'Not this time.'}
           {listing.yourClaim.status === 'CANCELLED' && 'The offer was withdrawn.'}
         </p>
       )}
 
       {/* ── Owner controls ─────────────────────────────────────── */}
-      {/* Reporting is available on anyone else's listing whatever its state —
+      {/* Reporting is available on anyone else's listing whatever its state -
           a withdrawn item can still be why someone needs to report. */}
       {!listing.isOwner && (
         <div className="thing-report">
@@ -491,7 +491,7 @@ function OfferForm({
     } catch (err: unknown) {
       setError(
         err instanceof ApiError && err.status === 400
-          ? 'Check the details — a closing time has to be in the future.'
+          ? 'Check the details - a closing time has to be in the future.'
           : 'Could not offer that.',
       );
       setSaving(false);
@@ -576,7 +576,7 @@ function OfferForm({
           />
           <span>
             Close claiming at a set time
-            {deadlineRequired && <small> — a draw needs one, so you can draw it</small>}
+            {deadlineRequired && <small> - a draw needs one, so you can draw it</small>}
           </span>
         </label>
         {deadlineOn && (

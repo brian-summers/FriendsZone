@@ -24,13 +24,13 @@ import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
 
 /**
- * The handoff — the one place Friendszone moves two people into a room.
+ * The handoff - the one place Friendszone moves two people into a room.
  *
  * Read docs/adr/0019-the-handoff.md before changing anything here. The two
  * things most easily undone by accident:
  *
  * 1. **`visibilityCeiling: 'BUSY'` on the booked events.** Third parties must
- *    learn only that someone is occupied — never where, never with whom. Both
+ *    learn only that someone is occupied - never where, never with whom. Both
  *    participants still see everything, because the attendee branch of
  *    `resolveEventVisibility` returns FULL *before* the ceiling clamp. Raising
  *    this to FULL, as accepted hangouts use, publishes an address.
@@ -53,7 +53,7 @@ const requireActor = (actorId: UserId | null, action: string): UserId => {
  *
  * Owned by that participant, so each sees their own in full. `attendeeIds`
  * carries both, which is what lets each party see the other's copy at FULL if
- * they ever look — while the ceiling holds everyone else at BUSY.
+ * they ever look - while the ceiling holds everyone else at BUSY.
  */
 function handoffEvent(
   ownerId: UserId,
@@ -66,7 +66,7 @@ function handoffEvent(
     id: randomUUID() as EventId,
     ownerId,
     timeRange: exchange.timeRange,
-    title: `Handoff — ${listing.title}`,
+    title: `Handoff - ${listing.title}`,
     status: 'CONFIRMED',
     // The load-bearing line. See the file header and ADR 0019.
     visibilityCeiling: 'BUSY',
@@ -141,7 +141,7 @@ export function buildExchangeRoutes(repos: Repositories) {
         const actorId = requireActor(ctx.actorId, 'exchange:propose');
         const { claim, listing, exchange } = await context(ctx.params.id, 'exchange:propose');
 
-        // Per owner, inside the handler — never hoisted across owners.
+        // Per owner, inside the handler - never hoisted across owners.
         const viewer = await ctx.viewerFor(listing.ownerId);
         assertAllowed(
           can(viewer, {
@@ -197,7 +197,7 @@ export function buildExchangeRoutes(repos: Repositories) {
      * Accept or decline the proposed time.
      *
      * Accepting is the moment anything is written to a calendar, and it writes
-     * to **both** — a sanctioned cross-owner write, with the owner ids taken
+     * to **both** - a sanctioned cross-owner write, with the owner ids taken
      * from stored state and never from the request (ADR 0010).
      */
     defineRoute({
@@ -228,7 +228,7 @@ export function buildExchangeRoutes(repos: Repositories) {
         const now = new Date().toISOString();
 
         if (ctx.body.decision === 'DECLINE') {
-          // Declining a time is not declining the handoff — it returns to
+          // Declining a time is not declining the handoff - it returns to
           // "nothing arranged", and either party may propose again.
           const stored = await repos.exchanges.save({
             ...exchange,
@@ -307,7 +307,7 @@ export function buildExchangeRoutes(repos: Repositories) {
       },
     }),
 
-    /** Mark it done. Either party — this is not a two-sided confirmation. */
+    /** Mark it done. Either party - this is not a two-sided confirmation. */
     defineRoute({
       method: 'POST',
       rateLimit: 'WRITE',

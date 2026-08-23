@@ -5,7 +5,7 @@ import { VISIBILITY_TREATMENTS, type VisibilityLevelName } from '@friendszone/de
  *
  * Fill and border live in CSS (`.chip.v-*`); glyph and label come from the
  * shared token package so the words a user reads are the same words the design
- * system defines. Never render fewer than all four — see the rationale in
+ * system defines. Never render fewer than all four - see the rationale in
  * `packages/design-tokens/src/visibility.ts`.
  */
 const GLYPHS: Record<string, string> = {
@@ -38,14 +38,14 @@ export function encodingFor(level: VisibilityLevelName): ChipEncoding {
  * Category colours are not modelled in the domain yet, so this derives a stable
  * hue from the owner's id: every person's calendar reads as its own colour, and
  * your own week is internally consistent. When user-chosen categories land this
- * becomes a lookup, and nothing else changes — hue is deliberately independent
+ * becomes a lookup, and nothing else changes - hue is deliberately independent
  * of the visibility channels, so it can never imply something false about who
  * can see an event.
  */
 /**
  * Hue *slots*, not colour names.
  *
- * They were named for colours once — `--hue-moss`, `--hue-clay` — which stopped
+ * They were named for colours once - `--hue-moss`, `--hue-clay` - which stopped
  * being true the moment a second palette existed, and would have been an
  * outright lie in Signal where slot 4 is orange. Numbered slots say what these
  * actually are: six positions a palette fills however it likes.

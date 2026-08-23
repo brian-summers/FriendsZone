@@ -89,7 +89,7 @@ describe('export and deletion', () => {
        *
        * Not the whole file: Bob legitimately appears elsewhere in Alice's
        * export as an attendee of her own climbing event, which she has always
-       * been able to see. The claim being tested is narrower and sharper — that
+       * been able to see. The claim being tested is narrower and sharper - that
        * a report about you never carries who filed it.
        */
       const reportSection = JSON.stringify(res.json().reportsAboutYou);
@@ -172,7 +172,7 @@ describe('export and deletion', () => {
 
       expect(await repos.directory.isTombstoned(ALICE)).toBe(true);
       const profile = await repos.directory.profile(ALICE);
-      // Present — every hangout and moderation case still resolves it — and empty.
+      // Present - every hangout and moderation case still resolves it - and empty.
       expect(profile).not.toBeNull();
       expect(profile?.displayName).toBe('A former member');
       expect(profile?.handle).not.toBe('alice');

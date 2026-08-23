@@ -1,4 +1,4 @@
-# Keep the build context small, and — more importantly — keep the *host's*
+# Keep the build context small, and - more importantly - keep the *host's*
 # node_modules out of it.
 #
 # Without this, `COPY . .` overwrites the `node_modules` that `npm ci` just
@@ -16,7 +16,7 @@ dist
 *.tsbuildinfo
 **/*.tsbuildinfo
 
-# Local state and secrets — neither belongs in an image layer.
+# Local state and secrets - neither belongs in an image layer.
 .data
 .env
 .env.*

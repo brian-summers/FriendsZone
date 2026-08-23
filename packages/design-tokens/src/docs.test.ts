@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
  * preview, and in the Artifacts viewer without a build step.
  *
  * Lives in design-tokens because that package already owns the "the way this is
- * presented is a correctness property, not a taste preference" tests — the
+ * presented is a correctness property, not a taste preference" tests - the
  * contrast gate is right beside this one.
  */
 
@@ -113,6 +113,46 @@ describe('documentation diagrams', () => {
         if (open) body.push(lines[i] ?? '');
       }
     }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('typography', () => {
+  /**
+   * No em-dashes, anywhere.
+   *
+   * A product decision rather than a style preference: they read as a tic to
+   * people who notice them, and once noticed they are hard to stop noticing.
+   * A spaced hyphen carries the same aside without the texture.
+   *
+   * The rule covers source as well as prose, because comments become
+   * documentation and documentation becomes copy. En-dashes are untouched:
+   * `19:00-21:00` is a numeric range, not punctuation, and typing one is a
+   * deliberate act rather than an autocorrect artefact.
+   */
+  it('contains no em-dash in any tracked file', () => {
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir)) {
+        if (['node_modules', '.git', 'cdk.out', 'dist', 'coverage', '.data'].includes(entry)) {
+          continue;
+        }
+        const p = join(dir, entry);
+        if (statSync(p).isDirectory()) {
+          walk(p);
+          continue;
+        }
+        if (!/\.(ts|tsx|css|md|json|sql|ya?ml)$/.test(p)) continue;
+        try {
+          if (readFileSync(p, 'utf8').includes('\u2014')) {
+            offenders.push(p.slice(REPO.length).split(sep).join('/'));
+          }
+        } catch {
+          // Unreadable or binary; nothing to assert about.
+        }
+      }
+    };
+    walk(REPO);
     expect(offenders).toEqual([]);
   });
 });

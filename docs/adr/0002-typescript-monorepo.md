@@ -7,7 +7,7 @@
 
 Friendszone needs a server, eventually a web client, and shared domain logic that
 both must agree on. The privacy rules in particular must be identical
-everywhere — a client that renders a "private" event differently from how the
+everywhere - a client that renders a "private" event differently from how the
 server projects it is a bug factory.
 
 The environment has Node 24 and npm 11. pnpm is not installed.
@@ -35,7 +35,7 @@ what turn "you forgot a case" into a compile error rather than a silent grant.
 
 - One `npm install`, one `tsc --build`, one `vitest run` for everything.
 - Project references mean `packages/policy` genuinely cannot import from
-  `apps/api` — the layering is enforced by the compiler, not by a lint rule
+  `apps/api` - the layering is enforced by the compiler, not by a lint rule
   someone can disable.
 - Strictness costs some ceremony (conditional spreads for optional fields, the
   `AnyRoute` erasure in the route registry). Both are commented where they occur.

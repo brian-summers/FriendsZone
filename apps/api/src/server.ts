@@ -37,7 +37,7 @@ export async function createServer(opts: {
      * Trust exactly as many proxy hops as are configured, never `true`.
      *
      * `trustProxy: true` takes the leftmost `X-Forwarded-For` entry, which is
-     * client-supplied — so a caller could prepend a fake address and mint a
+     * client-supplied - so a caller could prepend a fake address and mint a
      * fresh rate-limit bucket per request. A hop count trusts only the proxies
      * we actually put there.
      */
@@ -73,7 +73,7 @@ export async function createServer(opts: {
    *   `style-src 'unsafe-inline'`
    *                        React `style={{…}}` attributes. Removing it means
    *                        moving a handful of inline styles into the stylesheet
-   *                        — worth doing, and not worth blocking a deploy on
+   *                        - worth doing, and not worth blocking a deploy on
    *
    * `frame-ancestors 'none'` is the modern form of the `x-frame-options` header
    * below; both are sent because the older one is still honoured by some
@@ -92,7 +92,7 @@ export async function createServer(opts: {
     "frame-ancestors 'none'",
   ].join('; ');
 
-  // Only meaningful over https, and actively unhelpful over http — a browser
+  // Only meaningful over https, and actively unhelpful over http - a browser
   // that pins a local dev origin to https is a browser that cannot reach it.
   const isHttps = config.PUBLIC_ORIGIN.startsWith('https://');
 
@@ -120,14 +120,14 @@ export async function createServer(opts: {
           const params = parseOrThrow(route.params, request.params);
           const query = parseOrThrow(route.query, request.query);
           // A route without a body schema gets `undefined`, and a body sent to
-          // it is simply ignored — never passed through unvalidated.
+          // it is simply ignored - never passed through unvalidated.
           const body =
             route.body !== undefined ? parseOrThrow(route.body, request.body) : undefined;
           const actorId = await authenticate(request.headers);
 
           /**
            * Moderator status comes from the boot-time allowlist and nowhere
-           * else — never a header, never a request field, never a stored row.
+           * else - never a header, never a request field, never a stored row.
            * Resolved once here so no handler can decide it for itself.
            */
           const isModerator = actorId !== null && moderatorIds.has(actorId);
@@ -140,8 +140,8 @@ export async function createServer(opts: {
            * behind the same NAT. Deliberately *before* the handler so a refused
            * request costs no database work.
            *
-           * The address fallback is the weak half — shared by NAT, cheap to
-           * rotate — and is a speed bump on anonymous traffic rather than a
+           * The address fallback is the weak half - shared by NAT, cheap to
+           * rotate - and is a speed bump on anonymous traffic rather than a
            * control. See docs/adr/0020-rate-limiting.md.
            */
           const verdict = rateLimiter.check(
@@ -194,7 +194,7 @@ export async function createServer(opts: {
             request.log.error({ err: error }, 'unhandled error');
           } else {
             // Denials are expected traffic, not incidents. Logged at info with
-            // structured fields only — never the resource or the actor's data.
+            // structured fields only - never the resource or the actor's data.
             request.log.info({ status, route: route.url }, 'request refused');
           }
           return await reply.status(status).send(body);

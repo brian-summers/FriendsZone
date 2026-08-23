@@ -8,12 +8,12 @@
  *
  * The server already refuses: `x-dev-actor-id` does nothing outside
  * development, asserted by `auth.test.ts` and `server.test.ts`. This file is
- * the other half — making sure the client never *offers* it.
+ * the other half - making sure the client never *offers* it.
  *
  * **`import.meta.env.DEV` is not a runtime check.** Vite substitutes the
  * literal `false` into a production build, so the ternary below collapses to
  * `[]` and the bundler removes the list with it. The seed ids are therefore
- * *absent* from shipped JavaScript rather than hidden in it — which is the
+ * *absent* from shipped JavaScript rather than hidden in it - which is the
  * difference between a feature flag and a deleted feature. `dev.test.ts`
  * asserts that every affordance stays behind this guard.
  */

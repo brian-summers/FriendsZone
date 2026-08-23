@@ -161,7 +161,7 @@ describe('widestSharedLevel', () => {
 
   it('does not count a SELF rule or attendees as widening', () => {
     // A private event you happen to have invited someone to still summarises
-    // as "only you" — attendee access is a property of the guest, not a public
+    // as "only you" - attendee access is a property of the guest, not a public
     // posture the owner should be warned about.
     const withGuest = event({
       shareRules: [rule({ kind: 'SELF' }, 'FULL')],

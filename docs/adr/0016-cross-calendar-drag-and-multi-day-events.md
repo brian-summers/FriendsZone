@@ -13,10 +13,10 @@ slot **on your own calendar** to create an event, and it placed every interval
 with a single-day helper (`place`) that clamped anything crossing midnight to
 the bottom of its start column. Two gaps followed:
 
-- The same gesture felt natural on a **friend's** calendar too — but there it
+- The same gesture felt natural on a **friend's** calendar too - but there it
   can't create an event, because you don't own that calendar. The one thing
   dragging a friend's free time *does* mean is "let's meet then."
-- Real plans cross midnight — a trip, an overnight, a red-eye. The data model
+- Real plans cross midnight - a trip, an overnight, a red-eye. The data model
   always allowed it (`timeRange` is two instants), but the grid couldn't draw
   it: a Saturday-to-Sunday event showed only on Saturday, clamped to the edge.
 
@@ -32,7 +32,7 @@ takes no position on what it's for. The screen wires it per calendar:
   as the first proposed time.
 
 The grid never writes to a calendar itself, so a friend's grid still cannot
-create an event on their calendar — the gesture only *composes a request*, which
+create an event on their calendar - the gesture only *composes a request*, which
 travels the ordinary hangout path and its authorization. The free/busy conflict
 hint the composer already shows now doubles as live feedback while you pick.
 
@@ -66,7 +66,7 @@ follows across days.
 - Cross-day drag relies on `document.elementFromPoint` while the pointer is
   captured to the origin column. Environments without hit-testing (jsdom) fall
   back to vertical-only tracking in the origin column, so the gesture degrades to
-  single-day rather than breaking — which is exactly what the component test
+  single-day rather than breaking - which is exactly what the component test
   exercises.
 - The seed gained a `Cabin weekend` that runs Saturday into Sunday, so the
   running app demonstrates the band. It is `exclusive` (a real trip) and shared
@@ -84,7 +84,7 @@ authorization story. Routing the gesture into the existing request flow reuses
 the one sanctioned way to put time on another person's calendar.
 
 **Keep clamping multi-day events to their start day** and show a "→ continues"
-marker. Simpler, but it hides where the time actually goes — the whole point of a
+marker. Simpler, but it hides where the time actually goes - the whole point of a
 calendar is to see the block. A band across the real columns is legible and
 matches every other calendar.
 

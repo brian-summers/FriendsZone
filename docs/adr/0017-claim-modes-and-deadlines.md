@@ -11,7 +11,7 @@ Making it real forces a question the original model ducked.
 
 The existing `Claim` comment says "multiple claims may be PENDING at once; the
 owner picks." That is one sensible way to give away a chair. It is not the only
-one, and it is the *worst* one for the case the product actually cares about — a
+one, and it is the *worst* one for the case the product actually cares about - a
 well-loved object with several interested friends, where "the owner picks" turns
 a small kindness into a small social obligation. Choosing between friends in
 public is exactly the pressure [ADR 0007](0007-async-by-design.md) exists to
@@ -50,7 +50,7 @@ owner stage a draw they have already seen the entrants for.
 ### The deadline
 
 `claimsCloseAt` is optional, and means the same thing in every mode: **after it
-passes, no new claims are accepted.** What differs is only what happens next —
+passes, no new claims are accepted.** What differs is only what happens next -
 nothing (`FIRST_COME`, which is usually already resolved), the draw becomes
 available (`LOTTERY`), or the owner picks at leisure (`OWNER_SELECTS`).
 
@@ -63,7 +63,7 @@ comparison to be written against the wrong one.
 `POST /v1/listings/:id/draw`, gated on `listing:draw`.
 
 Rejected: **drawing lazily on read**, in the style of hangout expiry. Expiry is
-idempotent and derivable — anyone recomputing it gets the same answer. A draw is
+idempotent and derivable - anyone recomputing it gets the same answer. A draw is
 neither. Making a `GET` mutate state means the winner depends on who happened to
 load the page first, and it puts a random write inside a read path that is
 otherwise safe to retry.
@@ -96,19 +96,19 @@ individuals by watching the number move.
 
 The deliberate cost: a lottery entrant cannot see their odds. That is a real
 product loss and it is accepted, because the alternative leaks a social signal
-every time someone acts. Owners see their own listing's entrants in full — they
+every time someone acts. Owners see their own listing's entrants in full - they
 have to, in order to draw or select.
 
 ### A claimant sees their own claim, and no others
 
-`projectListing()` returns `yourClaim` — the viewer's own claim, if any — and
+`projectListing()` returns `yourClaim` - the viewer's own claim, if any - and
 never the others. This is what makes "I entered this" renderable without making
 "who else entered" derivable.
 
 ### The in-person handoff stays gated
 
-This ADR ships **listing and claiming only**. `Exchange` — the handoff that puts
-two people in a room — remains unbuilt and unrouted, still gated on reporting and
+This ADR ships **listing and claiming only**. `Exchange` - the handoff that puts
+two people in a room - remains unbuilt and unrouted, still gated on reporting and
 moderation per [the roadmap](../product/roadmap.md). Accepting a claim tells two
 friends they should sort something out; it does not schedule anything, and no
 calendar event is written.
@@ -127,24 +127,24 @@ report someone.
   police it. A rule the schema makes unsayable beats a rule a handler remembers.
 - The draw needs the full entrant list in memory at once. Bounded by the claim
   cap per listing, so this stays cheap.
-- Suppressing entrant counts will be re-proposed — it looks like an oversight
+- Suppressing entrant counts will be re-proposed - it looks like an oversight
   from the outside. It is written down here so the next person has to argue with
   the reason rather than assume there wasn't one.
 - Photos land with listings, which puts user-supplied binary on a surface with no
   moderation behind it yet. Mitigated by friends-only claiming, strict format
-  sniffing, and access tied to listing visibility — but this is the thing to
+  sniffing, and access tied to listing visibility - but this is the thing to
   revisit first when moderation lands.
 
 ## Alternatives considered
 
 **Auction / best offer.** `priceMinorUnits` already exists, but bidding turns a
-favour between friends into a transaction between counterparties — an
+favour between friends into a transaction between counterparties - an
 [explicitly refused anti-feature](../product/roadmap.md).
 
 **Queue / waitlist.** "You're third in line" is a count of hidden interest, and
 it manufactures exactly the low-grade obligation the product refuses.
 
-**Auto-decline the losing entries on a draw.** Kept, in fact — a draw declines
+**Auto-decline the losing entries on a draw.** Kept, in fact - a draw declines
 every entry it did not select, because leaving them `PENDING` forever is the
 guilt pile in another costume. This differs from `OWNER_SELECTS`, where accepting
 one deliberately leaves the rest open as backups.

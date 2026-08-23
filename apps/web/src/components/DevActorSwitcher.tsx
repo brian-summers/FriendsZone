@@ -5,14 +5,14 @@ import { devActors } from '../lib/dev.js';
  *
  * Its styles are inline rather than in `app.css` for one reason: Vite does not
  * tree-shake CSS. A `.devbar` rule in the stylesheet would ship to production
- * and sit there permanently, styling an element that never renders — inert, but
+ * and sit there permanently, styling an element that never renders - inert, but
  * still a leftover visible to anyone reading the bundle. Inline, the rules are
  * part of this module and leave with it.
  *
  * Colours are still tokens, never literals: `var(--amber)` resolves per palette
  * and per mode exactly as it would in the stylesheet.
  *
- * Render only under `import.meta.env.DEV` — see `lib/dev.ts` for why that is a
+ * Render only under `import.meta.env.DEV` - see `lib/dev.ts` for why that is a
  * build-time deletion rather than a runtime check.
  */
 

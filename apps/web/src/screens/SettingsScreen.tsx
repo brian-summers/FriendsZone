@@ -8,11 +8,13 @@ import {
   type ShareRule,
   type SharingPresetOrCustom,
   type Discoverability,
+  type QuietHours,
   type VisibilityLevel,
 } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
 import { Circles } from '../components/Circles.js';
 import { Explainer } from '../components/Explainer.js';
+import { TimeField } from '../components/TimeField.js';
 import type { ThemeChoice, ThemeSelection } from '../lib/theme.js';
 import { encodingFor } from '../lib/visibility.js';
 
@@ -46,7 +48,7 @@ const PRESET_LABEL: Record<SharingPresetName, string> = {
  * Settings.
  *
  * The default-sharing section is now a real editor. Defaults are the most-used
- * privacy control in the product — almost nobody changes per-event sharing — so
+ * privacy control in the product - almost nobody changes per-event sharing - so
  * making them editable, in plain language, matters more than any other switch
  * on this screen.
  */
@@ -72,7 +74,7 @@ const DISCOVERABILITY_CHOICES: Array<{
     value: 'EXACT_HANDLE',
     label: 'Only by my exact handle',
     blurb:
-      'Someone has to type your whole handle. You will not appear in partial matches or by name — so you are found by people you gave it to, not by people scrolling.',
+      'Someone has to type your whole handle. You will not appear in partial matches or by name - so you are found by people you gave it to, not by people scrolling.',
   },
   {
     value: 'NOBODY',
@@ -86,6 +88,23 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
   const [discoverability, setDiscoverability] = useState<Discoverability>(
     me?.discoverability ?? 'EVERYONE',
   );
+  const [quiet, setQuiet] = useState<QuietHours | null>(null);
+
+  const saveQuiet = (next: QuietHours) => {
+    setQuiet(next);
+    void api.setQuietHours(next, actorId).catch(() => undefined);
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api
+      .quietHours(actorId, controller.signal)
+      .then((r) => {
+        if (!controller.signal.aborted) setQuiet(r.quietHours);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [actorId]);
   useEffect(() => {
     if (me) setDiscoverability(me.discoverability);
   }, [me]);
@@ -149,7 +168,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
     }
   }
 
-  /** Straight to a file. No "we'll email it" — there is no mail delivery yet. */
+  /** Straight to a file. No "we'll email it" - there is no mail delivery yet. */
   async function downloadExport() {
     setExporting(true);
     try {
@@ -266,7 +285,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
                     <strong>{palette.label}</strong>
                     {on ? <span className="palette-current">In use</span> : null}
                   </span>
-                  {/* A swatch row is a preview, not the label — the name and
+                  {/* A swatch row is a preview, not the label - the name and
                       the sentence carry it, so this reads fine in monochrome. */}
                   <span className="palette-swatches" aria-hidden="true">
                     {hues.map((h) => (
@@ -287,10 +306,71 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
 
       <section className="settings-card">
         <h2>
+          Unavailable hours
+          <Explainer label="About unavailable hours">
+            A window that repeats every day. It is not an event: it has no name, it never shows
+            as busy, and it does not say anything about what you are doing. It shades that part
+            of your week and stops friends proposing plans in it.
+          </Explainer>
+        </h2>
+
+        <label className="field quiet-toggle">
+          <input
+            type="checkbox"
+            checked={quiet !== null}
+            onChange={(e) => {
+              const next = e.target.checked
+                ? {
+                    startMinute: 23 * 60,
+                    endMinute: 9 * 60,
+                    // The zone travels with the window, so the rule means the
+                    // same thing to a friend in another country.
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  }
+                : null;
+              setQuiet(next);
+              void api.setQuietHours(next, actorId).catch(() => undefined);
+            }}
+          />
+          <span>Set daily unavailable hours</span>
+        </label>
+
+        {quiet !== null && (
+          <>
+            <div className="quiet-row">
+              <span className="field-label">From</span>
+              <TimeField
+                label="Unavailable from"
+                step={15}
+                value={quiet.startMinute}
+                onChange={(m) => saveQuiet({ ...quiet, startMinute: m })}
+              />
+              <span className="field-label">until</span>
+              <TimeField
+                label="Unavailable until"
+                step={15}
+                value={quiet.endMinute}
+                onChange={(m) => saveQuiet({ ...quiet, endMinute: m })}
+              />
+            </div>
+            <p className="muted">
+              {quiet.startMinute === quiet.endMinute
+                ? 'Start and end are the same, so nothing is blocked.'
+                : quiet.startMinute > quiet.endMinute
+                  ? 'This window crosses midnight.'
+                  : 'This window is within a single day.'}{' '}
+              Times are in {quiet.timeZone}.
+            </p>
+          </>
+        )}
+      </section>
+
+      <section className="settings-card">
+        <h2>
           Finding you
           <Explainer label="About being found">
             This controls people search only. It never affects friends you already have, and
-            nobody is ever told what you chose — including someone who cannot find you.
+            nobody is ever told what you chose - including someone who cannot find you.
           </Explainer>
         </h2>
         <div className="palette-list">
@@ -325,7 +405,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
           Your data
           <Explainer label="About your data download">
             A copy of everything you can see of your own account. It contains what you
-            already have access to and nothing more — a report about you never says who
+            already have access to and nothing more - a report about you never says who
             filed it.
           </Explainer>
         </h2>
@@ -339,7 +419,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
       <section className="settings-card danger-card">
         <h2>Delete your account</h2>
         <p className="muted">
-          Immediate and permanent — there is no undo and no grace period. Your calendar,
+          Immediate and permanent - there is no undo and no grace period. Your calendar,
           things, and photos are destroyed.
         </p>
         <p className="muted">
@@ -387,7 +467,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
           <p className="muted">Loading…</p>
         ) : (
           <>
-            {/* Shown once, as a card. Never a modal and never repeated — a
+            {/* Shown once, as a card. Never a modal and never repeated - a
                 privacy prompt that pesters is one people dismiss unread. */}
             {!chosen && (
               <p className="onboard-note">
@@ -418,7 +498,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
               <p className="muted">
                 <strong>Custom.</strong>
                 <Explainer label="What custom means">
-                  Your rules don’t match one of the three above — they’re shown below
+                  Your rules don’t match one of the three above - they’re shown below
                   exactly as you set them.
                 </Explainer>
               </p>

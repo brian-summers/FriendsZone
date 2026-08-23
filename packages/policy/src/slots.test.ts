@@ -4,7 +4,7 @@ import { findFreeSlots } from './slots.js';
 
 /**
  * A reference day in UTC, with hour bounds that span it entirely unless a test
- * says otherwise — so most cases exercise the intersection rather than the
+ * says otherwise - so most cases exercise the intersection rather than the
  * working-hours clipping.
  */
 const DAY: TimeRange = {

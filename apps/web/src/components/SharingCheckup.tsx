@@ -20,7 +20,7 @@ interface Props {
  * implementation to keep in sync, and the moment it drifted it would be
  * reassuring a user about a state that is not true.
  *
- * The endpoint takes whose *eyes* to borrow, never whose *calendar* — the
+ * The endpoint takes whose *eyes* to borrow, never whose *calendar* - the
  * calendar is always the caller's own.
  */
 export function SharingCheckup({ people, weekStart, actorId, onClose }: Props) {
@@ -123,7 +123,7 @@ export function SharingCheckup({ people, weekStart, actorId, onClose }: Props) {
                   } and ${view.details.length} named ${
                     view.details.length === 1 ? 'event' : 'events'
                   }`}{' '}
-              this week. Everything else on your calendar is invisible to them — with no gap or
+              this week. Everything else on your calendar is invisible to them - with no gap or
               placeholder to hint that something was withheld.
             </div>
           )}
@@ -134,7 +134,7 @@ export function SharingCheckup({ people, weekStart, actorId, onClose }: Props) {
             {!loading && items.length === 0 && (
               <span className="preview-empty">
                 {view !== null && view.busy.length > 0
-                  ? 'Busy blocks only — no names, places, or notes.'
+                  ? 'Busy blocks only - no names, places, or notes.'
                   : 'Nothing at all. Your week looks empty to them.'}
               </span>
             )}
@@ -161,7 +161,7 @@ export function SharingCheckup({ people, weekStart, actorId, onClose }: Props) {
 
           <p className="notice" style={{ margin: 'var(--space-md) 0 0', padding: 'var(--space-sm)' }}>
             <strong>Not built yet:</strong> editing who sees what. The per-event sharing editor is the
-            next screen — this panel is the read-only half of it.
+            next screen - this panel is the read-only half of it.
           </p>
         </div>
       </aside>

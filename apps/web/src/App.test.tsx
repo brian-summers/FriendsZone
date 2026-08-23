@@ -39,6 +39,8 @@ vi.mock('./lib/api.js', () => {
       thread: async () => ({ id: 'c', withUserId: 'u', withHandle: 'u', withDisplayName: 'U', messages: [] }),
       markConversationRead: async () => ({ read: true }),
       setDiscoverability: async () => ({ discoverability: 'EVERYONE' }),
+      quietHours: async () => ({ quietHours: null }),
+      setQuietHours: async () => ({ quietHours: null }),
       photoUrl: (listingId: string, key: string) => `/api/v1/listings/${listingId}/photos/${key}`,
     },
   };
@@ -68,7 +70,7 @@ async function mainAt(path: string): Promise<HTMLElement> {
 describe('the shell decides which element scrolls', () => {
   // The week grid owns a scroll container of its own (.cal-scroll) so its day
   // header can stay sticky. Every other screen has none, so <main> has to
-  // scroll for them — otherwise their content is clipped at the fold with no
+  // scroll for them - otherwise their content is clipped at the fold with no
   // way to reach it, which is invisible in tests that only assert content.
   it.each(['/inbox', '/things', '/settings', '/people'])(
     'scrolls <main> on %s',

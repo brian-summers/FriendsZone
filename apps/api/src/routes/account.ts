@@ -53,7 +53,7 @@ const README = [
   '  - Who reported you. A report about you never carries the reporter, in this',
   '    file or anywhere else.',
   '  - Other people’s calendars, messages, or claims, including on things you',
-  '    offered — you see what you always saw, and no more.',
+  '    offered - you see what you always saw, and no more.',
   '  - Anything a friend shares with you. That is theirs to export, not yours.',
 ].join('\n');
 
@@ -62,7 +62,7 @@ export function buildAccountRoutes(repos: Repositories) {
     /**
      * Download everything about you that you are entitled to.
      *
-     * `EXPENSIVE`: this is the widest fan-out in the product — every port,
+     * `EXPENSIVE`: this is the widest fan-out in the product - every port,
      * every projection, a year of calendar.
      */
     defineRoute({
@@ -94,7 +94,7 @@ export function buildAccountRoutes(repos: Repositories) {
           repos.notifications.forUser(actorId),
         ]);
 
-        // Your own calendar, projected for yourself — which resolves to FULL,
+        // Your own calendar, projected for yourself - which resolves to FULL,
         // so this is the complete view rather than a redacted one.
         const own = projectCalendar({
           ownerId: actorId,
@@ -206,7 +206,7 @@ export function buildAccountRoutes(repos: Repositories) {
          * Order matters.
          *
          * Listings before photos (the listing sweep is what reports which keys
-         * to drop), claims before exchanges, and the **tombstone last** — every
+         * to drop), claims before exchanges, and the **tombstone last** - every
          * sweep above resolves ids, and a profile emptied first would make
          * their work harder to reason about.
          */
@@ -236,7 +236,7 @@ export function buildAccountRoutes(repos: Repositories) {
             'Blocks involving you, so that deleting and rejoining cannot reach someone who blocked you.',
             'Open moderation cases about you, and their evidence, until they are closed.',
             'Reports you filed, which protect someone else. Your identity on them is already erased.',
-            'Other people’s copies of plans you shared — their record of their own week, not yours to delete.',
+            'Other people’s copies of plans you shared - their record of their own week, not yours to delete.',
           ],
         };
       },

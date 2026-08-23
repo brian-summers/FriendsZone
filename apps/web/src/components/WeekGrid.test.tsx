@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
 
-/** Monday of the current week, local — matches the grid's own reckoning. */
+/** Monday of the current week, local - matches the grid's own reckoning. */
 function weekStart(): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -59,7 +59,7 @@ function hold(base: Date): HangoutHold {
 /**
  * Render-level guards on the surface where a privacy mistake would actually be
  * seen. The projection engine is tested separately; these assert that the
- * component does not undo its work — by labelling a chip wrongly, or by
+ * component does not undo its work - by labelling a chip wrongly, or by
  * rendering a field the server withheld.
  */
 describe('WeekGrid', () => {
@@ -125,7 +125,7 @@ describe('WeekGrid', () => {
     expect(chip.className).toContain('hold');
     expect(chip.textContent).toContain('Pending');
     // The accessible name distinguishes tentative from firm and names the role.
-    expect(chip.getAttribute('aria-label')).toMatch(/tentative — a friend asked you/);
+    expect(chip.getAttribute('aria-label')).toMatch(/tentative - a friend asked you/);
   });
 
   it('renders an open block as "Open", distinct from busy', () => {

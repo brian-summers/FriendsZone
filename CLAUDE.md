@@ -1,4 +1,4 @@
-# CLAUDE.md — working in this repository
+# CLAUDE.md - working in this repository
 
 Friendszone coordinates plans between friends: a privacy-filtered shared
 calendar, asynchronous hangout requests, RSVPs, and secondhand item exchanges.
@@ -38,7 +38,7 @@ docs/playbooks/         Step-by-step recipes.
 
 Dependencies point inward only. `packages/policy` cannot import from `apps/api`,
 cannot touch a database, cannot read the clock or the environment. TypeScript
-project references enforce this — it is not a convention.
+project references enforce this - it is not a convention.
 
 ## Non-negotiables
 
@@ -50,7 +50,7 @@ backed by a test that will fail.
 2. **Never return a stored entity to a client.** Only `projectEvent()` output
    crosses the network boundary. A `...event` spread in
    `packages/policy/src/projection.ts` is a security bug.
-3. **A block outranks everything** — friendship, circles, `PUBLIC`, attendance.
+3. **A block outranks everything** - friendship, circles, `PUBLIC`, attendance.
    It is checked before any grant is considered.
 4. **Denials must be indistinguishable.** A blocked viewer, a stranger, and a
    nonexistent user receive identical responses. Use `404`, not `403`.
@@ -62,7 +62,7 @@ backed by a test that will fail.
 7. **Sensitive data never reaches a log.** No titles, locations, descriptions,
    or whole entities. Log `DenyReason` and the route pattern.
 8. **Bound every list and range.** Unbounded is a bulk-export vector. Bound
-   *repetition* too — every route names a `rateLimit` class.
+   *repetition* too - every route names a `rateLimit` class.
 9. **A circle never leaves its owner.** Names and rosters go to the owner and
    nobody else. There is no "circles you're in", anywhere, for anyone.
 10. **Moderation is not a master key.** `ViewerContext.isModerator` unlocks the
@@ -70,7 +70,7 @@ backed by a test that will fail.
    `visibility.ts` or `projection.ts`, and the reporter's identity must never
    reach the subject at any status.
 11. **Visibility is never encoded by colour alone.** Every level renders four
-   channels — fill, border, glyph, label — at every breakpoint and density.
+   channels - fill, border, glyph, label - at every breakpoint and density.
    Dropping one is a safety regression, not a visual tweak.
 12. **Never hard-code a colour.** Use tokens from `@friendszone/design-tokens`.
     Button text uses `onVerdigris`; a filled event chip uses `--on-hue`. `#fff`
@@ -78,14 +78,14 @@ backed by a test that will fail.
     A theme is a **palette** × a **mode**; every palette declares all four
     combinations, and category hues are gated on colour-vision separation.
 13. **On writes, the server owns identity.** `ownerId` (and any id) comes from
-    the authenticated actor, never the request body — the input schema has no
+    the authenticated actor, never the request body - the input schema has no
     field for it. A route that reads `ownerId` from the body is a bug. Every
     mutating route declares a `body` schema; `routes.test.ts` enforces that.
 
 ## Before you "fix" something that looks redundant
 
 Correct security code here frequently looks like an oversight. Before removing
-anything in this list, read the comment next to it — each has one:
+anything in this list, read the comment next to it - each has one:
 
 - Friendship is re-checked against circle membership → rosters survive
   unfriending.
@@ -189,14 +189,14 @@ which is when they get skipped.
   is re-checked because unfriending does not scrub circle rosters` is the reason
   the code survives its next refactor.
 - Prefer exhaustive `switch` over `if` chains, so the compiler catches additions.
-- Prefer `Pick<>` in security signatures — it documents what is relevant.
+- Prefer `Pick<>` in security signatures - it documents what is relevant.
 - Tests assert on `response.body` (the serialized string), not only the parsed
   object, when checking that something did not leak.
 
 ## Current state
 
 **Built and tested:** contracts, policy engine, HTTP edge (reads *and* validated
-writes), full **event CRUD** (create — by dialog *or* by dragging a slot — edit,
+writes), full **event CRUD** (create - by dialog *or* by dragging a slot - edit,
 delete, with a real **per-event sharing editor** and editable **sharing
 defaults**), the full **hangout lifecycle** (propose fixed *or* floating →
 tentative holds on both calendars → accept books both → edit / reschedule /
@@ -206,11 +206,11 @@ columns), **multi-day events** (draw as a band across the columns they span) and
 **drag-to-select on any calendar** (your own → create; a friend's → request time),
 route-perimeter invariants, in-memory adapters, design tokens with
 CI-gated contrast, and a navigable client where the **calendar is the single
-pane of glass** — everything but settings and Things happens there. **Things**
+pane of glass** - everything but settings and Things happens there. **Things**
 is real too: offer an item to an audience with photos, and give it away
 **first-come**, by **draw**, or by **choosing**, against an optional closing
-time, **report** anything you can see, and — if you are on the moderator
-allowlist — work a **moderation queue** with frozen evidence and two threads that
+time, **report** anything you can see, and - if you are on the moderator
+allowlist - work a **moderation queue** with frozen evidence and two threads that
 never cross. The **handoff** is real too: propose a time and place, the other
 party agrees, and it books both calendars while showing everyone else only
 *busy*. The **slot finder** answers "when are we all free?" over per-viewer
@@ -219,7 +219,7 @@ three named **presets**. Accounts **export and delete**, and **circles** are man
 **authentication** ships: register, sign in, sign out, sessions in an
 `HttpOnly` cookie, and everything is stored in **PostgreSQL**. The **social
 graph is now buildable from inside the product**: search for someone, send a
-friend request, accept or decline it, unfriend, and **block** — with blocks
+friend request, accept or decline it, unfriend, and **block** - with blocks
 stored as *directed* rows so lifting yours never lifts theirs. 586 tests.
 
 Decisions worth knowing before touching hangouts or the calendar:
@@ -235,41 +235,41 @@ Decisions worth knowing before touching hangouts or the calendar:
   (book occurrences on demand within a period).
 - [ADR 0015](docs/adr/0015-overlap-by-default-and-drag-to-create.md): events
   **overlap by default** (`exclusive` opt-out routes to `busy`, else
-  `openBlocks` — never fold one into the other); accepted hangouts are exclusive;
+  `openBlocks` - never fold one into the other); accepted hangouts are exclusive;
   overlapping events lay out in columns; drag a free slot to create.
 - [ADR 0016](docs/adr/0016-cross-calendar-drag-and-multi-day-events.md): the drag
-  gesture works on **any** calendar — your own creates an event, a friend's opens
+  gesture works on **any** calendar - your own creates an event, a friend's opens
   a hangout request (the grid never writes to a calendar itself). Every interval
   is placed by `placeSpan` (one segment per day it touches), so **multi-day
   events** draw as a continuous band. If you touch grid geometry, `placeSpan` is
   the one placement helper.
-- Notifications are **records, not pushes** ([ADR 0012](docs/adr/0012-hangout-lifecycle.md)) —
+- Notifications are **records, not pushes** ([ADR 0012](docs/adr/0012-hangout-lifecycle.md)) -
   written for the recipient to find, never delivered in real time.
 - [ADR 0027](docs/adr/0027-deploy-on-aws.md): **one CloudFront distribution**
-  serves the client and proxies `/api/*`, which is what keeps them same-origin —
+  serves the client and proxies `/api/*`, which is what keeps them same-origin -
   splitting the hostnames would need CORS and would break `SameSite=Lax` on the
   session cookie. Caching is **off** for `/api/*`; a CDN that cached one
   viewer's projection would defeat the whole model. Cloudflare is gone except
   possibly DNS. `TRUSTED_PROXY_HOPS` is a bounded count, never `true`.
 - [ADR 0026](docs/adr/0026-sql-layer.md): **raw parameterised SQL**, no query
-  builder — ADR 0004's own argument, that "the projection path benefits from
+  builder - ADR 0004's own argument, that "the projection path benefits from
   queries a reviewer can read as SQL". Columns exist only for what is queried,
   indexed, or enforced on; everything else is `doc jsonb`, because a third
   description of each entity would drift from the Zod schemas. RLS expresses
-  **ownership only** and is a *backstop*, never the control — the lattice stays
+  **ownership only** and is a *backstop*, never the control - the lattice stays
   in `packages/policy`. A sanctioned cross-owner write (accepting a hangout,
   booking a handoff) must set `app.cross_owner`, which makes it grep-able.
 - [ADR 0024](docs/adr/0024-authentication.md): sessions are opaque tokens
-  **stored hashed** — a dump of the session store yields nothing presentable.
+  **stored hashed** - a dump of the session store yields nothing presentable.
   Passwords use **scrypt from `node:crypto`, not Argon2id**, a deliberate
   deviation from ADR 0006 argued there; the hash is self-describing so raising
   the parameters needs no flag day. **Login is non-enumerable in timing as well
-  as in wording** — an unknown email still pays for a dummy hash, and deleting
+  as in wording** - an unknown email still pays for a dummy hash, and deleting
   that call reopens the oracle. Registration enumeration is a *known open gap*
   pending email. Credentials are `(provider, subject)` so social login is a new
   provider, not a migration.
 - [ADR 0028](docs/adr/0028-friend-requests-and-blocking.md): a friend request
-  is the **friendship row with `status: 'PENDING'`**, not a second table — two
+  is the **friendship row with `status: 'PENDING'`**, not a second table - two
   tables are two places that can disagree about whether two people are friends.
   `PENDING` grants nothing (`audienceMatches` tests for `FRIEND` exactly).
   **Blocks are directed**, keyed `(blocker_id, blocked_id)`: `relationship()`
@@ -277,23 +277,35 @@ Decisions worth knowing before touching hangouts or the calendar:
   caller's row. Blocking severs the friendship and any pending request. Search
   is bounded, `EXPENSIVE`, and returns the same empty list for "no such handle"
   and "blocked either way".
+- [ADR 0030](docs/adr/0030-full-day-grid-and-quiet-hours.md): the grid draws
+  **00:00 to 24:00** (`DAY_END_HOUR` is 24, the exclusive bound). **Quiet hours
+  are a region, never an event** - no id, no title, never in `busy`, because
+  they say *do not ask*, not *I am busy*. The window **wraps** when
+  `startMinute > endMinute`, which is the common case and is why drawing one
+  produces *two* bands. Equal bounds mean empty, never all-day. `QuietHours`
+  carries its own `timeZone` so a rule is self-describing. Overlap is **sampled
+  every 15 minutes**, deliberately, because a closed form would have to model
+  the wrap, multi-day ranges and DST. Enforcement is server-side; shading is
+  only presentation.
+- **No em-dashes anywhere** - copy, comments, or docs. `docs.test.ts` fails the
+  build on one. En-dashes are fine in numeric ranges.
 - [ADR 0029](docs/adr/0029-direct-messages-and-discoverability.md): messages are
-  a **mailbox, not a chat** — and there are **no read receipts**. `Conversation`
+  a **mailbox, not a chat** - and there are **no read receipts**. `Conversation`
   holds a bookmark *per participant* and neither is ever projected to the other
   side; `messages.test.ts` asserts the serialised body contains no `readAt`.
   Sending needs `FRIEND` exactly (not `PENDING`) and `message:send` is **not**
   block-exempt. Reading a thread survives an unfriend but **not** a block.
   Conversations are addressed by *recipient*, never by id. Discoverability is
-  `EVERYONE | EXACT_HANDLE | NOBODY` — there is deliberately **no
+  `EVERYONE | EXACT_HANDLE | NOBODY` - there is deliberately **no
   `FRIENDS_OF_FRIENDS`**, because answering it means walking the graph.
 - [ADR 0023](docs/adr/0023-circle-management.md): a circle is **owner-only, its
-  name most of all**. No endpoint answers "which circles am I in" — not a
+  name most of all**. No endpoint answers "which circles am I in" - not a
   profile line, not a checkup that explains *why* someone can see something.
   Rosters keep ex-friends (the friendship re-check makes them harmless) and the
   owner is shown them marked inactive. Deleting a circle scrubs the rules naming
   it.
 - [ADR 0022](docs/adr/0022-export-and-deletion.md): **an export is a
-  projection, not a dump** — every section is built with the same projection
+  projection, not a dump** - every section is built with the same projection
   functions the API uses, so it can never contain more than the user could
   already read. `reportsAboutYou` runs through `projectReportForSubject`;
   exporting the stored `Report` would hand a reported person their reporter's
@@ -301,23 +313,23 @@ Decisions worth knowing before touching hangouts or the calendar:
   fields emptied) and deliberately keeps blocks, live moderation cases, and the
   counterparty's copies of shared plans.
 - [ADR 0021](docs/adr/0021-sharing-presets.md): three account presets, and
-  **none of them grants `FULL` or reaches `PUBLIC`** — a default is a standing
+  **none of them grants `FULL` or reaches `PUBLIC`** - a default is a standing
   grant over every event you ever create, unlike a per-event choice. Widening
   stays possible via custom rules. `CONSERVATIVE_SHARING_DEFAULTS` *is* the
   `BUSY_TO_FRIENDS` preset, defined once. `chosen: false` means "never picked",
   which is a different state from "picked the conservative one".
 - [ADR 0020](docs/adr/0020-rate-limiting.md): every route declares a named
   `rateLimit` class; omitting it means `DEFAULT`, never unlimited. Buckets are
-  **per process**, so N instances means N× the limit — fix that before scaling
+  **per process**, so N instances means N× the limit - fix that before scaling
   out. Disabling it is a boot failure in production.
 - [ADR 0008](docs/adr/0008-slot-finder-on-projections.md): the slot finder
   intersects **projections**, never stored events. Reading raw events would look
   like an obvious simplification, pass every single-query test, and reopen a
   differential attack that reconstructs a whole calendar from someone who shared
-  nothing. There is deliberately **no `SCHEDULING` audience** — a grant only the
+  nothing. There is deliberately **no `SCHEDULING` audience** - a grant only the
   finder honours *is* the privileged data the design removes.
 - [ADR 0019](docs/adr/0019-the-handoff.md): the handoff books an event on
-  **both** calendars with `visibilityCeiling: 'BUSY'` — third parties learn only
+  **both** calendars with `visibilityCeiling: 'BUSY'` - third parties learn only
   that someone is occupied, while both participants still see the address via
   the attendee branch, which returns FULL *before* the ceiling clamp. Raising it
   to `FULL` (as hangouts use) publishes an address. **Cancelling deletes both
@@ -328,14 +340,14 @@ Decisions worth knowing before touching hangouts or the calendar:
   record**; the email to `reports@friends-zone.app` carries only an id, a reason,
   and a subject kind (`NotifierPort` has no parameter that could hold content).
   **Two one-way threads** (`ReportNote.audience`) mean the reporter and the
-  reported never share an object — there is no `BOTH` and adding one collapses
+  reported never share an object - there is no `BOTH` and adding one collapses
   the guarantee. The subject is told **nothing** until a moderator opens a thread.
   Moderators come from `MODERATOR_IDS` in config → `ViewerContext.isModerator`,
   and that flag grants **no** visibility exemption: there is no moderator branch
   in `visibility.ts` or `projection.ts`, and there must never be one.
 - [ADR 0017](docs/adr/0017-claim-modes-and-deadlines.md): a Thing is claimed by
   one of three **modes** against one `claimsCloseAt`. The kernel refuses to let
-  an owner hand-pick a `LOTTERY` winner, and refuses a draw before the deadline —
+  an owner hand-pick a `LOTTERY` winner, and refuses a draw before the deadline -
   both are what make a draw a draw. `drawWinner` is pure and takes its randomness
   as an argument. **Claimants never learn about each other:** `claims` is absent,
   not empty, for anyone but the owner. The in-person **handoff is still
@@ -343,7 +355,7 @@ Decisions worth knowing before touching hangouts or the calendar:
 
 **Client rules.** `apps/web` renders what the server sent and never re-derives
 a visibility decision. If you find yourself wanting the sharing rules on the
-client to compute what someone can see, stop — that is a second implementation
+client to compute what someone can see, stop - that is a second implementation
 of the security model, and it will drift. Ask the server
 (`/v1/me/calendar/preview`).
 
@@ -362,7 +374,7 @@ header does nothing at all, and a present-but-invalid session cookie never falls
 through to it.
 
 **PostgreSQL is real** ([ADR 0004](docs/adr/0004-persistence.md),
-[ADR 0026](docs/adr/0026-sql-layer.md)). `DATABASE_URL` selects the store —
+[ADR 0026](docs/adr/0026-sql-layer.md)). `DATABASE_URL` selects the store -
 `postgres://`, `pglite://<dir>` (Postgres 18 in-process, nothing to install), or
 `memory://`, which production refuses. The in-memory adapters remain for tests,
 and one **conformance suite runs against both**, because two implementations of
@@ -375,7 +387,7 @@ setup, verbatim from its `rules/aws-agent-rules.md`. Appended rather than
 substituted: everything above is this repository's own working agreement and
 takes precedence where the two ever disagree.
 
-- Prefer the AWS MCP Server for AWS interactions — it provides sandboxed
+- Prefer the AWS MCP Server for AWS interactions - it provides sandboxed
   execution, observability, and audit logging. If unavailable, use the
   AWS CLI directly.
 - Before starting a task, check whether a relevant AWS skill is available.
@@ -405,7 +417,7 @@ takes precedence where the two ever disagree.
 - The AWS CLI that supports `login` and `agent-toolkit` is the **user-local**
   2.36.19 at `%LOCALAPPDATA%\Programs\Amazon\AWSCLIV2\aws.exe`. A system-wide
   2.15.19 in `C:\Program Files\Amazon\AWSCLIV2` still shadows it on PATH.
-- Credentials live in the **`agent-toolkit` profile**, not `default` — pass
+- Credentials live in the **`agent-toolkit` profile**, not `default` - pass
   `--profile agent-toolkit`. The existing `default` and `queryadmin` profiles
   were deliberately left alone.
 - On Windows, `aws agent-toolkit list-available-skills` exits 255 printing skill

@@ -8,7 +8,7 @@ Findings marked 🚫 are blocking.
 ## Always
 
 - [ ] 🚫 No secret, token, or credential in code, tests, fixtures, or logs.
-- [ ] 🚫 No 🟠 Sensitive data in a log line — see
+- [ ] 🚫 No 🟠 Sensitive data in a log line - see
       [data classification](data-classification.md). Watch for `log.info({ event })`.
 - [ ] Errors returned to clients carry a bare code, never a message, stack, or
       driver detail.
@@ -55,7 +55,7 @@ Findings marked 🚫 are blocking.
 ## New dependency
 
 - [ ] Is it necessary? `packages/policy` takes no dependencies but
-      `@friendszone/contracts` — 🚫 on anything else.
+      `@friendszone/contracts` - 🚫 on anything else.
 - [ ] Maintained, reasonable transitive tree, no install scripts doing network I/O.
 - [ ] Pinned to a range you have actually looked at.
 
@@ -67,7 +67,7 @@ Currently unmet. Track these as launch blockers:
 - [ ] Postgres with row-level security ([ADR 0004](../adr/0004-persistence.md))
 - [ ] Rate limiting on reads, writes, and any enumeration surface
 - [ ] Field-level encryption for 🟠 event titles, descriptions, locations
-- [ ] Reporting and moderation flow — a prerequisite for the exchange feature
+- [ ] Reporting and moderation flow - a prerequisite for the exchange feature
 - [ ] Audit log for privileged and administrative access
 - [ ] Retention jobs implemented per
       [data classification](data-classification.md#retention)

@@ -116,7 +116,7 @@ describe('enforcement', () => {
     // UPLOAD is the tightest class, so it is the cheapest to exhaust.
     const capacity = RATE_LIMITS.UPLOAD.capacity;
     for (let i = 0; i < capacity; i += 1) {
-      // These 400 on the payload, which is fine — a refused-for-content request
+      // These 400 on the payload, which is fine - a refused-for-content request
       // still spent a token, which is the behaviour we want.
       expect((await upload(ALICE)).statusCode).toBe(400);
     }

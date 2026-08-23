@@ -16,7 +16,7 @@ import {
  *
  * The contrast tests next door make legibility structural. These make
  * *distinguishability* structural, which is the failure a sighted reviewer
- * cannot catch by looking — the whole point being that the person reviewing the
+ * cannot catch by looking - the whole point being that the person reviewing the
  * palette can see the difference perfectly well.
  */
 
@@ -51,7 +51,7 @@ describe('the simulation itself', () => {
   });
 
   it('reproduces the defect that motivated this file', () => {
-    // The shipped palette's `moss` and `clay`. ΔE 0.6 under deuteranopia —
+    // The shipped palette's `moss` and `clay`. ΔE 0.6 under deuteranopia -
     // below the ~2.3 just-noticeable difference, so they were the same colour
     // for roughly 1 in 12 men. Kept as a test so the number stays real.
     const before = deltaE('#4A6B2A', '#9B3B32');
@@ -90,7 +90,7 @@ describe.each(PALETTE_NAMES)('%s palette', (name) => {
     it('delimits every chip with an edge that meets the UI-component threshold', () => {
       /**
        * A chip is a UI component before it is text, so WCAG 1.4.11 asks for
-       * 3:1 — but the *fill* cannot be what provides it. Okabe–Ito's orange is
+       * 3:1 - but the *fill* cannot be what provides it. Okabe–Ito's orange is
        * inherently light, and no light colour reaches 3:1 against a light
        * ground; the arithmetic forbids it. The border does the work instead,
        * mixed toward `ink` so it darkens in light mode and lightens in dark.

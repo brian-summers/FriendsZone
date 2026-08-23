@@ -15,6 +15,8 @@ import {
   type SharingDefaults as SharingDefaultsType,
   type SharingDefaultsView as SharingDefaultsViewType,
   type TimeRange,
+  UpdateQuietHoursInput,
+  type QuietHours,
 } from '@friendszone/contracts';
 import {
   assertAllowed,
@@ -82,7 +84,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
   };
 
   /**
-   * Project a stored event as its own owner — a FULL view carrying every
+   * Project a stored event as its own owner - a FULL view carrying every
    * owner-only field (sharedAs, the raw rules, the ceiling). The one shape a
    * create/update response should return, so the client can immediately edit
    * what it just wrote.
@@ -125,7 +127,11 @@ export const buildCalendarRoutes = (repos: Repositories) => {
         holdsFor(ownerId, viewer, window),
       ]);
 
-      return { ...projectCalendar({ ownerId, events, viewer, ownerDefaults, window }), holds };
+      const ownerQuietHours = await repos.calendar.quietHours(ownerId);
+      return {
+        ...projectCalendar({ ownerId, events, viewer, ownerDefaults, window, ownerQuietHours }),
+        holds,
+      };
     },
   }),
 
@@ -155,6 +161,9 @@ export const buildCalendarRoutes = (repos: Repositories) => {
 
       // Availability is strictly free/busy: no details, and no holds. A pending
       // hangout is a maybe, not a commitment, so it must not narrow free time.
+      // Availability deliberately omits quiet hours: this endpoint answers
+      // "when are they busy?", and a quiet hour is not busy. The full calendar
+      // view carries them for rendering; the free/busy contract has no field.
       const view = projectCalendar({ ownerId, events, viewer, ownerDefaults, window });
       return { ownerId: view.ownerId, window: view.window, busy: view.busy };
     },
@@ -164,7 +173,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
    * The sharing checkup: "what does Bob actually see of my week?"
    *
    * Note the shape of the request. It carries *whose eyes* to borrow, and never
-   * *whose calendar* — the calendar is always the caller's own. Adding an owner
+   * *whose calendar* - the calendar is always the caller's own. Adding an owner
    * parameter here would turn this endpoint into a complete bypass of the
    * visibility model, which is why the policy case for `calendar:preview`
    * asserts ownership rather than trusting the route.
@@ -219,7 +228,14 @@ export const buildCalendarRoutes = (repos: Repositories) => {
       ]);
 
       return {
-        ...projectCalendar({ ownerId, events, viewer: asViewer, ownerDefaults, window }),
+        ...projectCalendar({
+          ownerId,
+          events,
+          viewer: asViewer,
+          ownerDefaults,
+          window,
+          ownerQuietHours: await repos.calendar.quietHours(ownerId),
+        }),
         holds,
       };
     },
@@ -230,13 +246,13 @@ export const buildCalendarRoutes = (repos: Repositories) => {
    *
    * The security-relevant line is `ownerId: actorId`. The owner is taken from
    * the authenticated session and the request body's opinion on the matter, if
-   * any, is discarded — `CreateEventInput` has no `ownerId` field to supply. So
+   * any, is discarded - `CreateEventInput` has no `ownerId` field to supply. So
    * "create an event on someone else's calendar" is not a request that can be
    * expressed, let alone one the policy has to refuse.
    *
    * The response is the event projected back for its own creator, so the client
    * receives exactly the same shape it renders from a calendar read, `sharedAs`
-   * and all — never the raw stored row.
+   * and all - never the raw stored row.
    */
   defineRoute({
     method: 'POST',
@@ -273,13 +289,13 @@ export const buildCalendarRoutes = (repos: Repositories) => {
       };
 
       const stored = await repos.calendar.create(event);
-      // Return it as the owner would see it — FULL, with its editable rules.
+      // Return it as the owner would see it - FULL, with its editable rules.
       return ownerFullView(stored, await repos.calendar.sharingDefaults(actorId));
     },
   }),
 
   /**
-   * Edit an event you own — including its sharing rules (the per-event sharing
+   * Edit an event you own - including its sharing rules (the per-event sharing
    * editor is just this route carrying new `shareRules`/`visibilityCeiling`).
    *
    * Ownership is the gate (`event:modify`), and a hangout-origin event is
@@ -358,6 +374,44 @@ export const buildCalendarRoutes = (repos: Repositories) => {
     },
   }),
 
+  /**
+   * Your recurring unavailable window.
+   *
+   * Gated on `sharing:manage` rather than a new action: it is the same kind of
+   * thing, a standing rule over every future request rather than a decision
+   * about one, and it is equally self-scoped.
+   */
+  defineRoute({
+    method: 'GET',
+    rateLimit: 'READ',
+    url: '/v1/me/quiet-hours',
+    authz: { kind: 'POLICY', action: 'sharing:manage' },
+    params: z.object({}),
+    query: z.object({}),
+    handler: async (ctx): Promise<{ quietHours: QuietHours | null }> => {
+      if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
+      assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
+      return { quietHours: await repos.calendar.quietHours(ctx.actorId) };
+    },
+  }),
+
+  defineRoute({
+    method: 'PUT',
+    rateLimit: 'WRITE',
+    url: '/v1/me/quiet-hours',
+    authz: { kind: 'POLICY', action: 'sharing:manage' },
+    params: z.object({}),
+    query: z.object({}),
+    body: UpdateQuietHoursInput,
+    handler: async (ctx): Promise<{ quietHours: QuietHours | null }> => {
+      if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
+      assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
+
+      await repos.calendar.setQuietHours(ctx.actorId, ctx.body.quietHours);
+      return { quietHours: ctx.body.quietHours };
+    },
+  }),
+
   /** Read your own baseline sharing policy. */
   defineRoute({
     method: 'GET',
@@ -375,12 +429,12 @@ export const buildCalendarRoutes = (repos: Repositories) => {
         repos.calendar.hasExplicitSharingDefaults(ctx.actorId),
       ]);
       // `chosen: false` means they are on the conservative fallback and have
-      // never said so themselves — which is what onboarding asks about.
+      // never said so themselves - which is what onboarding asks about.
       return { rules: defaults.rules, preset: presetOf(defaults), chosen };
     },
   }),
 
-  /** Replace your own baseline sharing policy — the most-used privacy control. */
+  /** Replace your own baseline sharing policy - the most-used privacy control. */
   defineRoute({
     method: 'PUT',
     rateLimit: 'WRITE',
@@ -393,7 +447,7 @@ export const buildCalendarRoutes = (repos: Repositories) => {
       if (ctx.actorId === null) throw new PolicyDeniedError('sharing:manage', 'ANONYMOUS');
       assertAllowed(can(await ctx.viewerFor(ctx.actorId), { action: 'sharing:manage' }));
       const saved = await repos.calendar.setSharingDefaults(ctx.actorId, ctx.body);
-      // Saving anything — preset or custom — is the choice being made.
+      // Saving anything - preset or custom - is the choice being made.
       return { rules: saved.rules, preset: presetOf(saved), chosen: true };
     },
   }),

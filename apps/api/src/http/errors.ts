@@ -11,7 +11,7 @@ export interface HttpErrorResponse {
  * Too many requests.
  *
  * `retryAfterSeconds` is echoed to the caller because it says only how long
- * *they* must wait — a fact about themselves, disclosing nothing about anyone
+ * *they* must wait - a fact about themselves, disclosing nothing about anyone
  * else or about whether any resource exists.
  */
 export class RateLimitedError extends Error {
@@ -29,7 +29,7 @@ export class RateLimitedError extends Error {
  * The important choice here is that most denials become **404, not 403**.
  *
  * A 403 is an admission. "You may not see Alice's calendar" confirms that
- * Alice exists, that this id is hers, and — if the response varies by reason —
+ * Alice exists, that this id is hers, and - if the response varies by reason -
  * whether you are blocked or merely not a friend. Chained across a handle list,
  * that turns the API into a social graph oracle. Returning the same 404 for
  * "no such thing" and "not yours" costs a little debuggability and removes the

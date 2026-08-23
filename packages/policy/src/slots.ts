@@ -8,7 +8,7 @@ import { mergeBusyBlocks } from './projection.js';
 /**
  * The slot finder's arithmetic.
  *
- * Pure, and — critically — it takes **already-projected** busy blocks. It has no
+ * Pure, and - critically - it takes **already-projected** busy blocks. It has no
  * way to reach a raw calendar even if a caller wanted it to, which is what makes
  * the security property in docs/adr/0008-slot-finder-on-projections.md
  * structural rather than a convention:
@@ -58,7 +58,7 @@ function gapsWithin(window: TimeRange, busy: readonly BusyBlock[]): Array<[numbe
  * Clip a gap to the caller's allowed hours, in *their* local reckoning.
  *
  * Hour bounds are applied per calendar day using the supplied
- * `dayBoundsFor` — the kernel does not know what timezone anyone is in, and
+ * `dayBoundsFor` - the kernel does not know what timezone anyone is in, and
  * guessing would put "evening" in the wrong place for half the participants.
  */
 function withinHours(

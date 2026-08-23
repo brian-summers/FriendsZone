@@ -1,12 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 /**
- * A small popover for orientation text — the "why is this section here"
+ * A small popover for orientation text - the "why is this section here"
  * sentence that helps once and is noise forever after.
  *
  * **What must never go in one.** Consequence text stays on the page. If a
- * sentence tells someone what will happen to them — who will be able to read an
- * event, what a block does, what deletion keeps — it is not an explainer, and
+ * sentence tells someone what will happen to them - who will be able to read an
+ * event, what a block does, what deletion keeps - it is not an explainer, and
  * hiding it behind a control the user has to know to press is a safety
  * regression. The rule and its rationale live in
  * `packages/design-tokens/src/visibility.ts`: a visibility label is
@@ -20,7 +20,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
  *  2. WCAG 1.4.13 (Content on Hover or Focus) requires such content to be
  *     dismissible, hoverable, and persistent. A click-toggled panel gets all
  *     three by construction; a `:hover` div gets none.
- *  3. `title=` is worse than either — an unstyleable, delayed, touch-invisible
+ *  3. `title=` is worse than either - an unstyleable, delayed, touch-invisible
  *     tooltip that screen readers announce inconsistently.
  *
  * The trigger is a real `<button>` with `aria-expanded`, so it is reachable by

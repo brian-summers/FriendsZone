@@ -122,7 +122,7 @@ describe('projectListing', () => {
     expect(view?.yourClaim?.status).toBe('PENDING');
     // Absent, not empty: an empty array is a count, and zero is a number.
     expect(view).not.toHaveProperty('claims');
-    // Nothing about Carol survives serialisation — not her id, not her message.
+    // Nothing about Carol survives serialisation - not her id, not her message.
     expect(JSON.stringify(view)).not.toContain(CAROL);
     expect(JSON.stringify(view)).not.toContain('me please');
   });

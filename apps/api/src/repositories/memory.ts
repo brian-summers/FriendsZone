@@ -25,6 +25,7 @@ import {
   type ListingId,
   type Notification,
   type PublicProfile,
+  type QuietHours,
   TOMBSTONE_DISPLAY_NAME,
   type Report,
   type ReportId,
@@ -155,13 +156,13 @@ export class MemorySocialGraph implements SocialGraphPort {
 
   /**
    * ⚠️ **Lossy, and unsafely so.** `MemorySeed.friendships` is a bare pair, and
-   * the constructor reads every pair back as `ACCEPTED` — so a round trip
+   * the constructor reads every pair back as `ACCEPTED` - so a round trip
    * through here silently promotes a *pending request* into a real friendship,
    * which is a grant of calendar visibility nobody made.
    *
    * Harmless today: nothing consumes `snapshot()`. It existed for the durable
    * file store of ADR 0025, which ADR 0026 replaced with Postgres and deleted.
-   * Left in place because the seed shape is still how tests build a world —
+   * Left in place because the seed shape is still how tests build a world -
    * but if anything ever persists this again, `friendships` has to carry
    * `status` and `requestedBy` first.
    */
@@ -258,7 +259,7 @@ export class MemorySocialGraph implements SocialGraphPort {
     ownerIds: readonly UserId[],
   ): Promise<Map<UserId, { relationship: RelationshipKind; sharedCircleIds: CircleId[] }>> {
     const out = new Map<UserId, { relationship: RelationshipKind; sharedCircleIds: CircleId[] }>();
-    // Every id asked about gets an entry, including ones that do not exist —
+    // Every id asked about gets an entry, including ones that do not exist -
     // a missing key would distinguish "no such user" from "shares nothing".
     for (const ownerId of ownerIds) {
       out.set(ownerId, {
@@ -345,7 +346,7 @@ export class MemorySessions implements SessionPort {
 
 /**
  * Circles share the seed array with `MemorySocialGraph`, so a circle created
- * here is immediately visible to `sharedCircles` — the same row, not a copy.
+ * here is immediately visible to `sharedCircles` - the same row, not a copy.
  * A relational adapter gets this for free; in memory it has to be deliberate.
  */
 export class MemoryCircles implements CirclePort {
@@ -392,6 +393,7 @@ export class MemoryCircles implements CirclePort {
 export class MemoryCalendar implements CalendarPort {
   readonly #events: CalendarEvent[];
   readonly #defaults: Map<UserId, SharingDefaults>;
+  readonly #quietHours = new Map<UserId, QuietHours>();
 
   constructor(seed: MemorySeed) {
     // Copied, not aliased: the seed is shared across a test suite and mutating
@@ -457,8 +459,8 @@ export class MemoryCalendar implements CalendarPort {
         this.#events.splice(i, 1);
         continue;
       }
-      // Someone else's event that named this user as an attendee stays — it is
-      // their record of their own week — but stops naming them.
+      // Someone else's event that named this user as an attendee stays - it is
+      // their record of their own week - but stops naming them.
       if (event.attendeeIds.includes(ownerId)) {
         this.#events[i] = {
           ...event,
@@ -471,7 +473,7 @@ export class MemoryCalendar implements CalendarPort {
 
   async sharingDefaults(ownerId: UserId): Promise<SharingDefaults> {
     // A user with no configured policy gets the conservative one. The fallback
-    // must never be "share everything" — an absent row is not consent.
+    // must never be "share everything" - an absent row is not consent.
     return this.#defaults.get(ownerId) ?? CONSERVATIVE_SHARING_DEFAULTS;
   }
 
@@ -482,6 +484,15 @@ export class MemoryCalendar implements CalendarPort {
 
   async hasExplicitSharingDefaults(ownerId: UserId): Promise<boolean> {
     return this.#defaults.has(ownerId);
+  }
+
+  async quietHours(ownerId: UserId): Promise<QuietHours | null> {
+    return this.#quietHours.get(ownerId) ?? null;
+  }
+
+  async setQuietHours(ownerId: UserId, quiet: QuietHours | null): Promise<void> {
+    if (quiet === null) this.#quietHours.delete(ownerId);
+    else this.#quietHours.set(ownerId, quiet);
   }
 }
 
@@ -523,7 +534,7 @@ export class MemoryDirectory implements DirectoryPort {
    *
    * An earlier version copied the seed's friend pairs into this class, which
    * meant a friendship accepted through `saveFriendship` never appeared in
-   * `friendsOf` — a request could be accepted and the friend would not show up.
+   * `friendsOf` - a request could be accepted and the friend would not show up.
    * The Postgres adapter joins one table, so only the in-memory one could
    * drift, and it did.
    */
@@ -575,7 +586,7 @@ export class MemoryDirectory implements DirectoryPort {
   async tombstone(userId: UserId): Promise<void> {
     if (!this.#profiles.has(userId)) return;
     // Emptied in place, id kept. Every hangout, handoff, and moderation case
-    // referencing this id stays resolvable — and resolves to nothing.
+    // referencing this id stays resolvable - and resolves to nothing.
     this.#profiles.set(userId, {
       id: userId,
       handle: `deleted-${userId.slice(0, 8)}`,
@@ -855,7 +866,7 @@ export class MemoryPhotoStore implements PhotoStorePort {
     }
   }
 
-  /** Base64 so the snapshot stays JSON. Inflates bytes by a third — the
+  /** Base64 so the snapshot stays JSON. Inflates bytes by a third - the
    *  reason object storage is the real answer (ADR 0025). */
   snapshot(): NonNullable<MemorySeed['photos']> {
     return [...this.#photos].map(([key, p]) => ({
@@ -1007,7 +1018,7 @@ export class MemoryReports implements ReportPort {
        *
        * Kept when they are the *subject*, or deletion is an escape hatch from
        * moderation: harass, get reported, delete, case evaporates. Kept when
-       * they are the *reporter*, because the case protects someone else — and
+       * they are the *reporter*, because the case protects someone else - and
        * the filer is tombstoned by the time this runs, so anonymity holds
        * (ADR 0022).
        */

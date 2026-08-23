@@ -67,7 +67,7 @@ export function Circles({ actorId, people }: Props) {
         </Explainer>
       </h2>
       <p className="muted">
-        <strong>Only you ever see a circle or its name</strong> — nobody is told they’re in
+        <strong>Only you ever see a circle or its name</strong> - nobody is told they’re in
         one.
       </p>
 
@@ -134,7 +134,7 @@ export function Circles({ actorId, people }: Props) {
                   .filter((m) => !m.stillAFriend)
                   .map((m) => nameOf(m.userId))
                   .join(', ')}{' '}
-                — no longer a friend, so this circle shares nothing with them.
+                - no longer a friend, so this circle shares nothing with them.
               </p>
             )}
           </div>

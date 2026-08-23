@@ -100,7 +100,7 @@ export function EventEditForm({ event, weekStart, actorId, onDone, onCancel }: P
 
       <label className="check-field compact">
         <input type="checkbox" checked={exclusive} onChange={(e) => setExclusive(e.target.checked)} />
-        <span>Block this time — exclusive, no overlaps</span>
+        <span>Block this time - exclusive, no overlaps</span>
       </label>
 
       {error !== null && <p className="field-error" role="alert">{error}</p>}

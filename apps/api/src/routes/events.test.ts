@@ -207,7 +207,7 @@ describe('sharing defaults', () => {
 
   it('reports an unconfigured user as not having chosen', async () => {
     // DAVE has no seeded defaults row. He is on the conservative fallback and
-    // has never said so himself — the distinction onboarding needs.
+    // has never said so himself - the distinction onboarding needs.
     const res = await read(DAVE);
     expect(res.json().chosen).toBe(false);
     expect(res.json().preset).toBe('BUSY_TO_FRIENDS');
@@ -240,7 +240,7 @@ describe('sharing defaults', () => {
   });
 
   it('still accepts a wider configuration through custom rules', async () => {
-    // No *preset* grants FULL, but the lattice underneath is unchanged — the
+    // No *preset* grants FULL, but the lattice underneath is unchanged - the
     // refusal is about one-tap defaults, not about capability.
     const res = await write(ALICE, [{ audience: { kind: 'FRIENDS' }, level: 'FULL' }]);
     expect(res.statusCode).toBe(200);

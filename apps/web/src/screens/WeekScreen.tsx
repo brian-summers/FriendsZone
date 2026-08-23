@@ -29,7 +29,7 @@ interface Props {
 }
 
 /**
- * The week — the surface people spend nearly all their time on.
+ * The week - the surface people spend nearly all their time on.
  *
  * One component serves both "my week" and "a friend's week"; the difference is
  * entirely whether `ownerId === actorId`. That keeps the two visually identical
@@ -102,7 +102,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
       <div className="week-bar">
         <h2 className="week-title">{title}</h2>
         <span className="week-sub mono">{formatWeekLabel(weekStart)}</span>
-        {!isOwn && <span className="week-sub">— what they share with you</span>}
+        {!isOwn && <span className="week-sub">what they share with you</span>}
 
         <div className="stepper">
           {isOwn && (
@@ -154,7 +154,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
           onHoldActivate={(hold) => setOpenHold(hold)}
           // On your own calendar a drag creates an event; on a friend's it
           // proposes that time to them. Same gesture, whichever calendar's rules
-          // apply — a friend's grid never lets you write to their calendar.
+          // apply - a friend's grid never lets you write to their calendar.
           onRangeSelect={
             isOwn
               ? (range) => setCreating(range)
@@ -170,7 +170,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
         <p className="notice">
           <strong>Nothing to show.</strong> That is deliberately ambiguous: an empty week looks the
           same whether they’re free, share nothing with you, or have blocked you. The API returned{' '}
-          <span className="mono">200</span>, not an error — a refusal would confirm the account
+          <span className="mono">200</span>, not an error - a refusal would confirm the account
           exists.
         </p>
       )}
@@ -198,7 +198,7 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
           onClose={() => setFinding(false)}
           onPick={(slot) => {
             // Straight into the New Event dialog, pre-filled. Inviting is the
-            // existing per-friend Request time flow — hangouts resolve 1:1
+            // existing per-friend Request time flow - hangouts resolve 1:1
             // (ADR 0010), so there is no multi-party invite to offer here.
             setFinding(false);
             setCreating(slot);
@@ -212,10 +212,13 @@ export function WeekScreen({ ownerId, actorId, me, people, ownerProfile, onActiv
           actorId={actorId}
           initialRange={typeof creating === 'object' ? creating : undefined}
           onClose={() => setCreating(false)}
-          onCreated={(created) => {
+          onCreated={() => {
+            // Back to the calendar, not into the detail pane. You just said
+            // what the event is; being shown a read-only summary of it is a
+            // step backwards, and it hides the grid you wanted to see it land
+            // on. The new chip is visible behind the closing dialog.
             setCreating(false);
             setReloadNonce((n) => n + 1);
-            setOpenEvent(created);
           }}
         />
       )}

@@ -14,7 +14,7 @@ and this is the decision it was waiting for.
 "the one place the product moves people into physical proximity". Everything else
 Friendszone does is text between people who are already friends, and is
 recoverable if it goes wrong. This is not. A handoff record is a **named person,
-at a named place, at a known time** — the single most sensitive row the product
+at a named place, at a known time** - the single most sensitive row the product
 will ever write, and the one an attacker with access to the database would want
 most.
 
@@ -35,7 +35,7 @@ and the person most likely to click through without reading is the one being
 pressured into it.
 
 Either party may propose, and either may re-propose while it is still
-`PROPOSED` — haggling over a time is the normal case, not an exception.
+`PROPOSED` - haggling over a time is the normal case, not an exception.
 
 ### Booked events are capped at BUSY
 
@@ -47,7 +47,7 @@ safe rather than merely restrictive:
 
 - A **third party** resolves through `minVisibility(granted, ceiling)`, so the
   most anyone else can learn is that this person is occupied. Not where. Not with
-  whom. At `BUSY`, `projectEvent` emits a time range and nothing else — no title,
+  whom. At `BUSY`, `projectEvent` emits a time range and nothing else - no title,
   no location, no attendee list.
 - Both **participants** still see everything, because the attendee branch of
   `resolveEventVisibility` returns `FULL` *before* the ceiling clamp. Two people
@@ -56,7 +56,7 @@ safe rather than merely restrictive:
 This is the opposite of an accepted hangout, which uses `FULL`. A hangout is a
 social plan people are often happy to have visible. A handoff is an address.
 
-The events are `exclusive: true` — a firm commitment blocks its slot.
+The events are `exclusive: true` - a firm commitment blocks its slot.
 
 ### The location is typed by a person, and stored nowhere else
 
@@ -69,7 +69,7 @@ deliberately **no venue database, no map, and no location history**: building an
 of them would mean accumulating a record of where our users physically meet, and
 that dataset is more dangerous than the feature is valuable.
 
-The UI suggests meeting somewhere public. That is *copy*, not data — a sentence
+The UI suggests meeting somewhere public. That is *copy*, not data - a sentence
 in the compose form, not a list of places we tracked.
 
 ### Cancelling removes both events

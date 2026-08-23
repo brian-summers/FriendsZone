@@ -15,7 +15,7 @@ import type { Instant, Listing } from '@friendszone/contracts';
 /**
  * Has claiming closed?
  *
- * A listing with no `claimsCloseAt` never closes, so this is `false` — an offer
+ * A listing with no `claimsCloseAt` never closes, so this is `false` - an offer
  * may legitimately stay open indefinitely. Note what that means for
  * `listing:draw`: a lottery with no deadline can never be drawn, which is the
  * intended reading rather than an oversight. Drawing whenever you like is not a
@@ -42,7 +42,7 @@ export function areClaimsClosed(
  * entries and the same number, the same entry wins, every time.
  *
  * Callers must supply a *cryptographic* source. The draw is not a security
- * boundary in the strict sense — nothing is protected by the outcome — but a
+ * boundary in the strict sense - nothing is protected by the outcome - but a
  * sequence an entrant could predict from earlier draws would hollow out the one
  * property the feature is sold on.
  */

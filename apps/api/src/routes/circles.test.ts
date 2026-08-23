@@ -125,7 +125,7 @@ describe('circles', () => {
     it('marks a roster entry who is not a friend, rather than hiding them', async () => {
       /**
        * Seeded directly rather than by unfriending, because **there is no
-       * unfriend endpoint yet** — so this state is currently unreachable
+       * unfriend endpoint yet** - so this state is currently unreachable
        * through the product. It is still the documented invariant (rosters
        * outlive friendships; `audienceMatches` re-checks at read time), and
        * this asserts the view tells the owner the truth when it happens.
@@ -140,7 +140,7 @@ describe('circles', () => {
               id: CLIMBING_CREW,
               ownerId: ALICE,
               name: 'Climbing crew',
-              // Mallory is blocked by Alice — in the roster, not a friend.
+              // Mallory is blocked by Alice - in the roster, not a friend.
               memberIds: [BOB, MALLORY],
               createdAt: new Date().toISOString(),
             },
@@ -211,7 +211,7 @@ describe('circles', () => {
     it('narrows what a member could see, rather than widening it', async () => {
       /**
        * A fresh event with **no attendees**, because the attendee branch
-       * returns FULL before rules are consulted — the seeded climbing event
+       * returns FULL before rules are consulted - the seeded climbing event
        * has Bob as an attendee, so it would show him the location whether the
        * circle existed or not, and would prove nothing here.
        */

@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-07-20
-**Implemented:** 2026-08-02. The deferred question — "which query builder?" — is
+**Implemented:** 2026-08-02. The deferred question - "which query builder?" - is
 answered by [ADR 0026](0026-sql-layer.md), which chose raw SQL over Drizzle and
 gives the reasoning. Two items below remain outstanding and are named in
 Consequences: **field-level encryption** of 🟠 Sensitive fields, and moving photo
@@ -18,7 +18,7 @@ constrains what the security model can rely on.
 Requirements the store must meet:
 
 - Range queries over time intervals (`eventsInWindow` is the hot path).
-- Relational integrity for the social graph — an orphaned friendship row is a
+- Relational integrity for the social graph - an orphaned friendship row is a
   potential authorization bug.
 - Transactions across entities: accepting a hangout request creates events for
   several people, and a partial commit produces a phantom plan.
@@ -35,7 +35,7 @@ Specifics for whoever implements this:
 1. **Row-level security as a backstop, not the primary control.** The policy
    engine stays authoritative; RLS exists so that a bug in a handler hits a wall
    in the database rather than leaking. Policies should enforce ownership only
-   (`owner_id = current_setting('app.actor_id')`) — do **not** try to express
+   (`owner_id = current_setting('app.actor_id')`) - do **not** try to express
    the visibility lattice in SQL. That belongs in
    [`packages/policy`](../../packages/policy/), where it is readable and tested.
 2. **`app.actor_id` set per transaction**, never per connection. Pooled
@@ -44,7 +44,7 @@ Specifics for whoever implements this:
    `eventsInWindow` is the hot path and it is an overlap query.
 4. **Half-open ranges** (`[start, end)`) to match `TimeRange` semantics exactly.
    A closed range would make back-to-back events overlap.
-5. **Blocks are never hard-deleted** on account deletion — retain a one-way hash
+5. **Blocks are never hard-deleted** on account deletion - retain a one-way hash
    of the pair. See
    [data classification](../security/data-classification.md#retention) for the
    tension this resolves.
@@ -53,7 +53,7 @@ Specifics for whoever implements this:
    those fields; decide search strategy before encrypting, not after.
 
 Query builder: Drizzle preferred over an ORM, on the grounds that the projection
-path benefits from queries a reviewer can read as SQL. Not yet decided — that is
+path benefits from queries a reviewer can read as SQL. Not yet decided - that is
 a separate ADR when someone starts the work.
 
 ## Consequences

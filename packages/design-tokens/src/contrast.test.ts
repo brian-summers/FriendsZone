@@ -8,7 +8,7 @@ import { VISIBILITY_TREATMENTS, type VisibilityLevelName } from './visibility.js
  * Accessibility as a build gate.
  *
  * The rest of this repository makes security invariants structural rather than
- * procedural — a route cannot ship without an authz spec, a new action cannot
+ * procedural - a route cannot ship without an authz spec, a new action cannot
  * ship untested. Contrast gets the same treatment. "Check the contrast" is a
  * review comment people forget; a failing test is not.
  */
@@ -56,8 +56,8 @@ describe('visibility encoding', () => {
   const levels = Object.keys(VISIBILITY_TREATMENTS) as VisibilityLevelName[];
 
   it('never relies on color alone', () => {
-    // Four independent channels. Strip any one — a monochrome display, color
-    // vision deficiency, an icon that fails to load — and the level is still
+    // Four independent channels. Strip any one - a monochrome display, color
+    // vision deficiency, an icon that fails to load - and the level is still
     // unambiguous. See the rationale at the top of visibility.ts.
     const glyphs = new Set(levels.map((l) => VISIBILITY_TREATMENTS[l].glyph));
     const labels = new Set(levels.map((l) => VISIBILITY_TREATMENTS[l].label));

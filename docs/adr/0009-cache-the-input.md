@@ -31,8 +31,8 @@ They are safely cacheable:
 - Also cache the owner's `SharingDefaults`, which change rarely
 
 The projection is then recomputed per request from cached raw data. It is a pure
-function over a bounded set of events — microseconds of CPU for a realistic
-calendar — so recomputing it per viewer is genuinely cheap.
+function over a bounded set of events - microseconds of CPU for a realistic
+calendar - so recomputing it per viewer is genuinely cheap.
 
 **What must never be cached, at any layer:** `CalendarView`, `EventView`,
 `BusyBlock[]`, or any other per-viewer output. Not in Redis, not in a
@@ -48,13 +48,13 @@ process-local map, not behind a CDN, not in a service worker.
 - A cache poisoning bug exposes raw events to the *server*, which already has
   them. It cannot cause a cross-viewer disclosure, because nothing viewer-shaped
   is ever written to the cache. The blast radius of getting this wrong is
-  therefore small — which is exactly why the split is drawn here.
+  therefore small - which is exactly why the split is drawn here.
 - Requires a review rule with teeth: any new cache needs to state which side of
   the line it sits on. Worth an automated check if caching spreads.
 
 **This option only exists because the policy engine is pure.** A projection that
 performed I/O could not be recomputed cheaply per request, and we would be
-forced toward caching outputs and defending it with careful key construction —
+forced toward caching outputs and defending it with careful key construction -
 which is the design where one mistake becomes a cross-viewer leak. The purity
 constraint from [ADR 0005](0005-policy-engine.md) was adopted for testability
 and turns out to buy a scaling property as well.
@@ -62,8 +62,8 @@ and turns out to buy a scaling property as well.
 ## Alternatives considered
 
 **Cache projections keyed by (viewer, owner, window).** The obvious move, and it
-works right up until a key is constructed wrongly — a missing viewer id, a
-normalised window, a stale entry after an unfriend — at which point one person
+works right up until a key is constructed wrongly - a missing viewer id, a
+normalised window, a stale entry after an unfriend - at which point one person
 receives another person's view. The failure mode is a privacy breach rather than
 a stale page, and cache keys are not where anyone wants their privacy boundary.
 
@@ -73,6 +73,6 @@ change silently serves stale access. Same failure mode, more moving parts.
 
 **No caching; scale the database.** Honest and simple, and viable for a long
 time. Rejected as the plan of record because the fix is cheap and the read
-pattern is knowable now — but it is a perfectly reasonable place to start, and
+pattern is knowable now - but it is a perfectly reasonable place to start, and
 this ADR should not be read as a licence to build the cache before there is
 traffic to justify it.

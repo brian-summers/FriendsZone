@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest';
  *
  * The product's most important guarantee is that a user can tell, at a glance,
  * who can see a thing. `packages/design-tokens/src/visibility.ts` states the
- * rule for the level itself — *"always rendered as text. Never a tooltip, never
- * hover-only"* — and the same reasoning covers every sentence that tells
+ * rule for the level itself - *"always rendered as text. Never a tooltip, never
+ * hover-only"* - and the same reasoning covers every sentence that tells
  * somebody what will happen to them.
  *
  * These assertions read the source rather than the DOM on purpose. The failure
@@ -57,11 +57,11 @@ describe('helptext rules', () => {
      * has `pointer-events: none`.
      *
      * `title` as a *prop* on a React component (`<Placeholder title=…>`) is a
-     * different thing entirely and stays allowed — hence the lowercase-tag test.
+     * different thing entirely and stays allowed - hence the lowercase-tag test.
      */
     const offenders: string[] = [];
     for (const { file, text } of sources()) {
-      // `<div title=` / `<span title=` … — a lowercase tag name is a DOM element.
+      // `<div title=` / `<span title=` … - a lowercase tag name is a DOM element.
       if (/<[a-z][a-zA-Z0-9]*\s[^>]*\btitle=/.test(text)) offenders.push(file);
     }
     expect(offenders).toEqual([]);
@@ -69,7 +69,7 @@ describe('helptext rules', () => {
 
   it('renders the visibility glyph outside the truncating span', () => {
     // The badge's word may ellipsize on a narrow chip. When it does, the glyph
-    // is the channel that survives — so it must not share the clipped element.
+    // is the channel that survives - so it must not share the clipped element.
     const grid = readFileSync(join(SRC, 'components/WeekGrid.tsx'), 'utf8');
     expect(grid).toContain('<span className="g">{shared.glyph}</span>');
     expect(grid).toContain('<span className="w">{shared.label}</span>');

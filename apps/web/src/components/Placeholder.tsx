@@ -9,7 +9,7 @@ interface Props {
  *
  * It says what the screen will do and what is actually missing behind it,
  * rather than showing a fake list of items that implies working functionality.
- * A convincing placeholder is worse than an obvious one — it wastes a reviewer's
+ * A convincing placeholder is worse than an obvious one - it wastes a reviewer's
  * time and hides how much is left.
  */
 export function Placeholder({ title, blurb, status }: Props) {

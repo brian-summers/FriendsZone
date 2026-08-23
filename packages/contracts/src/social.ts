@@ -90,8 +90,8 @@ export type UpdateCircleInput = z.infer<typeof UpdateCircleInput>;
  * One member of a circle, as its owner sees them.
  *
  * `stillAFriend: false` marks someone the owner has since unfriended.
- * Unfriending deliberately does not scrub rosters — `audienceMatches` re-checks
- * friendship at read time, so a stale entry grants nothing — but the owner is
+ * Unfriending deliberately does not scrub rosters - `audienceMatches` re-checks
+ * friendship at read time, so a stale entry grants nothing - but the owner is
  * shown the truth rather than a quietly edited list.
  */
 export const CircleMemberView = z.object({
@@ -141,7 +141,7 @@ export type PersonSearchResult = z.infer<typeof PersonSearchResult>;
 
 /** A friend request, as one of its two parties sees it. */
 export const FriendRequestView = z.object({
-  /** The other person. Never a stranger — they asked you or you asked them. */
+  /** The other person. Never a stranger - they asked you or you asked them. */
   userId: UserId,
   handle: Handle,
   displayName: ShortText,
