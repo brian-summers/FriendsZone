@@ -390,23 +390,6 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
         )}
       </section>
 
-      <section className="settings-card">
-        <h2>What’s here, honestly</h2>
-        <ul className="honesty">
-          <li>
-            <span className="pill go">working</span> Week view, live per-viewer projections, creating
-            and editing events, per-event and default sharing, hangouts end to end.
-          </li>
-          <li>
-            <span className="pill warn">stub</span> Things (marketplace) — modelled and
-            policy-covered, gated on moderation shipping first.
-          </li>
-          <li>
-            <span className="pill">todo</span> Auth, persistence, circle management. The API runs on
-            in-memory demo data and refuses to start in production.
-          </li>
-        </ul>
-      </section>
     </div>
   );
 }

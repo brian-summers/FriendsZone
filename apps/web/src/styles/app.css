@@ -74,32 +74,7 @@ button { font: inherit; color: inherit; }
 
 .topbar-right { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
 
-.devbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: 0.2rem 0.4rem 0.2rem 0.6rem;
-  border: 1px dashed var(--amber);
-  border-radius: var(--radius-control);
-  font-size: 0.75rem;
-  color: var(--ink2);
-}
-.devbar label {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--amber);
-}
-.devbar select {
-  font: inherit;
-  font-size: 0.75rem;
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-control);
-  padding: 0.15rem 0.3rem;
-}
+
 
 .icon-btn {
   background: var(--surface);
@@ -784,23 +759,6 @@ button.chip.hold:hover {
 }
 .seg button:last-child { border-right: 0; }
 .seg button.seg-on { background: var(--verdigris); color: var(--on-verdigris); font-weight: 600; }
-
-.honesty { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
-.honesty li { font-size: 0.875rem; color: var(--ink2); display: flex; gap: var(--space-xs); align-items: baseline; }
-
-.pill {
-  display: inline-block;
-  padding: 0.05rem 0.45rem;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: 1px solid currentColor;
-  flex-shrink: 0;
-}
-.pill.go { color: var(--verdigris); }
-.pill.warn { color: var(--amber); }
 
 /* ── Nav count — quiet, never a red alert ──────────────────────────── */
 .nav-count {

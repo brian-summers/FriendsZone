@@ -10,22 +10,8 @@ import { ThingsScreen } from './screens/ThingsScreen.js';
 import { SignInScreen } from './screens/SignInScreen.js';
 import { ModerationScreen } from './screens/ModerationScreen.js';
 import { Placeholder } from './components/Placeholder.js';
-
-/**
- * Development identity switcher.
- *
- * Hardcoded rather than fetched: an endpoint that enumerates accounts would be
- * a real one needing real access control. This is scaffolding that disappears
- * when ADR 0006 lands, so it leaves no route behind. Ids match
- * apps/api/src/seed.ts.
- */
-const DEV_ACTORS = [
-  { id: '11111111-1111-4111-8111-111111111111', name: 'Alice (owner)' },
-  { id: '22222222-2222-4222-8222-222222222222', name: 'Bob (friend, climbing circle)' },
-  { id: '33333333-3333-4333-8333-333333333333', name: 'Carol (friend)' },
-  { id: '44444444-4444-4444-8444-444444444444', name: 'Dave (friend, shares nothing)' },
-  { id: '55555555-5555-4555-8555-555555555555', name: 'Mallory (blocked by Alice)' },
-];
+import { DevActorSwitcher } from './components/DevActorSwitcher.js';
+import { initialActorId } from './lib/dev.js';
 
 const ROUTES = ['/', '/people/:id', '/inbox', '/things', '/settings', '/moderation'] as const;
 
@@ -44,7 +30,7 @@ export function App() {
    * someone who is already signed in, on every load.
    */
   const [authState, setAuthState] = useState<'checking' | 'out' | 'in'>('checking');
-  const [actorId, setActorId] = useState<string>(DEV_ACTORS[0]!.id);
+  const [actorId, setActorId] = useState<string>(initialActorId);
   const [theme, setTheme] = useState<ThemeSelection>(() => loadTheme());
   const [me, setMe] = useState<MeView | null>(null);
   const [people, setPeople] = useState<PublicProfile[]>([]);
@@ -194,16 +180,10 @@ export function App() {
         <div className="topbar-spacer" />
 
         <div className="topbar-right">
-          <div className="devbar">
-            <label htmlFor="actor">Dev · acting as</label>
-            <select id="actor" value={actorId} onChange={(e) => setActorId(e.target.value)}>
-              {DEV_ACTORS.map((actor) => (
-                <option key={actor.id} value={actor.id}>
-                  {actor.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Absent from a production bundle, not hidden in one - see lib/dev.ts. */}
+          {import.meta.env.DEV && (
+            <DevActorSwitcher actorId={actorId} onChange={setActorId} />
+          )}
 
           <button
             type="button"
@@ -260,13 +240,17 @@ export function App() {
             <p className="side-note">No friends to show for this account.</p>
           )}
 
-          <p className="side-label" style={{ marginTop: 'var(--space-lg)' }}>
-            Try this
-          </p>
-          <p className="side-note">
-            Switch who you’re “acting as” in the header, then open a calendar. The same week looks
-            different to each person — that’s the whole product.
-          </p>
+          {import.meta.env.DEV && (
+            <>
+              <p className="side-label" style={{ marginTop: 'var(--space-lg)' }}>
+                Try this
+              </p>
+              <p className="side-note">
+                Switch who you’re “acting as” in the header, then open a calendar. The same week
+                looks different to each person — that’s the whole product.
+              </p>
+            </>
+          )}
         </aside>
 
         <main className={weekManagesItsOwnScroll ? 'main' : 'main main-scroll'}>

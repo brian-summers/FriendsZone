@@ -58,11 +58,23 @@ import type {
  */
 
 /**
- * Development-only identity header. Mirrors `DEV_ACTOR_HEADER` in the API,
- * which refuses to construct at all when `NODE_ENV=production`. Replace this
- * whole mechanism with session cookies when ADR 0006 is implemented.
+ * Development-only identity header, mirroring `DEV_ACTOR_HEADER` in the API.
+ *
+ * Session cookies are the real mechanism (ADR 0024) and are all a production
+ * build uses. The server already ignores this header outside development, so
+ * sending it would be harmless - but it would still put seeded user ids on
+ * the wire of every request a real person makes, which is a leftover rather
+ * than a control. `attachDevActor` is compiled away entirely; see lib/dev.ts.
  */
 const DEV_ACTOR_HEADER = 'x-dev-actor-id';
+
+const attachDevActor = (headers: Record<string, string>, actorId: string | null): void => {
+  // `import.meta.env.DEV` is substituted with `false` at build time, so this
+  // body is removed from the production bundle rather than skipped at runtime.
+  if (import.meta.env.DEV && actorId !== null && actorId !== '') {
+    headers[DEV_ACTOR_HEADER] = actorId;
+  }
+};
 
 export class ApiError extends Error {
   readonly status: number;
@@ -75,7 +87,7 @@ export class ApiError extends Error {
 
 async function get<T>(path: string, actorId: string | null, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = { accept: 'application/json' };
-  if (actorId !== null) headers[DEV_ACTOR_HEADER] = actorId;
+  attachDevActor(headers, actorId);
 
   const response = await fetch(`/api${path}`, {
     headers,
@@ -105,7 +117,7 @@ async function send<T>(
     accept: 'application/json',
     'content-type': 'application/json',
   };
-  if (actorId !== null) headers[DEV_ACTOR_HEADER] = actorId;
+  attachDevActor(headers, actorId);
 
   const response = await fetch(`/api${path}`, {
     method,

@@ -89,6 +89,12 @@ npm run dev:web       # app on :5173, proxies /api to :8080
 
 Open <http://localhost:5173>. The app boots as Alice with a populated week.
 
+The *Dev · acting as* switcher below exists **only on the dev server**. A
+production build has no switcher, no seeded ids, and sends no
+`x-dev-actor-id` header — `import.meta.env.DEV` is replaced with `false` at
+build time, so the bundler removes all of it rather than hiding it
+(`apps/web/src/lib/dev.ts`).
+
 **The thing to try first:** use the *Dev · acting as* switcher in the header to
 become Bob, then Carol, then Mallory, and open Alice's calendar from the
 sidebar. Bob is in her climbing circle and sees that event in full; Carol is an
