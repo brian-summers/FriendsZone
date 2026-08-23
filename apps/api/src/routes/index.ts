@@ -9,6 +9,7 @@ import { buildExchangeRoutes } from './exchanges.js';
 import { buildHangoutRoutes } from './hangouts.js';
 import { healthRoute, readyRoute } from './health.js';
 import { buildListingRoutes } from './listings.js';
+import { buildMessageRoutes } from './messages.js';
 import { buildPeopleRoutes } from './people.js';
 import { buildReportRoutes } from './reports.js';
 import { buildSlotRoutes } from './slots.js';
@@ -31,6 +32,7 @@ export function buildRoutes(repos: Repositories, config: Config): AnyRoute[] {
     ...buildAuthRoutes(repos, config),
     ...buildPeopleRoutes(repos),
     ...buildSocialRoutes(repos),
+    ...buildMessageRoutes(repos),
     ...buildAccountRoutes(repos),
     ...buildCircleRoutes(repos),
     ...buildCalendarRoutes(repos),

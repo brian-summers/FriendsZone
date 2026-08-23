@@ -8,12 +8,23 @@ import { SettingsScreen } from './screens/SettingsScreen.js';
 import { InboxScreen } from './screens/InboxScreen.js';
 import { ThingsScreen } from './screens/ThingsScreen.js';
 import { SignInScreen } from './screens/SignInScreen.js';
+import { PeopleScreen } from './screens/PeopleScreen.js';
+import { MessagesScreen } from './screens/MessagesScreen.js';
 import { ModerationScreen } from './screens/ModerationScreen.js';
 import { Placeholder } from './components/Placeholder.js';
 import { DevActorSwitcher } from './components/DevActorSwitcher.js';
 import { initialActorId } from './lib/dev.js';
 
-const ROUTES = ['/', '/people/:id', '/inbox', '/things', '/settings', '/moderation'] as const;
+const ROUTES = [
+  '/',
+  '/people/:id',
+  '/people',
+  '/messages',
+  '/inbox',
+  '/things',
+  '/settings',
+  '/moderation',
+] as const;
 
 const initials = (name: string): string =>
   name
@@ -37,6 +48,10 @@ export function App() {
   /** Bumped when a friendship is accepted, removed, or blocked away. */
   const [graph, setGraph] = useState(0);
   const [pendingInbox, setPendingInbox] = useState(0);
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  /** Set by a "Message" button, consumed by the Messages screen on open. */
+  const [messageTo, setMessageTo] = useState<string | null>(null);
   // Bumped after any mutation so derived counts (the inbox badge) refresh
   // without each screen having to know about the shell.
   const [activity, setActivity] = useState(0);
@@ -111,6 +126,26 @@ export function App() {
     return () => controller.abort();
   }, [actorId, activity]);
 
+  /**
+   * Badge counts for People and Messages.
+   *
+   * Both are quiet numbers, never a red pulsing dot - the same restraint the
+   * inbox count uses. A request that demands to be dealt with *now* is exactly
+   * the pressure this product removes (ADR 0007).
+   */
+  useEffect(() => {
+    const controller = new AbortController();
+    void Promise.all([
+      api.friendRequests(actorId, controller.signal).catch(() => ({ requests: [] })),
+      api.conversations(actorId, controller.signal).catch(() => ({ conversations: [] })),
+    ]).then(([r, c]) => {
+      if (controller.signal.aborted) return;
+      setPendingRequests(r.requests.filter((req) => !req.sentByYou).length);
+      setUnreadMessages(c.conversations.reduce((n, conv) => n + conv.unread, 0));
+    });
+    return () => controller.abort();
+  }, [actorId, activity, graph]);
+
   const peopleById = useMemo(() => {
     const map = new Map<string, PublicProfile>();
     if (me) map.set(me.id, me);
@@ -127,7 +162,15 @@ export function App() {
   // <main> to scroll for them. Getting this wrong is silent — the content is
   // clipped at the fold rather than erroring — so it is derived from the route
   // rather than set per screen.
-  const weekManagesItsOwnScroll = match?.pattern === '/' || match?.pattern === '/people/:id';
+  /**
+   * Screens that scroll their own panes rather than the page.
+   *
+   * The week grid scrolls its own body; Messages scrolls the mailbox list and
+   * the thread independently. Giving `main` a scrollbar as well produces two
+   * nested scrollers and a thread you cannot reach the bottom of.
+   */
+  const screenManagesItsOwnScroll =
+    match?.pattern === '/' || match?.pattern === '/people/:id' || match?.pattern === '/messages';
 
   if (authState === 'checking') return <div className="app" />;
 
@@ -158,6 +201,17 @@ export function App() {
           <a {...linkProps('/inbox')} aria-current={isActive('/inbox') ? 'page' : undefined}>
             Inbox
             {pendingInbox > 0 && <span className="nav-count">{pendingInbox}</span>}
+          </a>
+          <a {...linkProps('/messages')} aria-current={isActive('/messages') ? 'page' : undefined}>
+            Messages
+            {unreadMessages > 0 && <span className="nav-count">{unreadMessages}</span>}
+          </a>
+          <a
+            {...linkProps('/people')}
+            aria-current={isActive('/people') && !viewingPersonId ? 'page' : undefined}
+          >
+            People
+            {pendingRequests > 0 && <span className="nav-count">{pendingRequests}</span>}
           </a>
           <a {...linkProps('/things')} aria-current={isActive('/things') ? 'page' : undefined}>
             Things
@@ -253,7 +307,7 @@ export function App() {
           )}
         </aside>
 
-        <main className={weekManagesItsOwnScroll ? 'main' : 'main main-scroll'}>
+        <main className={screenManagesItsOwnScroll ? 'main' : 'main main-scroll'}>
           {match === null && (
             <Placeholder
               title="Not found"
@@ -294,6 +348,27 @@ export function App() {
           )}
 
           {match?.pattern === '/moderation' && <ModerationScreen actorId={actorId} />}
+
+          {match?.pattern === '/people' && (
+            <PeopleScreen
+              actorId={actorId}
+              people={people}
+              onGraphChanged={() => setGraph((n) => n + 1)}
+              onMessage={(userId) => {
+                setMessageTo(userId);
+                navigate('/messages');
+              }}
+            />
+          )}
+
+          {match?.pattern === '/messages' && (
+            <MessagesScreen
+              actorId={actorId}
+              people={people}
+              startWith={messageTo}
+              onActivity={bumpActivity}
+            />
+          )}
 
           {match?.pattern === '/settings' && (
             <SettingsScreen

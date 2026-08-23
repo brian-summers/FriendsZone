@@ -122,6 +122,14 @@ anything in this list, read the comment next to it — each has one:
   producing a friend.
 - Search over-fetches `MAX_SEARCH_RESULTS * 2` and *then* filters blocks → a
   limit applied after filtering makes a short page a block oracle.
+- `Conversation` has two read columns rather than one shared value → one
+  party's reading must not clear the other's unread count.
+- `unreadCount` compares `sentAt > readAt` strictly → `>=` would count the
+  reader's own read moment as unread forever.
+- `MessagePort` has no `eraseUser` → deleting your account does not reach into
+  someone else's mailbox and delete what you said to them.
+- Discoverability is filtered in the *adapter*, not the route, unlike blocks →
+  it is a match rule about the row, not an authz decision about the viewer.
 - `events.span` is `[start, end)` and queried with `&&` → a closed range would
   make every back-to-back pair look like a clash.
 - `verifyAgainstNobody` runs on a login for an email that does not exist → the
@@ -269,6 +277,15 @@ Decisions worth knowing before touching hangouts or the calendar:
   caller's row. Blocking severs the friendship and any pending request. Search
   is bounded, `EXPENSIVE`, and returns the same empty list for "no such handle"
   and "blocked either way".
+- [ADR 0029](docs/adr/0029-direct-messages-and-discoverability.md): messages are
+  a **mailbox, not a chat** — and there are **no read receipts**. `Conversation`
+  holds a bookmark *per participant* and neither is ever projected to the other
+  side; `messages.test.ts` asserts the serialised body contains no `readAt`.
+  Sending needs `FRIEND` exactly (not `PENDING`) and `message:send` is **not**
+  block-exempt. Reading a thread survives an unfriend but **not** a block.
+  Conversations are addressed by *recipient*, never by id. Discoverability is
+  `EVERYONE | EXACT_HANDLE | NOBODY` — there is deliberately **no
+  `FRIENDS_OF_FRIENDS`**, because answering it means walking the graph.
 - [ADR 0023](docs/adr/0023-circle-management.md): a circle is **owner-only, its
   name most of all**. No endpoint answers "which circles am I in" — not a
   profile line, not a checkup that explains *why* someone can see something.

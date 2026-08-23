@@ -35,6 +35,10 @@ vi.mock('./lib/api.js', () => {
       circles: async () => ({ circles: [] }),
       friendRequests: async () => ({ requests: [] }),
       blockedPeople: async () => ({ blocked: [] }),
+      conversations: async () => ({ conversations: [] }),
+      thread: async () => ({ id: 'c', withUserId: 'u', withHandle: 'u', withDisplayName: 'U', messages: [] }),
+      markConversationRead: async () => ({ read: true }),
+      setDiscoverability: async () => ({ discoverability: 'EVERYONE' }),
       photoUrl: (listingId: string, key: string) => `/api/v1/listings/${listingId}/photos/${key}`,
     },
   };
@@ -66,9 +70,20 @@ describe('the shell decides which element scrolls', () => {
   // header can stay sticky. Every other screen has none, so <main> has to
   // scroll for them — otherwise their content is clipped at the fold with no
   // way to reach it, which is invisible in tests that only assert content.
-  it.each(['/inbox', '/things', '/settings'])('scrolls <main> on %s', async (path) => {
-    const main = await mainAt(path);
-    expect(main.classList.contains('main-scroll')).toBe(true);
+  it.each(['/inbox', '/things', '/settings', '/people'])(
+    'scrolls <main> on %s',
+    async (path) => {
+      const main = await mainAt(path);
+      expect(main.classList.contains('main-scroll')).toBe(true);
+    },
+  );
+
+  it('leaves scrolling to the panes on Messages', async () => {
+    // The mailbox list and the thread each scroll independently. A scrollbar
+    // on <main> as well would nest two scrollers and put the newest message
+    // out of reach.
+    const main = await mainAt('/messages');
+    expect(main.classList.contains('main-scroll')).toBe(false);
   });
 
   it('leaves scrolling to the grid on your own week', async () => {

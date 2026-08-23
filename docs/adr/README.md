@@ -40,6 +40,7 @@ someone will inevitably re-propose.
 | [0026](0026-sql-layer.md) | Raw SQL behind a two-method client, tested against real Postgres | Accepted |
 | [0027](0027-deploy-on-aws.md) | One origin on AWS; Cloudflare drops to DNS or nothing | Accepted |
 | [0028](0028-friend-requests-and-blocking.md) | A request is a pending friendship; blocks are directed, so unblocking cannot lift theirs | Accepted |
+| [0029](0029-direct-messages-and-discoverability.md) | Messages are a mailbox with no read receipts; discoverability has no friends-of-friends | Accepted |
 
 ## Template
 

@@ -19,3 +19,4 @@ export * from './projection.js';
 export * from './marketplace.js';
 export * from './slots.js';
 export * from './actions.js';
+export * from './messaging.js';

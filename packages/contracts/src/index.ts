@@ -16,5 +16,6 @@ export * from './hangout.js';
 export * from './notification.js';
 export * from './marketplace.js';
 export * from './moderation.js';
+export * from './messaging.js';
 export * from './account.js';
 export * from './auth.js';

@@ -67,6 +67,9 @@ Still rate-limit. Public does not mean bulk-harvestable.
 | `Listing.photoKeys` → stored bytes | 🟠 | A photo of a possession, often taken indoors at home. Served only through a listing the viewer can see, never by key alone |
 | `Claim.claimantId` | 🟠 | Who wants what someone owns. Disclosed to the listing owner alone — never to fellow claimants, not even as a count |
 | `Claim.message` | 🟠 | Free text to one specific person |
+| `Message.body` | 🟠 | Free text between two named people. **Never logged**, never in an error, and never previewed to anyone but the two parties |
+| `Conversation.lowReadAt` / `.highReadAt` | 🟠 | Each party's own read bookmark. Projected to *its owner* and to nobody else — disclosing it to the sender is a read receipt, which [ADR 0029](../adr/0029-direct-messages-and-discoverability.md) refuses |
+| `User.discoverability` | 🟠 | Private configuration. Appears on `MeView` and on no projection that reaches another person: "why can't I find them" is an answer about them |
 | `Report.reporterId` | 🔴 | **Never** reaches the subject, at any status. Disclosure invites retaliation against someone who asked for help |
 | `Report.detail` | 🟠 | The reporter's own words, which routinely identify them. Moderators only |
 | `ReportNote.body` | 🟠 | Scoped to one thread; the other party never receives it |

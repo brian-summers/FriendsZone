@@ -3,20 +3,22 @@ import { PALETTES, PALETTE_NAMES } from '@friendszone/design-tokens';
 import {
   SHARING_PRESETS,
   SharingPresetName,
+  type MeView,
   type PublicProfile,
   type ShareRule,
   type SharingPresetOrCustom,
+  type Discoverability,
   type VisibilityLevel,
 } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
 import { Circles } from '../components/Circles.js';
 import { Explainer } from '../components/Explainer.js';
-import { Friends } from '../components/Friends.js';
 import type { ThemeChoice, ThemeSelection } from '../lib/theme.js';
 import { encodingFor } from '../lib/visibility.js';
 
 interface Props {
-  me: PublicProfile | null;
+  /** `MeView`, not `PublicProfile`: only your own view carries `discoverability`. */
+  me: MeView | null;
   /** Friends, for circle membership. */
   people: PublicProfile[];
   actorId: string;
@@ -48,7 +50,46 @@ const PRESET_LABEL: Record<SharingPresetName, string> = {
  * making them editable, in plain language, matters more than any other switch
  * on this screen.
  */
+/**
+ * The three findability settings, in the user's words.
+ *
+ * There is deliberately no "friends of friends": answering it would mean
+ * walking the social graph one hop out from the searcher, which the threat
+ * model relies on being impossible. A privacy *setting* that quietly built the
+ * graph-traversal endpoint would be the worst possible place to add one.
+ */
+const DISCOVERABILITY_CHOICES: Array<{
+  value: Discoverability;
+  label: string;
+  blurb: string;
+}> = [
+  {
+    value: 'EVERYONE',
+    label: 'Anyone can find me',
+    blurb: 'You appear in search by handle or by your display name. This is the default.',
+  },
+  {
+    value: 'EXACT_HANDLE',
+    label: 'Only by my exact handle',
+    blurb:
+      'Someone has to type your whole handle. You will not appear in partial matches or by name — so you are found by people you gave it to, not by people scrolling.',
+  },
+  {
+    value: 'NOBODY',
+    label: 'Nobody can find me',
+    blurb:
+      'You never appear in search. Friends you already have are unaffected, and you can still send requests yourself.',
+  },
+];
+
 export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphChanged }: Props) {
+  const [discoverability, setDiscoverability] = useState<Discoverability>(
+    me?.discoverability ?? 'EVERYONE',
+  );
+  useEffect(() => {
+    if (me) setDiscoverability(me.discoverability);
+  }, [me]);
+
   const [friends, setFriends] = useState<VisibilityLevel>('BUSY');
   const [everyone, setEveryone] = useState<VisibilityLevel>('HIDDEN');
   const [loaded, setLoaded] = useState(false);
@@ -244,7 +285,38 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
         </fieldset>
       </section>
 
-      <Friends actorId={actorId} people={people} onGraphChanged={onGraphChanged} />
+      <section className="settings-card">
+        <h2>
+          Finding you
+          <Explainer label="About being found">
+            This controls people search only. It never affects friends you already have, and
+            nobody is ever told what you chose — including someone who cannot find you.
+          </Explainer>
+        </h2>
+        <div className="palette-list">
+          {DISCOVERABILITY_CHOICES.map(({ value, label, blurb }) => {
+            const on = discoverability === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                className={`palette-option${on ? ' palette-on' : ''}`}
+                aria-pressed={on}
+                onClick={() => {
+                  setDiscoverability(value);
+                  void api.setDiscoverability(value, actorId).catch(() => undefined);
+                }}
+              >
+                <span className="palette-head">
+                  <strong>{label}</strong>
+                  {on ? <span className="palette-current">In use</span> : null}
+                </span>
+                <span className="palette-blurb">{blurb}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <Circles actorId={actorId} people={people} />
 

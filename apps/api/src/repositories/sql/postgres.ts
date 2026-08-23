@@ -9,11 +9,16 @@ import type {
   EventId,
   Exchange,
   ExchangeId,
+  Conversation,
+  ConversationId,
+  Discoverability,
   Friendship,
   HangoutRequest,
   HangoutRequestId,
   Listing,
   ListingId,
+  Message,
+  MessageId,
   Notification,
   PublicProfile,
   RelationshipKind,
@@ -26,7 +31,11 @@ import type {
   TimeRange,
   UserId,
 } from '@friendszone/contracts';
-import { CONSERVATIVE_SHARING_DEFAULTS, TOMBSTONE_DISPLAY_NAME } from '@friendszone/contracts';
+import {
+  CONSERVATIVE_SHARING_DEFAULTS,
+  DEFAULT_DISCOVERABILITY,
+  TOMBSTONE_DISPLAY_NAME,
+} from '@friendszone/contracts';
 import type {
   CalendarPort,
   CirclePort,
@@ -39,6 +48,7 @@ import type {
   NotifierPort,
   PhotoStorePort,
   Repositories,
+  MessagePort,
   ReportPort,
   SessionPort,
   SocialGraphPort,
@@ -63,7 +73,46 @@ import type { SqlClient } from './client.js';
 /** Canonical pair ordering, matching the `check` constraints in schema.sql. */
 const pair = (a: UserId, b: UserId): [UserId, UserId] => (a < b ? [a, b] : [b, a]);
 
-/** `[start, end)` — half-open, so back-to-back events do not overlap. */
+interface ConversationRow {
+  id: ConversationId;
+  low_user_id: UserId;
+  high_user_id: UserId;
+  created_at: Date;
+  last_message_at: Date;
+  low_read_at: Date | null;
+  high_read_at: Date | null;
+}
+
+const CONVERSATION_COLS =
+  'id, low_user_id, high_user_id, created_at, last_message_at, low_read_at, high_read_at';
+
+const conversationOf = (r: ConversationRow): Conversation => ({
+  id: r.id,
+  lowUserId: r.low_user_id,
+  highUserId: r.high_user_id,
+  createdAt: new Date(r.created_at).toISOString(),
+  lastMessageAt: new Date(r.last_message_at).toISOString(),
+  ...(r.low_read_at === null ? {} : { lowReadAt: new Date(r.low_read_at).toISOString() }),
+  ...(r.high_read_at === null ? {} : { highReadAt: new Date(r.high_read_at).toISOString() }),
+});
+
+interface MessageRow {
+  id: MessageId;
+  conversation_id: ConversationId;
+  sender_id: UserId;
+  body: string;
+  sent_at: Date;
+}
+
+const messageOf = (r: MessageRow): Message => ({
+  id: r.id,
+  conversationId: r.conversation_id,
+  senderId: r.sender_id,
+  body: r.body,
+  sentAt: new Date(r.sent_at).toISOString(),
+});
+
+/** `[start, end)` - half-open, so back-to-back events do not overlap. */
 const spanOf = (range: TimeRange): string => `[${range.start},${range.end})`;
 
 type DocRow<T> = { doc: T };
@@ -278,14 +327,38 @@ class SqlDirectory implements DirectoryPort {
     // exist. Tombstoned accounts are dropped here: a deleted user is not
     // someone any caller could befriend (ADR 0028).
     const rows = await this.db.query<Parameters<typeof profileOf>[0]>(
+      /**
+       * The match rule depends on the *row's own* setting, not the viewer's:
+       * EVERYONE matches a handle prefix or a display-name substring,
+       * EXACT_HANDLE matches only a complete handle, NOBODY never matches.
+       * Blocks are still filtered in the route - this is what the query means
+       * for that row, not what this viewer is allowed to see.
+       */
       `select ${PROFILE_COLS} from users
         where not tombstoned
-          and (lower(handle) like lower($1) || '%' or lower(display_name) like '%' || lower($1) || '%')
+          and (
+            (discoverability = 'EVERYONE' and (
+                lower(handle) like lower($1) || '%'
+                or lower(display_name) like '%' || lower($1) || '%'))
+            or (discoverability = 'EXACT_HANDLE' and lower(handle) = lower($1))
+          )
         order by display_name
         limit $2`,
       [query.trim(), limit],
     );
     return rows.map(profileOf);
+  }
+
+  async discoverability(userId: UserId): Promise<Discoverability> {
+    const rows = await this.db.query<{ discoverability: Discoverability }>(
+      `select discoverability from users where id = $1`,
+      [userId],
+    );
+    return rows[0]?.discoverability ?? DEFAULT_DISCOVERABILITY;
+  }
+
+  async setDiscoverability(userId: UserId, value: Discoverability): Promise<void> {
+    await this.db.query(`update users set discoverability = $2 where id = $1`, [userId, value]);
   }
 
   async create(profile: PublicProfile): Promise<PublicProfile> {
@@ -1028,6 +1101,106 @@ class LoggingNotifier implements NotifierPort {
   }
 }
 
+/**
+ * Direct messages.
+ *
+ * No `eraseUser`: deleting an account does not reach into someone else's
+ * mailbox. See `MessagePort` for the reasoning.
+ */
+class SqlMessages implements MessagePort {
+  constructor(private readonly db: SqlClient) {}
+
+  async conversationsFor(userId: UserId, limit: number): Promise<Conversation[]> {
+    const rows = await this.db.query<ConversationRow>(
+      `select ${CONVERSATION_COLS} from conversations
+        where low_user_id = $1 or high_user_id = $1
+        order by last_message_at desc
+        limit $2`,
+      [userId, limit],
+    );
+    return rows.map(conversationOf);
+  }
+
+  async conversationById(id: ConversationId): Promise<Conversation | null> {
+    const rows = await this.db.query<ConversationRow>(
+      `select ${CONVERSATION_COLS} from conversations where id = $1`,
+      [id],
+    );
+    const r = rows[0];
+    return r === undefined ? null : conversationOf(r);
+  }
+
+  async conversationBetween(a: UserId, b: UserId): Promise<Conversation | null> {
+    const [low, high] = pair(a, b);
+    const rows = await this.db.query<ConversationRow>(
+      `select ${CONVERSATION_COLS} from conversations
+        where low_user_id = $1 and high_user_id = $2`,
+      [low, high],
+    );
+    const r = rows[0];
+    return r === undefined ? null : conversationOf(r);
+  }
+
+  async saveConversation(conversation: Conversation): Promise<Conversation> {
+    await this.db.query(
+      `insert into conversations
+         (id, low_user_id, high_user_id, created_at, last_message_at, low_read_at, high_read_at)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       on conflict (id) do update set
+         last_message_at = excluded.last_message_at,
+         low_read_at     = excluded.low_read_at,
+         high_read_at    = excluded.high_read_at`,
+      [
+        conversation.id,
+        conversation.lowUserId,
+        conversation.highUserId,
+        conversation.createdAt,
+        conversation.lastMessageAt,
+        conversation.lowReadAt ?? null,
+        conversation.highReadAt ?? null,
+      ],
+    );
+    return conversation;
+  }
+
+  async messagesIn(conversationId: ConversationId, limit: number): Promise<Message[]> {
+    // The most recent `limit`, returned oldest-first: a mailbox truncates the
+    // top of a long thread, never the bottom. The inner order is descending so
+    // the index does the work; the outer one puts it back.
+    const rows = await this.db.query<MessageRow>(
+      `select * from (
+         select id, conversation_id, sender_id, body, sent_at
+           from messages where conversation_id = $1
+          order by sent_at desc
+          limit $2
+       ) recent order by sent_at asc`,
+      [conversationId, limit],
+    );
+    return rows.map(messageOf);
+  }
+
+  async addMessage(message: Message): Promise<Message> {
+    await this.db.query(
+      `insert into messages (id, conversation_id, sender_id, body, sent_at)
+       values ($1, $2, $3, $4, $5)`,
+      [message.id, message.conversationId, message.senderId, message.body, message.sentAt],
+    );
+    return message;
+  }
+
+  async markRead(conversationId: ConversationId, userId: UserId, at: string): Promise<void> {
+    // Only the caller's own side. A single shared column would let one party's
+    // reading clear the other's unread count.
+    await this.db.query(
+      `update conversations
+          set low_read_at  = case when low_user_id  = $2 then $3 else low_read_at  end,
+              high_read_at = case when high_user_id = $2 then $3 else high_read_at end
+        where id = $1`,
+      [conversationId, userId, at],
+    );
+  }
+}
+
 export function createSqlRepositories(db: SqlClient): Repositories {
   return {
     social: new SqlSocialGraph(db),
@@ -1042,6 +1215,7 @@ export function createSqlRepositories(db: SqlClient): Repositories {
     sessions: new SqlSessions(db),
     exchanges: new SqlExchanges(db),
     reports: new SqlReports(db),
+  messages: new SqlMessages(db),
     notifier: new LoggingNotifier(),
   };
 }

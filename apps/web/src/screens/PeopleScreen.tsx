@@ -7,42 +7,42 @@ import type {
 } from '@friendszone/contracts';
 import { MIN_SEARCH_LENGTH } from '@friendszone/contracts';
 import { api, ApiError } from '../lib/api.js';
-import { Explainer } from './Explainer.js';
+import { Explainer } from '../components/Explainer.js';
 
 /**
- * Friends: finding people, answering requests, unfriending, and blocking.
+ * People — finding, adding, and answering.
  *
- * Two things this screen must never do, both of which look like helpful
- * features until you write down who they help:
+ * This used to live inside Settings, which was the wrong place twice over.
+ * Adding a friend is the first thing a new account needs to do, and answering
+ * a request is time-sensitive in the mild way this product allows: burying
+ * both behind a settings menu meant a request could sit unseen for a week.
  *
- *  - Tell you that you have been blocked. A blocked person simply cannot be
- *    found, and this screen shows exactly what the server sent: nothing. There
- *    is no "no results — you may have been blocked" hint, because that hint is
- *    the disclosure.
- *  - Tell you a request was declined. A declined request leaves no record, so
+ * Two things this screen must never do, both of which look helpful:
+ *
+ *  - Suggest that an empty result might mean you were blocked. It shows what
+ *    the server sent, which is nothing, with no hint that a second explanation
+ *    exists. Someone who has set themselves unfindable is indistinguishable
+ *    from a handle nobody has.
+ *  - Report that a request was declined. Declining deletes the row, so
  *    "waiting" and "turned down" render identically — as nothing at all.
- *
- * The unblock copy says plainly that lifting your block does not lift theirs,
- * because a user who assumes otherwise would draw a wrong conclusion from
- * silence (docs/adr/0028-friend-requests-and-blocking.md).
  */
 
 interface Props {
   actorId: string;
-  /** Current friends, so the list reflects an accept without a full reload. */
   people: PublicProfile[];
-  /** Ask the shell to refetch `/v1/people` after the graph changes. */
   onGraphChanged: () => void;
+  /** Open a conversation with this person. */
+  onMessage: (userId: string) => void;
 }
 
 const STATUS_LABEL: Record<SearchResultStatus, string> = {
   NONE: 'Add friend',
   REQUESTED: 'Requested',
-  AWAITING_YOU: 'Respond',
-  FRIEND: 'Friends',
+  AWAITING_YOU: 'Answer below',
+  FRIEND: 'Already friends',
 };
 
-export function Friends({ actorId, people, onGraphChanged }: Props) {
+export function PeopleScreen({ actorId, people, onGraphChanged, onMessage }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PersonSearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -72,8 +72,8 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
     return () => controller.abort();
   }, [actorId, nonce]);
 
-  // Debounced, because search is the one rate-limited-as-EXPENSIVE endpoint and
-  // a keystroke-per-request would spend the caller's own budget on themselves.
+  // Debounced: search is the one `EXPENSIVE`-classed endpoint, and a request
+  // per keystroke would spend the caller's own rate budget on themselves.
   useEffect(() => {
     const q = query.trim();
     if (q.length < MIN_SEARCH_LENGTH) {
@@ -114,19 +114,20 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
   const outgoing = requests.filter((r) => r.sentByYou);
 
   return (
-    <section className="settings-card">
-      <h2>Friends</h2>
-
+    <div className="people-screen">
       {error === null ? null : (
         <p className="form-error" role="alert">
           {error}
         </p>
       )}
 
-      {/* ── Requests waiting on you ─────────────────────────────── */}
-      {incoming.length === 0 ? null : (
-        <div className="friends-group">
-          <h3>Waiting on you</h3>
+      {/* Requests first, and above the fold. Someone waiting on you is the
+          most time-sensitive thing this screen has to say. */}
+      {incoming.length > 0 && (
+        <section className="settings-card people-requests">
+          <h2>
+            {incoming.length === 1 ? 'Someone wants to connect' : `${incoming.length} people want to connect`}
+          </h2>
           <ul className="friends-list">
             {incoming.map((r) => (
               <li key={r.userId}>
@@ -136,6 +137,7 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
                 <span className="row-actions">
                   <button
                     type="button"
+                    className="btn-primary"
                     onClick={() => act(() => api.respondToFriendRequest(r.userId, 'ACCEPT', actorId))}
                   >
                     Accept
@@ -153,13 +155,63 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* ── Requests you sent ───────────────────────────────────── */}
-      {outgoing.length === 0 ? null : (
-        <div className="friends-group">
-          <h3>You asked</h3>
+      <section className="settings-card">
+        <h2>
+          Find people
+          <Explainer label="About finding people">
+            You can search by handle, or by the name someone chose to show. People choose how
+            findable they are, so not everyone appears in every search.
+          </Explainer>
+        </h2>
+
+        <label className="field">
+          <span className="field-label">Handle or name</span>
+          <input
+            type="search"
+            value={query}
+            placeholder="e.g. carol"
+            autoComplete="off"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+
+        {results === null ? (
+          <p className="muted">Type at least {MIN_SEARCH_LENGTH} characters.</p>
+        ) : results.length === 0 ? (
+          // Deliberately incurious. "No matches" is all anyone gets, whether
+          // the handle is unused, misspelled, set to unfindable, or belongs to
+          // someone who blocked them.
+          <p className="muted">{searching ? 'Searching…' : 'No matches.'}</p>
+        ) : (
+          <ul className="friends-list">
+            {results.map((r) => (
+              <li key={r.id}>
+                <span>
+                  {r.displayName} <span className="mono muted">@{r.handle}</span>
+                </span>
+                {r.status === 'NONE' ? (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => act(() => api.sendFriendRequest(r.id, actorId))}
+                  >
+                    Add friend
+                  </button>
+                ) : (
+                  <span className="muted">{STATUS_LABEL[r.status]}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {outgoing.length > 0 && (
+        <section className="settings-card">
+          <h2>You asked</h2>
           <p className="muted">
             They have not answered yet. You will not be told if they decide not to.
           </p>
@@ -179,59 +231,11 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* ── Search ──────────────────────────────────────────────── */}
-      <div className="friends-group">
-        <h3>
-          Find someone
-          <Explainer label="About finding people">
-            You can search by handle or by the name someone chose to show.
-          </Explainer>
-        </h3>
-        <label className="field">
-          <span className="field-label">Handle or name</span>
-          <input
-            type="search"
-            value={query}
-            placeholder="e.g. carol"
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
-
-        {results === null ? (
-          <p className="muted">Type at least {MIN_SEARCH_LENGTH} characters.</p>
-        ) : results.length === 0 ? (
-          // Deliberately incurious. "No matches" is all anyone gets, whether the
-          // handle is unused, misspelled, or belongs to someone who blocked them.
-          <p className="muted">{searching ? 'Searching…' : 'No matches.'}</p>
-        ) : (
-          <ul className="friends-list">
-            {results.map((r) => (
-              <li key={r.id}>
-                <span>
-                  {r.displayName} <span className="mono muted">@{r.handle}</span>
-                </span>
-                {r.status === 'NONE' ? (
-                  <button
-                    type="button"
-                    onClick={() => act(() => api.sendFriendRequest(r.id, actorId))}
-                  >
-                    Add friend
-                  </button>
-                ) : (
-                  <span className="muted">{STATUS_LABEL[r.status]}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* ── Your friends ────────────────────────────────────────── */}
-      <div className="friends-group">
-        <h3>Your friends</h3>
+      <section className="settings-card">
+        <h2>Your friends</h2>
         {people.length === 0 ? (
           <p className="muted">Nobody yet. Search above to send your first request.</p>
         ) : (
@@ -242,6 +246,9 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
                   {p.displayName} <span className="mono muted">@{p.handle}</span>
                 </span>
                 <span className="row-actions">
+                  <button type="button" onClick={() => onMessage(p.id)}>
+                    Message
+                  </button>
                   <button
                     type="button"
                     className="subtle"
@@ -261,15 +268,14 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
-      {/* ── Blocked ─────────────────────────────────────────────── */}
-      <div className="friends-group">
-        <h3>Blocked</h3>
+      <section className="settings-card">
+        <h2>Blocked</h2>
         <p className="muted">
-          Blocking removes the friendship and hides each of you from the other. Unblocking lifts
-          only your block — if they have blocked you too, that stays, and you will not be told
-          either way.
+          Blocking removes the friendship, hides each of you from the other, and ends any
+          conversation you had. Unblocking lifts only your block — if they have blocked you too,
+          that stays, and you will not be told either way.
         </p>
         {blocked.length === 0 ? (
           <p className="muted">Nobody.</p>
@@ -291,7 +297,7 @@ export function Friends({ actorId, people, onGraphChanged }: Props) {
             ))}
           </ul>
         )}
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

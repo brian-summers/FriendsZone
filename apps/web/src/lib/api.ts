@@ -13,6 +13,8 @@ import type {
   UpdateCircleInput,
   DeletionReceipt,
   DisposeReportInput,
+  ConversationView,
+  Discoverability,
   FindSlotsInput,
   FindSlotsResult,
   FriendRequestView,
@@ -38,7 +40,9 @@ import type {
   Notification,
   PublicProfile,
   RescheduleHangoutInput,
+  SendMessageInput,
   SharingDefaults,
+  ThreadView,
   SharingDefaultsView,
   UpdateEventInput,
   UpdateHangoutInput,
@@ -293,6 +297,31 @@ export const api = {
 
   blockedPeople: (actorId: string | null, signal?: AbortSignal) =>
     get<{ blocked: PublicProfile[] }>('/v1/me/blocks', actorId, signal),
+
+  // ── Discoverability ───────────────────────────────────────────────
+  //
+  // Your own setting, both ways: there is no call here that reads anyone
+  // else's, because no endpoint answers that.
+  setDiscoverability: (discoverability: Discoverability, actorId: string | null) =>
+    put<{ discoverability: Discoverability }>('/v1/me/discoverability', actorId, {
+      discoverability,
+    }),
+
+  // ── Messages ──────────────────────────────────────────────────────
+  //
+  // A mailbox. Note what is missing: nothing here reports whether the other
+  // person has read anything, because the server never says.
+  conversations: (actorId: string | null, signal?: AbortSignal) =>
+    get<{ conversations: ConversationView[] }>('/v1/me/conversations', actorId, signal),
+
+  thread: (id: string, actorId: string | null, signal?: AbortSignal) =>
+    get<ThreadView>(`/v1/me/conversations/${id}`, actorId, signal),
+
+  sendMessage: (input: SendMessageInput, actorId: string | null) =>
+    post<{ conversationId: string }>('/v1/me/messages', actorId, input),
+
+  markConversationRead: (id: string, actorId: string | null) =>
+    post<{ read: true }>(`/v1/me/conversations/${id}/read`, actorId, {}),
 
   // ── Circles ───────────────────────────────────────────────────────
   //

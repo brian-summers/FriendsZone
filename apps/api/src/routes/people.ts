@@ -1,4 +1,9 @@
-import { UserId, type MeView, type PublicProfile } from '@friendszone/contracts';
+import {
+  UpdateDiscoverabilityInput,
+  UserId,
+  type MeView,
+  type PublicProfile,
+} from '@friendszone/contracts';
 import { assertAllowed, can, PolicyDeniedError } from '@friendszone/policy';
 import { z } from 'zod';
 import { defineRoute } from '../http/route.js';
@@ -33,7 +38,11 @@ export const buildPeopleRoutes = (repos: Repositories) => [
       }
       // Read back off the viewer context, so the client's idea of "am I a
       // moderator" and the kernel's come from the same boot-time allowlist.
-      return { ...profile, isModerator: viewer.isModerator };
+      return {
+        ...profile,
+        isModerator: viewer.isModerator,
+        discoverability: await repos.directory.discoverability(ctx.actorId),
+      };
     },
   }),
 
@@ -58,6 +67,32 @@ export const buildPeopleRoutes = (repos: Repositories) => [
       assertAllowed(can(viewer, { action: 'friends:list', ownerId: ctx.actorId }));
 
       return { people: await repos.directory.friendsOf(ctx.actorId) };
+    },
+  }),
+
+  /**
+   * How findable you are.
+   *
+   * Yours alone, in both directions: nobody is told what anyone else's setting
+   * is, because "why can't I find them" is itself an answer about them.
+   */
+  defineRoute({
+    method: 'PUT',
+    url: '/v1/me/discoverability',
+    authz: { kind: 'POLICY', action: 'discoverability:manage' },
+    rateLimit: 'WRITE',
+    params: empty,
+    query: empty,
+    body: UpdateDiscoverabilityInput,
+    handler: async (ctx): Promise<{ discoverability: MeView['discoverability'] }> => {
+      if (ctx.actorId === null) {
+        throw new PolicyDeniedError('discoverability:manage', 'ANONYMOUS');
+      }
+      const viewer = await ctx.viewerFor(ctx.actorId);
+      assertAllowed(can(viewer, { action: 'discoverability:manage' }));
+
+      await repos.directory.setDiscoverability(ctx.actorId, ctx.body.discoverability);
+      return { discoverability: ctx.body.discoverability };
     },
   }),
 

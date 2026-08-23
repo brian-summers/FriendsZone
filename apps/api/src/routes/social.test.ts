@@ -394,6 +394,78 @@ describe('friend requests and blocking', () => {
     });
   });
 
+  describe('discoverability', () => {
+    const setDiscoverability = (of: string, value: string) =>
+      app.inject({
+        method: 'PUT',
+        url: '/v1/me/discoverability',
+        headers: as(of),
+        payload: { discoverability: value },
+      });
+
+    it('defaults to EVERYONE and is reported on /v1/me', async () => {
+      const me = await app.inject({ method: 'GET', url: '/v1/me', headers: as(ALICE) });
+      expect(me.json().discoverability).toBe('EVERYONE');
+    });
+
+    it('hides a NOBODY account from search entirely', async () => {
+      expect((await search(MALLORY, 'carol')).json().results).toHaveLength(1);
+      expect((await setDiscoverability(CAROL, 'NOBODY')).statusCode).toBe(200);
+      expect((await search(MALLORY, 'carol')).json().results).toEqual([]);
+      expect((await search(MALLORY, 'Mensah')).json().results).toEqual([]);
+    });
+
+    it('makes NOBODY indistinguishable from a handle nobody has', async () => {
+      // The whole point: opting out must not be detectable, or the setting
+      // becomes a signal about the person who chose it.
+      await setDiscoverability(CAROL, 'NOBODY');
+      const hidden = await search(MALLORY, 'carol');
+      const missing = await search(MALLORY, 'zzzznobody');
+      expect(hidden.statusCode).toBe(missing.statusCode);
+      expect(hidden.body).toBe(missing.body);
+    });
+
+    it('EXACT_HANDLE answers a full handle and nothing shorter', async () => {
+      await setDiscoverability(CAROL, 'EXACT_HANDLE');
+      expect((await search(MALLORY, 'car')).json().results).toEqual([]);
+      expect((await search(MALLORY, 'Mensah')).json().results).toEqual([]);
+      expect((await search(MALLORY, 'carol')).json().results).toMatchObject([{ handle: 'carol' }]);
+    });
+
+    it('never reports anyone else’s setting', async () => {
+      await setDiscoverability(CAROL, 'EXACT_HANDLE');
+      // Not in a search hit, and not on the public profile: "why can't I find
+      // them" is itself an answer about them.
+      const hit = await search(MALLORY, 'carol');
+      expect(hit.body).not.toContain('discoverability');
+
+      const profile = await app.inject({
+        method: 'GET',
+        url: `/v1/people/${CAROL}`,
+        headers: as(ALICE),
+      });
+      expect(profile.body).not.toContain('discoverability');
+    });
+
+    it('leaves existing friendships alone', async () => {
+      // Being unfindable is not being unfriended. ALICE and CAROL are friends
+      // in the seed and stay so.
+      await setDiscoverability(CAROL, 'NOBODY');
+      const res = await app.inject({ method: 'GET', url: '/v1/people', headers: as(ALICE) });
+      expect(res.json().people.map((p: { id: string }) => p.id)).toContain(CAROL);
+    });
+
+    it('refuses an unknown value, and an anonymous caller', async () => {
+      expect((await setDiscoverability(ALICE, 'FRIENDS_OF_FRIENDS')).statusCode).toBe(400);
+      const anon = await app.inject({
+        method: 'PUT',
+        url: '/v1/me/discoverability',
+        payload: { discoverability: 'NOBODY' },
+      });
+      expect(anon.statusCode).toBe(401);
+    });
+  });
+
   describe('search', () => {
     it('finds someone by handle prefix and by display name', async () => {
       expect((await search(MALLORY, 'car')).json().results).toMatchObject([{ handle: 'carol' }]);

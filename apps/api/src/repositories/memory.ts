@@ -1,5 +1,10 @@
 import {
   CONSERVATIVE_SHARING_DEFAULTS,
+  DEFAULT_DISCOVERABILITY,
+  type Conversation,
+  type ConversationId,
+  type Discoverability,
+  type Message,
   type AuthIdentity,
   type AuthProvider,
   type Session,
@@ -42,6 +47,7 @@ import type {
   NotificationPort,
   NotifierPort,
   PhotoStorePort,
+  MessagePort,
   ReportPort,
   Repositories,
   SocialGraphPort,
@@ -76,6 +82,8 @@ export interface MemorySeed {
   exchanges?: Exchange[];
   reports?: Report[];
   reportNotes?: ReportNote[];
+  conversations?: Conversation[];
+  messages?: Message[];
   tombstoned?: UserId[];
   /** Photo bytes, base64-encoded so the whole seed is JSON-serialisable. */
   photos?: Array<{ key: string; contentType: string; base64: string }>;
@@ -477,8 +485,38 @@ export class MemoryCalendar implements CalendarPort {
   }
 }
 
+/**
+ * Whether a row matches, given its owner's own findability setting.
+ *
+ * Shared by both adapters' semantics and asserted by the conformance suite.
+ * This is a *match* rule, not an authorization one - it says what the query
+ * means for this row, which is why it sits with the tombstone filter rather
+ * than in the policy kernel.
+ */
+export const matchesDiscoverability = (
+  setting: Discoverability | undefined,
+  needle: string,
+  profile: Pick<PublicProfile, 'handle' | 'displayName'>,
+): boolean => {
+  switch (setting ?? DEFAULT_DISCOVERABILITY) {
+    case 'NOBODY':
+      return false;
+    case 'EXACT_HANDLE':
+      // The whole handle, nothing less. A prefix would still let someone walk
+      // the directory a character at a time, which is the thing this setting
+      // is chosen to stop.
+      return profile.handle.toLowerCase() === needle;
+    case 'EVERYONE':
+      return (
+        profile.handle.toLowerCase().startsWith(needle) ||
+        profile.displayName.toLowerCase().includes(needle)
+      );
+  }
+};
+
 export class MemoryDirectory implements DirectoryPort {
   readonly #profiles: Map<UserId, PublicProfile>;
+  readonly #discoverability = new Map<UserId, Discoverability>();
   readonly #tombstoned = new Set<UserId>();
   /**
    * Friendship is read back through the social graph rather than kept here.
@@ -514,13 +552,17 @@ export class MemoryDirectory implements DirectoryPort {
     const needle = query.trim().toLowerCase();
     return [...this.#profiles.values()]
       .filter((p) => !this.#tombstoned.has(p.id))
-      .filter(
-        (p) =>
-          p.handle.toLowerCase().startsWith(needle) ||
-          p.displayName.toLowerCase().includes(needle),
-      )
+      .filter((p) => matchesDiscoverability(this.#discoverability.get(p.id), needle, p))
       .sort((a, b) => a.displayName.localeCompare(b.displayName))
       .slice(0, limit);
+  }
+
+  async discoverability(userId: UserId): Promise<Discoverability> {
+    return this.#discoverability.get(userId) ?? DEFAULT_DISCOVERABILITY;
+  }
+
+  async setDiscoverability(userId: UserId, value: Discoverability): Promise<void> {
+    this.#discoverability.set(userId, value);
   }
 
   async handleTaken(handle: string): Promise<boolean> {
@@ -555,6 +597,71 @@ export class MemoryDirectory implements DirectoryPort {
       .map((id) => this.#profiles.get(id))
       .filter((p): p is PublicProfile => p !== undefined)
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+}
+
+/**
+ * Direct messages, in memory.
+ *
+ * No `eraseUser`: deleting an account does not reach into someone else's
+ * mailbox and remove what you said to them. See the port for the reasoning.
+ */
+export class MemoryMessages implements MessagePort {
+  readonly #conversations = new Map<ConversationId, Conversation>();
+  readonly #messages: Message[] = [];
+
+  constructor(seed: MemorySeed) {
+    for (const c of seed.conversations ?? []) this.#conversations.set(c.id, c);
+    for (const m of seed.messages ?? []) this.#messages.push(m);
+  }
+
+  async conversationsFor(userId: UserId, limit: number): Promise<Conversation[]> {
+    return [...this.#conversations.values()]
+      .filter((c) => c.lowUserId === userId || c.highUserId === userId)
+      .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt))
+      .slice(0, limit);
+  }
+
+  async conversationById(id: ConversationId): Promise<Conversation | null> {
+    return this.#conversations.get(id) ?? null;
+  }
+
+  async conversationBetween(a: UserId, b: UserId): Promise<Conversation | null> {
+    const [low, high] = ordered(a, b);
+    for (const c of this.#conversations.values()) {
+      if (c.lowUserId === low && c.highUserId === high) return c;
+    }
+    return null;
+  }
+
+  async saveConversation(conversation: Conversation): Promise<Conversation> {
+    this.#conversations.set(conversation.id, conversation);
+    return conversation;
+  }
+
+  async messagesIn(conversationId: ConversationId, limit: number): Promise<Message[]> {
+    const all = this.#messages
+      .filter((m) => m.conversationId === conversationId)
+      .sort((a, b) => a.sentAt.localeCompare(b.sentAt));
+    // The *most recent* `limit`, still oldest-first: a mailbox truncates the
+    // top of a long thread, never the bottom.
+    return all.slice(Math.max(0, all.length - limit));
+  }
+
+  async addMessage(message: Message): Promise<Message> {
+    this.#messages.push(message);
+    return message;
+  }
+
+  async markRead(conversationId: ConversationId, userId: UserId, at: string): Promise<void> {
+    const c = this.#conversations.get(conversationId);
+    if (c === undefined) return;
+    // Only this reader's side. A shared field would let one party's reading
+    // clear the other's unread count.
+    this.#conversations.set(
+      conversationId,
+      c.lowUserId === userId ? { ...c, lowReadAt: at } : { ...c, highReadAt: at },
+    );
   }
 }
 
@@ -965,6 +1072,7 @@ export const createMemoryRepositories = (seed: MemorySeed = {}): Repositories =>
   sessions: new MemorySessions(withShared),
   exchanges: new MemoryExchanges(withShared),
   reports: new MemoryReports(withShared),
+  messages: new MemoryMessages(withShared),
   notifier: new LoggingNotifier(),
   };
 };

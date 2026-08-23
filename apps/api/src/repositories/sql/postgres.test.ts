@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { CalendarEvent, EventId, TimeRange, UserId } from '@friendszone/contracts';
+import type {
+  CalendarEvent,
+  ConversationId,
+  EventId,
+  MessageId,
+  TimeRange,
+  UserId,
+} from '@friendszone/contracts';
 import { createMemoryRepositories } from '../memory.js';
 import type { Repositories } from '../ports.js';
 import { applySchema, createPgliteClient, type SqlClient } from './client.js';
@@ -223,6 +230,121 @@ describe.each(harnesses)('$name adapter', ({ make }) => {
     it('never reports who blocked *you*', async () => {
       await repos.social.block(BOB, ALICE);
       expect(await repos.social.blockedBy(ALICE)).toEqual([]);
+    });
+  });
+
+  // ── Discoverability ──────────────────────────────────────────────
+  describe('discoverability', () => {
+    it('defaults to EVERYONE', async () => {
+      expect(await repos.directory.discoverability(ALICE)).toBe('EVERYONE');
+    });
+
+    it('hides a NOBODY account from every query that would have found it', async () => {
+      await repos.directory.setDiscoverability(ALICE, 'NOBODY');
+      expect(await repos.directory.search('ali', 10)).toEqual([]);
+      expect(await repos.directory.search('alice', 10)).toEqual([]);
+      expect(await repos.directory.search('Nakamura', 10)).toEqual([]);
+    });
+
+    it('matches EXACT_HANDLE only on the complete handle', async () => {
+      await repos.directory.setDiscoverability(ALICE, 'EXACT_HANDLE');
+      // A prefix would still let someone walk the directory a character at a
+      // time, which is the thing this setting is chosen to stop.
+      expect(await repos.directory.search('ali', 10)).toEqual([]);
+      expect(await repos.directory.search('Nakamura', 10)).toEqual([]);
+      expect((await repos.directory.search('alice', 10)).map((p) => p.id)).toEqual([ALICE]);
+    });
+
+    it('is case-insensitive on the exact match', async () => {
+      await repos.directory.setDiscoverability(ALICE, 'EXACT_HANDLE');
+      expect((await repos.directory.search('ALICE', 10)).map((p) => p.id)).toEqual([ALICE]);
+    });
+
+    it('leaves other accounts alone', async () => {
+      await repos.directory.setDiscoverability(ALICE, 'NOBODY');
+      expect((await repos.directory.search('bob', 10)).map((p) => p.id)).toEqual([BOB]);
+    });
+
+    it('round-trips the setting', async () => {
+      await repos.directory.setDiscoverability(BOB, 'EXACT_HANDLE');
+      expect(await repos.directory.discoverability(BOB)).toBe('EXACT_HANDLE');
+    });
+  });
+
+  // ── Messaging ────────────────────────────────────────────────────
+  describe('messages', () => {
+    const conversationBetween = async (a: UserId, b: UserId) => {
+      const [low, high] = a < b ? [a, b] : [b, a];
+      return repos.messages.saveConversation({
+        id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa' as ConversationId,
+        lowUserId: low,
+        highUserId: high,
+        createdAt: at(0),
+        lastMessageAt: at(0),
+      });
+    };
+
+    const say = async (cid: ConversationId, from: UserId, body: string, hour: number) =>
+      repos.messages.addMessage({
+        id: `bbbbbbbb-${String(hour).padStart(4, '0')}-4111-8111-bbbbbbbbbbbb` as MessageId,
+        conversationId: cid,
+        senderId: from,
+        body,
+        sentAt: at(hour),
+      });
+
+    it('finds a conversation from either side, in either argument order', async () => {
+      const c = await conversationBetween(ALICE, BOB);
+      expect((await repos.messages.conversationBetween(ALICE, BOB))?.id).toBe(c.id);
+      expect((await repos.messages.conversationBetween(BOB, ALICE))?.id).toBe(c.id);
+    });
+
+    it('lists it for both participants and for nobody else', async () => {
+      await conversationBetween(ALICE, BOB);
+      expect(await repos.messages.conversationsFor(ALICE, 10)).toHaveLength(1);
+      expect(await repos.messages.conversationsFor(BOB, 10)).toHaveLength(1);
+      expect(await repos.messages.conversationsFor(CAROL, 10)).toEqual([]);
+    });
+
+    it('returns messages oldest first', async () => {
+      const c = await conversationBetween(ALICE, BOB);
+      await say(c.id, BOB, 'second', 11);
+      await say(c.id, ALICE, 'first', 10);
+      expect((await repos.messages.messagesIn(c.id, 10)).map((m) => m.body)).toEqual([
+        'first',
+        'second',
+      ]);
+    });
+
+    it('truncates the top of a long thread, never the bottom', async () => {
+      // A mailbox shows you the most recent messages. Dropping the newest
+      // would hide the thing you opened the thread to read.
+      const c = await conversationBetween(ALICE, BOB);
+      await say(c.id, ALICE, 'oldest', 9);
+      await say(c.id, ALICE, 'middle', 10);
+      await say(c.id, ALICE, 'newest', 11);
+      expect((await repos.messages.messagesIn(c.id, 2)).map((m) => m.body)).toEqual([
+        'middle',
+        'newest',
+      ]);
+    });
+
+    it('moves one participant read bookmark without touching the other', async () => {
+      // The reason there are two columns rather than one shared value: one
+      // party reading must not clear the other's unread count.
+      const c = await conversationBetween(ALICE, BOB);
+      await repos.messages.markRead(c.id, ALICE, at(12));
+
+      const after = await repos.messages.conversationById(c.id);
+      const aliceIsLow = after!.lowUserId === ALICE;
+      expect(aliceIsLow ? after!.lowReadAt : after!.highReadAt).toBe(at(12));
+      expect(aliceIsLow ? after!.highReadAt : after!.lowReadAt).toBeUndefined();
+    });
+
+    it('round-trips every field of a conversation', async () => {
+      const c = await conversationBetween(ALICE, BOB);
+      const stored = await repos.messages.conversationById(c.id);
+      expect(stored).toEqual(c);
     });
   });
 

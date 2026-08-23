@@ -24,11 +24,53 @@ create table if not exists users (
   -- Deletion empties the row and keeps the id, so every hangout, handoff, and
   -- moderation case that references it stays resolvable (ADR 0022).
   tombstoned    boolean     not null default false,
+  -- How findable this account is in people search. A column rather than `doc`
+  -- because the search query filters on it (ADR 0026: columns exist for what
+  -- is queried). There is deliberately no FRIENDS_OF_FRIENDS value: answering
+  -- it would require walking the graph, which the threat model forbids.
+  discoverability text      not null default 'EVERYONE'
+    constraint users_discoverability_check
+    check (discoverability in ('EVERYONE', 'EXACT_HANDLE', 'NOBODY')),
   created_at    timestamptz not null default now()
 );
 
 -- Handles are compared case-insensitively; `citext` would need an extension.
 create unique index if not exists users_handle_key on users (lower(handle));
+
+-- ── Direct messages ────────────────────────────────────────────────
+--
+-- A conversation is exactly two people, canonically ordered like `friendships`
+-- so a pair cannot drift into two half-threads. Unlike `blocks`, one row is
+-- correct: the only per-side state is the read bookmark, and that is two
+-- columns rather than two rows.
+create table if not exists conversations (
+  id              uuid primary key,
+  low_user_id     uuid        not null,
+  high_user_id    uuid        not null,
+  created_at      timestamptz not null default now(),
+  last_message_at timestamptz not null default now(),
+  -- Each participant's own bookmark. Two columns, never one shared value:
+  -- one party's reading must not clear the other's unread count. Neither is
+  -- ever projected to the other side - there are no read receipts (ADR 0007).
+  low_read_at     timestamptz,
+  high_read_at    timestamptz,
+  constraint conversations_ordered check (low_user_id < high_user_id),
+  constraint conversations_pair unique (low_user_id, high_user_id)
+);
+
+create index if not exists conversations_low_idx  on conversations (low_user_id, last_message_at desc);
+create index if not exists conversations_high_idx on conversations (high_user_id, last_message_at desc);
+
+create table if not exists messages (
+  id              uuid primary key,
+  conversation_id uuid        not null references conversations (id) on delete cascade,
+  sender_id       uuid        not null,
+  -- 🟠 Sensitive: free text between two named people. Never logged.
+  body            text        not null,
+  sent_at         timestamptz not null default now()
+);
+
+create index if not exists messages_thread_idx on messages (conversation_id, sent_at);
 
 create table if not exists auth_identities (
   provider    text        not null,

@@ -971,6 +971,117 @@ describe('can', () => {
     });
   });
 
+  describe('messaging', () => {
+    const between = (a: typeof ALICE, b: typeof ALICE) => ({
+      lowUserId: a < b ? a : b,
+      highUserId: a < b ? b : a,
+    });
+
+    it('lets friends message each other', () => {
+      expect(decide(asFriend(), { action: 'message:send', recipientId: ALICE })).toMatchObject({
+        allowed: true,
+      });
+    });
+
+    it('refuses a stranger', () => {
+      expect(decide(asStranger(), { action: 'message:send', recipientId: ALICE })).toMatchObject({
+        allowed: false,
+        reason: 'NOT_FRIENDS',
+      });
+    });
+
+    it('refuses a pending request — asking is not a channel', () => {
+      // `PENDING` grants nothing anywhere else in this system, and must not
+      // become a way to talk at someone who has not answered (ADR 0028).
+      expect(
+        decide(viewer({ relationship: 'PENDING' }), { action: 'message:send', recipientId: ALICE }),
+      ).toMatchObject({ allowed: false, reason: 'NOT_FRIENDS' });
+    });
+
+    it('refuses a blocked pair, and the block is what stops it', () => {
+      // `message:send` is deliberately absent from BLOCK_EXEMPT_ACTIONS, unlike
+      // report:*. Someone you blocked must not be able to reach you.
+      expect(decide(asBlocked(), { action: 'message:send', recipientId: ALICE })).toMatchObject({
+        allowed: false,
+        reason: 'BLOCKED',
+      });
+    });
+
+    it('refuses messaging yourself', () => {
+      expect(decide(asOwner(), { action: 'message:send', recipientId: ALICE })).toMatchObject({
+        allowed: false,
+        reason: 'NOT_PARTICIPANT',
+      });
+    });
+
+    it('refuses an anonymous sender', () => {
+      expect(decide(asAnonymous(), { action: 'message:send', recipientId: ALICE })).toMatchObject({
+        allowed: false,
+        reason: 'ANONYMOUS',
+      });
+    });
+
+    it('lets either party read a thread they are on', () => {
+      const conversation = between(ALICE, BOB);
+      expect(decide(asStranger(), { action: 'thread:read', conversation })).toMatchObject({
+        allowed: true,
+      });
+      expect(decide(asOwner(), { action: 'thread:read', conversation })).toMatchObject({
+        allowed: true,
+      });
+    });
+
+    it('keeps reading a thread after an unfriend, but not after a block', () => {
+      const conversation = between(ALICE, BOB);
+
+      // Unfriended: `relationship` is NONE and the thread stays readable.
+      // Correspondence that already happened is not confiscated, the same
+      // reasoning as ADR 0022 on the counterparty's copy of a shared plan.
+      expect(
+        decide(viewer({ relationship: 'NONE' }), { action: 'thread:read', conversation }),
+      ).toMatchObject({ allowed: true });
+
+      // Blocked: the gate above the switch denies first. `thread:read` is
+      // deliberately not block-exempt, so someone you blocked cannot reopen
+      // the thread.
+      expect(decide(asBlocked(), { action: 'thread:read', conversation })).toMatchObject({
+        allowed: false,
+        reason: 'BLOCKED',
+      });
+    });
+
+    it('refuses a third party, and anonymous', () => {
+      const conversation = between(ALICE, BOB);
+      expect(
+        decide(viewer({ viewerId: CAROL }), { action: 'thread:read', conversation }),
+      ).toMatchObject({ allowed: false, reason: 'NOT_PARTICIPANT' });
+      expect(decide(asAnonymous(), { action: 'thread:read', conversation })).toMatchObject({
+        allowed: false,
+        reason: 'ANONYMOUS',
+      });
+    });
+
+    it('scopes the mailbox to whoever is signed in', () => {
+      expect(decide(asStranger(), { action: 'conversation:list' })).toMatchObject({ allowed: true });
+      expect(decide(asAnonymous(), { action: 'conversation:list' })).toMatchObject({
+        allowed: false,
+        reason: 'ANONYMOUS',
+      });
+    });
+  });
+
+  describe('discoverability', () => {
+    it('is yours to set, and only yours', () => {
+      expect(decide(asStranger(), { action: 'discoverability:manage' })).toMatchObject({
+        allowed: true,
+      });
+      expect(decide(asAnonymous(), { action: 'discoverability:manage' })).toMatchObject({
+        allowed: false,
+        reason: 'ANONYMOUS',
+      });
+    });
+  });
+
   /**
    * The backstop. A new action added to the union without tests fails here
    * rather than shipping unexercised, which is the failure mode that matters:

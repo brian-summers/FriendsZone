@@ -4,6 +4,9 @@ import type {
   CalendarEvent,
   Circle,
   CircleId,
+  Conversation,
+  ConversationId,
+  Discoverability,
   Claim,
   Friendship,
   ClaimId,
@@ -14,6 +17,7 @@ import type {
   HangoutRequestId,
   Listing,
   ListingId,
+  Message,
   Notification,
   PublicProfile,
   RelationshipKind,
@@ -206,6 +210,14 @@ export interface DirectoryPort {
   /**
    * Prefix search over handle and display name, **unfiltered by blocks**.
    *
+   * Implementations MUST honour each row's own `discoverability`:
+   * `EVERYONE` matches handle prefix or display-name substring, `EXACT_HANDLE`
+   * matches only a complete handle, and `NOBODY` never matches. That is a
+   * *match* rule rather than an authorization one — it says what the query
+   * means for that row, not what this particular viewer may see — which is why
+   * it lives here alongside the tombstone filter, while the viewer-relative
+   * block filter stays in the route.
+   *
    * Like every other port this returns raw rows; the route removes anyone in a
    * block relationship, in either direction, so that a blocked pair are
    * indistinguishable from people who do not exist (ADR 0028). Tombstoned
@@ -213,6 +225,16 @@ export interface DirectoryPort {
    * caller could befriend.
    */
   search(query: string, limit: number): Promise<PublicProfile[]>;
+
+  /**
+   * The subject's own findability setting.
+   *
+   * Read here rather than folded into `search` so the value can be shown back
+   * to its owner on the settings screen without a second concept.
+   */
+  discoverability(userId: UserId): Promise<Discoverability>;
+
+  setDiscoverability(userId: UserId, value: Discoverability): Promise<void>;
 
   /**
    * Empty this user's profile in place, keeping the id.
@@ -468,6 +490,44 @@ export interface NotifierPort {
   }): Promise<void>;
 }
 
+/**
+ * Direct messages.
+ *
+ * A conversation is exactly two people, canonically ordered like `Friendship`,
+ * so a pair has one row and cannot drift into two half-threads.
+ *
+ * There is deliberately **no `eraseUser`**. Deleting your account does not
+ * reach into someone else's mailbox and delete what you said to them, for the
+ * same reason ADR 0022 keeps the counterparty's copy of a shared plan: their
+ * record of their own correspondence is not yours to remove. The tombstoned
+ * profile is what they see beside it.
+ */
+export interface MessagePort {
+  /** The viewer's conversations, most recent first. Bounded. */
+  conversationsFor(userId: UserId, limit: number): Promise<Conversation[]>;
+
+  conversationById(id: ConversationId): Promise<Conversation | null>;
+
+  /** The conversation for a pair, in either argument order. `null` if none. */
+  conversationBetween(a: UserId, b: UserId): Promise<Conversation | null>;
+
+  /** Create or replace. The caller has decided it is allowed. */
+  saveConversation(conversation: Conversation): Promise<Conversation>;
+
+  /** Messages in a thread, oldest first, bounded. */
+  messagesIn(conversationId: ConversationId, limit: number): Promise<Message[]>;
+
+  addMessage(message: Message): Promise<Message>;
+
+  /**
+   * Move one participant's read bookmark.
+   *
+   * Takes the reader explicitly, and moves only their side. A single shared
+   * value would let one party's reading clear the other's unread count.
+   */
+  markRead(conversationId: ConversationId, userId: UserId, at: string): Promise<void>;
+}
+
 export interface Repositories {
   readonly social: SocialGraphPort;
   readonly calendar: CalendarPort;
@@ -481,5 +541,6 @@ export interface Repositories {
   readonly sessions: SessionPort;
   readonly exchanges: ExchangePort;
   readonly reports: ReportPort;
+  readonly messages: MessagePort;
   readonly notifier: NotifierPort;
 }

@@ -2,6 +2,7 @@ import type {
   CalendarEvent,
   Claim,
   Exchange,
+  Conversation,
   Friendship,
   HangoutRequest,
   Instant,
@@ -33,6 +34,10 @@ export type Action =
   | 'block:remove'
   | 'block:list'
   | 'people:search'
+  | 'discoverability:manage'
+  | 'message:send'
+  | 'thread:read'
+  | 'conversation:list'
   | 'notifications:read'
   | 'sharing:manage'
   | 'circle:manage'
@@ -86,6 +91,10 @@ const ACTION_REGISTRY: Record<Action, true> = {
   'block:remove': true,
   'block:list': true,
   'people:search': true,
+  'discoverability:manage': true,
+  'message:send': true,
+  'thread:read': true,
+  'conversation:list': true,
   'notifications:read': true,
   'sharing:manage': true,
   'circle:manage': true,
@@ -205,6 +214,22 @@ export type PolicyRequest =
     }
   | { action: 'block:create' | 'block:remove'; targetId: UserId }
   | { action: 'block:list' }
+  | { action: 'discoverability:manage' }
+  | {
+      /**
+       * Sending requires an accepted friendship, not merely a pending one.
+       * `PENDING` grants nothing anywhere else and must not become a way to
+       * talk at somebody who has not answered the request (ADR 0028).
+       */
+      action: 'message:send';
+      recipientId: UserId;
+    }
+  | {
+      // Reading a thread you are one of the two parties to.
+      action: 'thread:read';
+      conversation: Pick<Conversation, 'lowUserId' | 'highUserId'>;
+    }
+  | { action: 'conversation:list' }
   | { action: 'notifications:read' }
   | { action: 'sharing:manage' }
   | { action: 'circle:manage'; ownerId: UserId }
@@ -363,6 +388,63 @@ export function can(viewer: ViewerContext, request: PolicyRequest): Decision<Act
       return viewer.viewerId === null
         ? deny(request.action, 'ANONYMOUS')
         : allow(request.action);
+    }
+
+    case 'discoverability:manage': {
+      // Inherently self-scoped: the route only ever writes the actor's own
+      // setting, so authentication is the whole gate.
+      return viewer.viewerId === null
+        ? deny(request.action, 'ANONYMOUS')
+        : allow(request.action);
+    }
+
+    case 'conversation:list': {
+      // Same shape: a mailbox is only ever your own.
+      return viewer.viewerId === null
+        ? deny(request.action, 'ANONYMOUS')
+        : allow(request.action);
+    }
+
+    case 'message:send': {
+      if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
+      // Messaging yourself is not a feature, and a self-conversation would
+      // break the "exactly two people" invariant the projection relies on.
+      if (isSelf(viewer, request.recipientId)) return deny(request.action, 'NOT_PARTICIPANT');
+      /**
+       * Friends only, and `FRIEND` exactly.
+       *
+       * The block gate above this switch already ends it in both directions —
+       * `message:send` is deliberately **not** in `BLOCK_EXEMPT_ACTIONS`,
+       * unlike `report:*`. Someone you blocked must not be able to reach you,
+       * and the route turns that denial into the same 404 a nonexistent
+       * account produces.
+       */
+      return viewer.relationship === 'FRIEND'
+        ? allow(request.action)
+        : deny(request.action, 'NOT_FRIENDS');
+    }
+
+    case 'thread:read': {
+      if (viewer.viewerId === null) return deny(request.action, 'ANONYMOUS');
+      /**
+       * Participation, not friendship — but a block still ends it.
+       *
+       * Two different relaxations, and only one of them is granted:
+       *
+       *  - **Unfriending** does not confiscate correspondence. `relationship`
+       *    drops to `NONE` and this still allows, which is the same reasoning
+       *    as ADR 0022's rule that deleting your account leaves the
+       *    counterparty's copy of a shared plan alone.
+       *  - **Blocking** does end it, because `thread:read` is deliberately
+       *    *not* in `BLOCK_EXEMPT_ACTIONS`. The block gate above this switch
+       *    denies before we get here. Exempting it would have meant someone
+       *    you blocked could still open the thread, which is an exemption
+       *    nobody asked for and non-negotiable #3 forbids by default.
+       */
+      const isParty =
+        viewer.viewerId === request.conversation.lowUserId ||
+        viewer.viewerId === request.conversation.highUserId;
+      return isParty ? allow(request.action) : deny(request.action, 'NOT_PARTICIPANT');
     }
 
     case 'friend:request': {

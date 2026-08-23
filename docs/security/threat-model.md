@@ -179,6 +179,49 @@ constrain with rate limiting when signup is built. Search is still a slow,
 bounded crawl of the directory — it yields handles and display names, which is
 what `PublicProfile` is deliberately limited to.
 
+### Using messages as a harassment channel
+
+**Attack.** Contact someone who does not want to be contacted, repeatedly, or
+after they have tried to stop it.
+
+**Mitigations.** Sending requires an **accepted** friendship — `PENDING` is not
+enough, so a request cannot become a channel to talk at somebody who has not
+answered it. `message:send` is deliberately absent from `BLOCK_EXEMPT_ACTIONS`,
+so a block ends it in both directions, and the refusal is byte-identical to
+messaging an account that does not exist. Blocking also removes the
+conversation from both mailboxes rather than leaving a row that cannot be
+opened. Every message route draws from the `WRITE` bucket, and the existing
+report flow covers message content.
+
+**Gaps.** A friend can still send unwanted messages until they are unfriended
+or blocked, and moderation is reactive. This is a genuine new surface: the
+mitigations reduce it, they do not remove it.
+
+### Learning that someone read your message
+
+**Attack.** Infer attention, and apply pressure with it.
+
+**Mitigation.** There is no read receipt anywhere. `Conversation` stores a
+bookmark per participant and neither is ever projected to the other side; the
+mailbox and thread views are built field by field, and `messages.test.ts`
+asserts the serialised body of both contains no `readAt` and no `seen`. Marking
+read moves one column and cannot touch the other.
+
+### Detecting that someone made themselves unfindable
+
+**Attack.** Learn something about a person from their absence — particularly,
+learn that they hid *from you*.
+
+**Mitigation.** A `NOBODY` account returns the same empty result as a handle
+nobody has, asserted byte-for-byte, and the same result a blocked pair produces.
+No endpoint reports anyone else's `discoverability`. There is deliberately no
+`FRIENDS_OF_FRIENDS` value, because answering it would require the graph
+traversal this threat model relies on being impossible.
+
+**Gaps.** Someone who could previously find you and now cannot has learned
+*something changed*. Only that — it does not distinguish a block from a setting
+from a deleted account.
+
 ### Blocking a victim out of their own protection
 
 **Attack.** Get the other party to lift a block that protects them, or make
