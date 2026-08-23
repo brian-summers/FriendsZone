@@ -274,6 +274,34 @@ create table if not exists notifications (
 create index if not exists notifications_recipient_idx
   on notifications (recipient_id, created_at desc);
 
+-- ── Additive migrations ────────────────────────────────────────────
+--
+-- `create table if not exists` above does nothing to a table that already
+-- exists, so a column added to this file after a database was created would
+-- never appear in it. That is not a hypothetical: the production database was
+-- created before `users.discoverability` existed, and deploying without this
+-- block would have left every search query referencing a column that was not
+-- there.
+--
+-- Each statement here must be idempotent and safe to run on every boot, since
+-- `applySchema` is called unconditionally at start-up. This is a deliberate
+-- stand-in for a migration tool, not a substitute for one - see
+-- docs/product/road-to-ga.md.
+
+alter table users
+  add column if not exists discoverability text not null default 'EVERYONE';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'users_discoverability_check'
+  ) then
+    alter table users add constraint users_discoverability_check
+      check (discoverability in ('EVERYONE', 'EXACT_HANDLE', 'NOBODY'));
+  end if;
+end
+$$;
+
 -- ── Row-level security ──────────────────────────────────────────────
 --
 -- Ownership only. `app.actor_id` is set with SET LOCAL inside a transaction —

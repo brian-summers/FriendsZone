@@ -473,6 +473,60 @@ describe.each(harnesses)('$name adapter', ({ make }) => {
 
 // ── Things only the database can be asked ─────────────────────────────
 
+describe('the schema migrates a database that predates a column', () => {
+  /**
+   * The failure this guards against shipped to production once and was caught
+   * before deploy, not by a test.
+   *
+   * `applySchema` runs `create table if not exists`, which does *nothing* to a
+   * table that already exists. A column added to `schema.sql` afterwards is
+   * therefore invisible to every database created before it - and the very
+   * next query referencing that column fails at runtime, on a live service.
+   */
+  it('adds users.discoverability to a table created without it', async () => {
+    const db = await createPgliteClient();
+
+    // A `users` table as it looked before the column existed.
+    await db.query(`
+      create table users (
+        id            uuid primary key,
+        handle        text        not null,
+        display_name  text        not null,
+        avatar_url    text,
+        tombstoned    boolean     not null default false,
+        created_at    timestamptz not null default now()
+      )
+    `);
+    await db.query(
+      `insert into users (id, handle, display_name) values ($1, 'legacy', 'Legacy User')`,
+      [ALICE],
+    );
+
+    await applySchema(db);
+
+    // The column exists, with the safe default rather than null.
+    const rows = await db.query<{ discoverability: string }>(
+      `select discoverability from users where id = $1`,
+      [ALICE],
+    );
+    expect(rows[0]?.discoverability).toBe('EVERYONE');
+
+    // And the adapter's own query runs against the migrated table.
+    const repos = createSqlRepositories(db);
+    expect((await repos.directory.search('legacy', 10)).map((p) => p.id)).toEqual([ALICE]);
+  });
+
+  it('is safe to run twice, because it runs on every boot', async () => {
+    const db = await createPgliteClient();
+    await applySchema(db);
+    await applySchema(db);
+
+    const repos = createSqlRepositories(db);
+    await repos.directory.create({ id: BOB, handle: 'bob', displayName: 'Bob Iyer' });
+    expect(await repos.directory.discoverability(BOB)).toBe('EVERYONE');
+  });
+});
+
 describe('the Postgres schema', () => {
   let db: SqlClient;
 
