@@ -1,7 +1,7 @@
 # CLAUDE.md - working in this repository
 
 Friendszone coordinates plans between friends: a privacy-filtered shared
-calendar, asynchronous hangout requests, RSVPs, and secondhand item exchanges.
+calendar, asynchronous hangout requests, and secondhand item exchanges.
 
 Read this before editing. It is short on purpose; the links go deep.
 
@@ -160,6 +160,20 @@ anything in this list, read the comment next to it - each has one:
   the fill, is what makes the chip a distinguishable shape.
 - Hue custom properties are numbered `--hue-1..6`, not named for colours →
   slot 4 is aqua in Verdigris and orange in Signal; a colour name would lie.
+- RLS **read** policies are `using (true)` on events, sharing defaults and
+  quiet hours → a friend's calendar view reads the owner's rows, and the
+  lattice, not RLS, decides what of them they get. Only *writes* are owned.
+  Narrowing a read policy empties every friend's view of you.
+- `asCrossOwner(...)` wraps a handful of writes and nothing else → each one
+  writes a row the actor does not own on purpose. A new write across owners
+  goes through it, or production refuses it and the memory adapter's
+  `assertMayWrite` fails the route test first.
+- `rls-binding.test.ts` builds its own Postgres role instead of using
+  PGlite's default → the default is a superuser, which bypasses RLS, and that
+  difference is how an adapter that never set the actor passed every test.
+- A proposal is refused for landing in quiet hours only when the proposer is
+  *shown* that window → refusing on a window they cannot see makes the
+  proposal routes a way to map it.
 
 If one genuinely is redundant, say so and explain why rather than silently
 deleting it.
@@ -220,7 +234,7 @@ three named **presets**. Accounts **export and delete**, and **circles** are man
 `HttpOnly` cookie, and everything is stored in **PostgreSQL**. The **social
 graph is now buildable from inside the product**: search for someone, send a
 friend request, accept or decline it, unfriend, and **block** - with blocks
-stored as *directed* rows so lifting yours never lifts theirs. 586 tests.
+stored as *directed* rows so lifting yours never lifts theirs. 790 tests.
 
 Decisions worth knowing before touching hangouts or the calendar:
 - [ADR 0010](docs/adr/0010-hangout-resolution.md): accepting a hangout is a
@@ -257,8 +271,15 @@ Decisions worth knowing before touching hangouts or the calendar:
   indexed, or enforced on; everything else is `doc jsonb`, because a third
   description of each entity would drift from the Zod schemas. RLS expresses
   **ownership only** and is a *backstop*, never the control - the lattice stays
-  in `packages/policy`. A sanctioned cross-owner write (accepting a hangout,
-  booking a handoff) must set `app.cross_owner`, which makes it grep-able.
+  in `packages/policy`. **[ADR 0031](docs/adr/0031-rls-request-scope.md)
+  wired it up**: until then the actor was never set, so under any role the
+  policies bind they refused everything. The server runs each handler in a
+  request scope, the SQL client applies `app.actor_id` per statement, reads
+  are open (circles excepted) and writes are owned. A sanctioned cross-owner
+  write goes through `asCrossOwner(...)`, so `grep asCrossOwner` is the
+  complete list. **Production does not yet benefit:** it connects as the
+  Aurora master user, which bypasses RLS. A restricted login role is the next
+  step ([road to GA](docs/product/road-to-ga.md)).
 - [ADR 0024](docs/adr/0024-authentication.md): sessions are opaque tokens
   **stored hashed** - a dump of the session store yields nothing presentable.
   Passwords use **scrypt from `node:crypto`, not Argon2id**, a deliberate
@@ -283,10 +304,14 @@ Decisions worth knowing before touching hangouts or the calendar:
   they say *do not ask*, not *I am busy*. The window **wraps** when
   `startMinute > endMinute`, which is the common case and is why drawing one
   produces *two* bands. Equal bounds mean empty, never all-day. `QuietHours`
-  carries its own `timeZone` so a rule is self-describing. Overlap is **sampled
-  every 15 minutes**, deliberately, because a closed form would have to model
-  the wrap, multi-day ranges and DST. Enforcement is server-side; shading is
-  only presentation.
+  carries its own `timeZone` so a rule is self-describing. Overlap is
+  **sampled**, deliberately, because a closed form would have to model the
+  wrap, multi-day ranges and DST - at a step no longer than the window, so a
+  five-minute window cannot fall between samples. Enforcement is server-side
+  and, per [ADR 0032](docs/adr/0032-quiet-hours-bind-every-proposal.md), covers
+  **every** route that proposes a time (proposal, reschedule, floating booking,
+  handoff), against the window **as the proposer is shown it**
+  (`visibleQuietHours`). Shading is only presentation.
 - **No em-dashes anywhere** - copy, comments, or docs. `docs.test.ts` fails the
   build on one. En-dashes are fine in numeric ranges.
 - [ADR 0029](docs/adr/0029-direct-messages-and-discoverability.md): messages are
@@ -339,6 +364,9 @@ Decisions worth knowing before touching hangouts or the calendar:
 - [ADR 0018](docs/adr/0018-reporting-and-moderation.md): a report is an **in-app
   record**; the email to `reports@friends-zone.app` carries only an id, a reason,
   and a subject kind (`NotifierPort` has no parameter that could hold content).
+  **Delivery is still a logging adapter**, so today nobody is alerted to a new
+  report; the queue has to be checked. There is no `MESSAGE` subject, so a
+  report about messages freezes no evidence.
   **Two one-way threads** (`ReportNote.audience`) mean the reporter and the
   reported never share an object - there is no `BOTH` and adding one collapses
   the guarantee. The subject is told **nothing** until a moderator opens a thread.
@@ -350,8 +378,8 @@ Decisions worth knowing before touching hangouts or the calendar:
   an owner hand-pick a `LOTTERY` winner, and refuses a draw before the deadline -
   both are what make a draw a draw. `drawWinner` is pure and takes its randomness
   as an argument. **Claimants never learn about each other:** `claims` is absent,
-  not empty, for anyone but the owner. The in-person **handoff is still
-  unbuilt**, gated on moderation.
+  not empty, for anyone but the owner. The in-person **handoff** was gated on
+  moderation and shipped after it ([ADR 0019](docs/adr/0019-the-handoff.md)).
 
 **Client rules.** `apps/web` renders what the server sent and never re-derives
 a visibility decision. If you find yourself wanting the sharing rules on the

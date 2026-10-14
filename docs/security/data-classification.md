@@ -84,6 +84,7 @@ Still rate-limit. Public does not mean bulk-harvestable.
 | `Report.reason` / `.status` | 🟡 | The category and where it is up to; shown to both parties |
 | `Listing.claimMode` / `.claimsCloseAt` | 🟡 | The terms of the offer; shown to everyone who can see the listing, because they are what a claimant is agreeing to |
 | `User.timeZone` | 🟡 | Coarse location signal |
+| `QuietHours` (`startMinute`, `endMinute`, `timeZone`) | 🟠 | A daily rhythm - often when someone sleeps, so when a home is occupied. Shown to the owner and accepted friends only, and enforced only against people shown it ([ADR 0032](../adr/0032-quiet-hours-bind-every-proposal.md)). Never logged; a refused proposal logs the route and status only |
 | `PublicProfile` | 🟢 | |
 
 ## Logging rules

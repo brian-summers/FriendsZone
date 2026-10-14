@@ -1,6 +1,7 @@
 # 0030. The grid covers the whole day, and unavailability is a region
 
-**Status:** Accepted
+**Status:** Accepted - amended by [0032](0032-quiet-hours-bind-every-proposal.md), which extends
+enforcement to every proposing route and corrects the sampling step
 **Date:** 2026-08-23
 
 ## Context

@@ -9,11 +9,11 @@ capabilities, one shared spine:
 |---|---|
 | **Calendar** | You keep a schedule; friends see a filtered projection of it. |
 | **Hangout requests** | A friend proposes times. You answer whenever. Nothing expects you *now*. |
-| **RSVPs** | Confirmed plans collect yes/no/maybe from invitees. |
+| **RSVPs** | *Planned, not built.* Confirmed plans would collect yes/no/maybe from invitees; today attendance is `attendeeIds`. |
 | **Secondhand exchange** | Post an item, a friend claims it, you schedule a handoff. |
 
 The spine is the calendar. Requests resolve into calendar events; accepted
-exchanges book calendar events; RSVPs attach to calendar events. Get the
+exchanges book calendar events; RSVPs, when built, attach to calendar events. Get the
 calendar's privacy semantics right and the rest inherits them.
 
 ## The one-sentence version of the design

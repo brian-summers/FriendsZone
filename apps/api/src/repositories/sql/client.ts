@@ -1,6 +1,7 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { currentScope } from '../scope.js';
 
 /**
  * The whole database interface: two methods.
@@ -12,6 +13,11 @@ import { fileURLToPath } from 'node:url';
  * (docs/adr/0026-sql-layer.md).
  */
 export interface SqlClient {
+  /**
+   * Run one statement. Inside a request scope (`../scope.ts`) the actor is
+   * applied to it, so RLS sees who is writing without any port having to
+   * carry an actor (ADR 0031).
+   */
   query<T = Record<string, unknown>>(sql: string, params?: readonly unknown[]): Promise<T[]>;
   /**
    * Run `fn` inside a transaction, rolling back if it throws.
@@ -92,32 +98,48 @@ export async function createPgliteClient(dataDir?: string): Promise<SqlClient> {
   const db = dataDir === undefined ? new PGlite() : new PGlite(dataDir);
   await db.waitReady;
 
-  const run = async <T>(sql: string, params?: readonly unknown[]): Promise<T[]> => {
-    // `exec` handles multi-statement scripts (the schema); `query` handles
-    // parameters. PGlite will not take both at once.
-    if (params === undefined) {
-      const results = await db.exec(sql);
-      const last = results[results.length - 1];
-      return (last?.rows ?? []) as T[];
-    }
-    const result = await db.query<T>(sql, [...params]);
-    return result.rows;
-  };
+  type Runner = Pick<typeof db, 'query' | 'exec'>;
+  const runOn =
+    (target: Runner) =>
+    async <T>(sql: string, params?: readonly unknown[]): Promise<T[]> => {
+      // `exec` handles multi-statement scripts (the schema); `query` handles
+      // parameters. PGlite will not take both at once.
+      if (params === undefined) {
+        const results = await target.exec(sql);
+        const last = results[results.length - 1];
+        return (last?.rows ?? []) as T[];
+      }
+      const result = await target.query<T>(sql, [...params]);
+      return result.rows;
+    };
+  const run = runOn(db);
+
+  /**
+   * PGlite's own `transaction` rather than a hand-issued `begin`: it holds the
+   * engine's lock for the whole callback, so two requests in flight cannot
+   * interleave their statements inside one another's transaction - which on a
+   * single connection is otherwise exactly what `Promise.all` would do.
+   */
+  const inTransaction = <T>(
+    opts: SessionSettings | undefined,
+    fn: (tx: SqlClient) => Promise<T>,
+  ): Promise<T> =>
+    db.transaction(async (tx) => {
+      const txRun = runOn(tx);
+      await applySessionSettings(txRun, opts);
+      return fn({
+        query: txRun,
+        transaction: () => Promise.reject(new Error('nested transactions are not supported')),
+        close: () => Promise.resolve(),
+      });
+    });
 
   const client: SqlClient = {
-    query: run,
-    async transaction(fn, opts) {
-      await run('begin');
-      try {
-        await applySessionSettings(run, opts);
-        const result = await fn(client);
-        await run('commit');
-        return result;
-      } catch (error) {
-        await run('rollback');
-        throw error;
-      }
+    query: (sql, params) => {
+      const scope = currentScope();
+      return scope === undefined ? run(sql, params) : inTransaction(scope, (tx) => tx.query(sql, params));
     },
+    transaction: (fn, opts) => inTransaction(opts, fn),
     async close() {
       await db.close();
     },
@@ -131,38 +153,70 @@ export async function createPgClient(connectionString: string): Promise<SqlClien
   const { default: pg } = await import('pg');
   const pool = new pg.Pool({ connectionString });
 
+  const inTransaction = async <T>(
+    opts: SessionSettings | undefined,
+    fn: (tx: SqlClient) => Promise<T>,
+  ): Promise<T> => {
+    const conn = await pool.connect();
+    const run = async <R>(sql: string, params?: readonly unknown[]): Promise<R[]> => {
+      const result = await conn.query(sql, params === undefined ? undefined : [...params]);
+      return result.rows as R[];
+    };
+    const scoped: SqlClient = {
+      query: run,
+      transaction: () => Promise.reject(new Error('nested transactions are not supported')),
+      close: () => Promise.resolve(),
+    };
+
+    let broken: Error | undefined;
+    try {
+      await run('begin');
+      await applySessionSettings(run, opts);
+      const result = await fn(scoped);
+      await run('commit');
+      return result;
+    } catch (error) {
+      try {
+        await run('rollback');
+      } catch (rollbackError) {
+        // A connection that cannot roll back is in an unknown state. Destroy it
+        // rather than return it to the pool, where the next request would
+        // inherit whatever it was in the middle of.
+        broken = rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+      }
+      throw error;
+    } finally {
+      conn.release(broken);
+    }
+  };
+
   const client: SqlClient = {
+    /**
+     * Inside a request scope, every statement runs in its own transaction with
+     * the actor applied - `SET LOCAL` only exists inside one. That is three
+     * extra round trips per statement, inside the VPC, and buys the property
+     * that matters: no pooled connection ever carries one request's identity
+     * into the next. Outside a scope (boot, the schema) there is no actor to
+     * apply, so the statement runs bare and RLS sees nobody.
+     */
     async query<T>(sql: string, params?: readonly unknown[]): Promise<T[]> {
+      const scope = currentScope();
+      if (scope !== undefined) return inTransaction(scope, (tx) => tx.query<T>(sql, params));
       const result = await pool.query(sql, params === undefined ? undefined : [...params]);
       return result.rows as T[];
     },
-    async transaction(fn, opts) {
-      const conn = await pool.connect();
-      const run = async <T>(sql: string, params?: readonly unknown[]): Promise<T[]> => {
-        const result = await conn.query(sql, params === undefined ? undefined : [...params]);
-        return result.rows as T[];
-      };
-
-      const scoped: SqlClient = { query: run, transaction: client.transaction, close: client.close };
-      try {
-        await run('begin');
-        await applySessionSettings(run, opts);
-        const result = await fn(scoped);
-        await run('commit');
-        return result;
-      } catch (error) {
-        await run('rollback');
-        throw error;
-      } finally {
-        conn.release();
-      }
-    },
+    transaction: (fn, opts) => inTransaction(opts, fn),
     async close() {
       await pool.end();
     },
   };
 
   return client;
+}
+
+interface SessionSettings {
+  actorId?: string | null;
+  crossOwner?: boolean;
 }
 
 /**
@@ -174,10 +228,12 @@ export async function createPgClient(connectionString: string): Promise<SqlClien
  */
 async function applySessionSettings(
   run: (sql: string, params?: readonly unknown[]) => Promise<unknown>,
-  opts?: { actorId?: string | null; crossOwner?: boolean },
+  opts?: SessionSettings,
 ): Promise<void> {
-  await run('select set_config($1, $2, true)', ['app.actor_id', opts?.actorId ?? '']);
-  await run('select set_config($1, $2, true)', [
+  // One statement for both, to keep the per-statement overhead to one trip.
+  await run('select set_config($1, $2, true), set_config($3, $4, true)', [
+    'app.actor_id',
+    opts?.actorId ?? '',
     'app.cross_owner',
     opts?.crossOwner === true ? 'on' : 'off',
   ]);

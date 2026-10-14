@@ -22,6 +22,8 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
+import { asCrossOwner } from '../repositories/scope.js';
+import { refuseQuietHours } from './quiet-hours.js';
 
 /**
  * The handoff - the one place Friendszone moves two people into a room.
@@ -108,7 +110,10 @@ export function buildExchangeRoutes(repos: Repositories) {
 
   /** Remove both calendar copies. Used on cancel. */
   const clearEvents = async (exchange: Exchange): Promise<void> => {
-    await Promise.all(exchange.eventIds.map((id) => repos.calendar.remove(id)));
+    // Sanctioned cross-owner write (ADR 0019): both copies go, whoever cancels.
+    await asCrossOwner(() =>
+      Promise.all(exchange.eventIds.map((id) => repos.calendar.remove(id))),
+    );
   };
 
   const validateWindow = (range: TimeRange): void => {
@@ -153,6 +158,15 @@ export function buildExchangeRoutes(repos: Repositories) {
         );
 
         validateWindow(ctx.body.timeRange);
+
+        // A handoff time is a plan put in front of the other party (ADR 0030).
+        await refuseQuietHours({
+          repos,
+          viewerFor: ctx.viewerFor,
+          recipientIds: partiesOf(listing, claim).filter((id) => id !== actorId),
+          ranges: [ctx.body.timeRange],
+          field: 'timeRange',
+        });
 
         const now = new Date().toISOString();
 
@@ -241,9 +255,12 @@ export function buildExchangeRoutes(repos: Repositories) {
         }
 
         const parties = partiesOf(listing, claim);
-        const created = await Promise.all(
-          parties.map((ownerId) =>
-            repos.calendar.create(handoffEvent(ownerId, parties, listing, exchange, now)),
+        // Sanctioned cross-owner write (ADR 0019): one copy on each calendar.
+        const created = await asCrossOwner(() =>
+          Promise.all(
+            parties.map((ownerId) =>
+              repos.calendar.create(handoffEvent(ownerId, parties, listing, exchange, now)),
+            ),
           ),
         );
 
@@ -345,7 +362,10 @@ export function buildExchangeRoutes(repos: Repositories) {
           updatedAt: now,
         });
 
-        await repos.listings.save({ ...listing, status: 'EXCHANGED', updatedAt: now });
+        // Sanctioned cross-owner write: the claimant may be the one completing.
+        await asCrossOwner(() =>
+          repos.listings.save({ ...listing, status: 'EXCHANGED', updatedAt: now }),
+        );
 
         const view = projectExchange({ exchange: stored, viewer, listing, claim });
         if (view === null) throw new PolicyDeniedError('exchange:complete', 'NOT_PARTICIPANT');

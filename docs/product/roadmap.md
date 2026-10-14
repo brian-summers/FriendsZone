@@ -20,7 +20,7 @@ first.
 | Rate limiting | Without it, every "gap" in the threat model is trivially exploitable at scale | S |
 | Reporting & moderation | **Prerequisite for the exchange feature.** Shipping in-person meetups with no way to report someone is negligent | M |
 | Account export & deletion | Legal obligation; also the honest counterpart to a privacy-first pitch | M |
-| Digest notifications | Without any notification the product is forgotten; with the wrong kind it becomes the thing it was built to replace | M |
+| Digest notifications | Without any notification the product is forgotten; with the wrong kind it becomes the thing it was built to replace. **Not built** - blocked on email delivery ([road to GA](road-to-ga.md), Phase 1) | M |
 
 **On notifications specifically.** The design constraint from
 [ADR 0007](../adr/0007-async-by-design.md) is that a notification must never
@@ -70,9 +70,9 @@ you appears completely free, so suggestions are wrong. Three mitigations:
 
 1. Show the denominator honestly - "4 of 6 friends share availability with you".
 2. Offer a one-tap **request to share free/busy for scheduling**.
-3. Add a purpose-limited `SCHEDULING` audience - "share Busy-only with people
-   actively scheduling with me", narrow and revocable - so a user can enable
-   good suggestions without widening their calendar generally.
+3. ~~Add a purpose-limited `SCHEDULING` audience~~ - **rejected** by the
+   amendment to [ADR 0008](../adr/0008-slot-finder-on-projections.md): a grant
+   that only the finder honours *is* the privileged data this design removes.
 
 Further hardening: quantize results to a 15-minute grid so exact boundaries are
 never revealed, cap participants at ~20, and rate limit the endpoint separately
@@ -233,6 +233,7 @@ Deciding this before encrypting is much cheaper than deciding it afterwards.
 2. **Sharing presets and the sharing checkup.** Cheap, and it makes the privacy
    model legible to users rather than merely correct.
 3. **Circle management UI.** Unlocks a model capability that already exists.
-4. **The slot finder,** on projections, with the `SCHEDULING` audience.
+4. **The slot finder,** on projections. Built; without a `SCHEDULING` audience
+   ([ADR 0008](../adr/0008-slot-finder-on-projections.md)).
 5. **RSVPs**, then **calendar import** with `BUSY`-only defaults.
 6. **Recurrence**, with its own ADR and its own release.

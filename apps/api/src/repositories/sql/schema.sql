@@ -311,15 +311,31 @@ $$;
 
 -- ── Row-level security ──────────────────────────────────────────────
 --
--- Ownership only. `app.actor_id` is set with SET LOCAL inside a transaction -
--- never per connection, because a pooled connection leaks session state between
--- requests.
+-- **Reads are open; writes are owned** (ADR 0031). RLS is the backstop for the
+-- one question it can answer without the visibility lattice: "is this row
+-- yours to change?". Who may *see* a row is the lattice, and it stays in
+-- packages/policy - a friend reading your week needs your events, your sharing
+-- defaults and your quiet hours, and the projection decides what of them they
+-- get. A read policy that tried to say that here would be a second, drifting
+-- implementation of the security model.
+--
+-- Circles are the one exception, because non-negotiable 9 is about the row
+-- itself: a circle is readable by its owner and by its members - the minimum
+-- the membership join in `sharedCircles` needs - and by nobody else.
+--
+-- `app.actor_id` is set with SET LOCAL inside a transaction, per statement, by
+-- the SQL client (client.ts) from the request scope (../scope.ts) - never per
+-- connection, because a pooled connection leaks session state between
+-- requests. Outside a request there is no actor and every write below fails.
+--
+-- None of this binds a role with BYPASSRLS, and the Aurora master user that
+-- production connects as today is one: these policies are tested, and inert in
+-- production until request traffic uses a restricted role (ADR 0031).
 --
 -- `app.cross_owner` admits the sanctioned cross-owner writes the product is
--- built around: accepting a hangout writes an event to *both* calendars
--- (ADR 0010), and so does booking a handoff (ADR 0019). Making that an explicit
--- setting turns "this writes to someone else's calendar" into a grep-able act
--- rather than a capability every query silently carries (ADR 0026).
+-- built around - both copies of a hangout or a handoff, a claimed listing, a
+-- moderator's takedown. Routes set it with `asCrossOwner(...)`, which makes the
+-- complete list one grep (ADR 0026, ADR 0031).
 
 create or replace function app_actor_id() returns uuid language sql stable as $$
   select nullif(current_setting('app.actor_id', true), '')::uuid
@@ -343,35 +359,54 @@ alter table quiet_hours      force row level security;
 alter table circles          force row level security;
 alter table listings         force row level security;
 
-drop policy if exists events_owner on events;
-create policy events_owner on events
+-- The pre-0031 policies were one `for all` each, which governed reads too.
+drop policy if exists events_owner           on events;
+drop policy if exists sharing_defaults_owner on sharing_defaults;
+drop policy if exists quiet_hours_owner      on quiet_hours;
+drop policy if exists circles_owner          on circles;
+
+drop policy if exists events_read on events;
+create policy events_read on events for select using (true);
+
+drop policy if exists events_write on events;
+create policy events_write on events for all
   using (owner_id = app_actor_id() or app_cross_owner())
   with check (owner_id = app_actor_id() or app_cross_owner());
 
-drop policy if exists sharing_defaults_owner on sharing_defaults;
-create policy sharing_defaults_owner on sharing_defaults
+drop policy if exists sharing_defaults_read on sharing_defaults;
+create policy sharing_defaults_read on sharing_defaults for select using (true);
+
+drop policy if exists sharing_defaults_write on sharing_defaults;
+create policy sharing_defaults_write on sharing_defaults for all
   using (user_id = app_actor_id())
   with check (user_id = app_actor_id());
 
--- Ownership only, like every other policy here: RLS is a backstop, never the
--- control. The lattice stays in packages/policy (ADR 0026).
-drop policy if exists quiet_hours_owner on quiet_hours;
-create policy quiet_hours_owner on quiet_hours
+drop policy if exists quiet_hours_read on quiet_hours;
+create policy quiet_hours_read on quiet_hours for select using (true);
+
+drop policy if exists quiet_hours_write on quiet_hours;
+create policy quiet_hours_write on quiet_hours for all
   using (user_id = app_actor_id())
   with check (user_id = app_actor_id());
 
-drop policy if exists circles_owner on circles;
-create policy circles_owner on circles
+drop policy if exists circles_read on circles;
+create policy circles_read on circles for select using (
+  owner_id = app_actor_id()
+  or exists (
+    select 1 from circle_members m
+     where m.circle_id = circles.id and m.user_id = app_actor_id()
+  )
+);
+
+drop policy if exists circles_write on circles;
+create policy circles_write on circles for all
   using (owner_id = app_actor_id())
   with check (owner_id = app_actor_id());
 
--- Listings are *read* by their audience, which RLS deliberately does not model -
--- that is the lattice, and it stays in the kernel. Reads are open here and the
--- projection decides; writes are the owner's alone.
 drop policy if exists listings_read on listings;
 create policy listings_read on listings for select using (true);
 
 drop policy if exists listings_write on listings;
 create policy listings_write on listings for all
-  using (owner_id = app_actor_id())
-  with check (owner_id = app_actor_id());
+  using (owner_id = app_actor_id() or app_cross_owner())
+  with check (owner_id = app_actor_id() or app_cross_owner());

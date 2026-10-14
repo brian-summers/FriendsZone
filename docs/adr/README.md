@@ -37,11 +37,13 @@ someone will inevitably re-propose.
 | [0023](0023-circle-management.md) | A circle is owner-only, keeps ex-friends, and scrubs its rules when deleted | Accepted |
 | [0024](0024-authentication.md) | Sessions in hashed cookies, scrypt instead of Argon2id, a shape that admits social login | Accepted |
 | [0025](0025-durable-file-store.md) | A durable file-backed store, as an honest interim before Postgres | Superseded by [0004](0004-persistence.md) / [0026](0026-sql-layer.md) |
-| [0026](0026-sql-layer.md) | Raw SQL behind a two-method client, tested against real Postgres | Accepted |
+| [0026](0026-sql-layer.md) | Raw SQL behind a two-method client, tested against real Postgres | Accepted - amended by [0031](0031-rls-request-scope.md) |
 | [0027](0027-deploy-on-aws.md) | One origin on AWS; Cloudflare drops to DNS or nothing | Accepted |
 | [0028](0028-friend-requests-and-blocking.md) | A request is a pending friendship; blocks are directed, so unblocking cannot lift theirs | Accepted |
 | [0029](0029-direct-messages-and-discoverability.md) | Messages are a mailbox with no read receipts; discoverability has no friends-of-friends | Accepted |
-| [0030](0030-full-day-grid-and-quiet-hours.md) | The grid covers 00:00-24:00; quiet hours are a shaded region, never an event | Accepted |
+| [0030](0030-full-day-grid-and-quiet-hours.md) | The grid covers 00:00-24:00; quiet hours are a shaded region, never an event | Accepted - amended by [0032](0032-quiet-hours-bind-every-proposal.md) |
+| [0031](0031-rls-request-scope.md) | RLS sees the actor through a request scope; reads are open, writes are owned | Accepted |
+| [0032](0032-quiet-hours-bind-every-proposal.md) | Quiet hours bind every route that proposes a time, and only where they are shown | Accepted |
 
 ## Template
 

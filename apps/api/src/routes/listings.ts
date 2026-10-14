@@ -28,6 +28,7 @@ import { decodePhoto, MAX_PHOTO_BYTES, sniffImageType } from '../http/images.js'
 import { defineRoute, rawResponse, type RawResponse } from '../http/route.js';
 import { ValidationError } from '../http/errors.js';
 import type { Repositories } from '../repositories/ports.js';
+import { asCrossOwner } from '../repositories/scope.js';
 
 /**
  * Things - the secondhand exchange.
@@ -386,8 +387,12 @@ export function buildListingRoutes(repos: Repositories) {
           ...(ctx.body.message === undefined ? {} : { message: ctx.body.message }),
         });
 
+        // Sanctioned cross-owner write (ADR 0017): a first-come claim closes
+        // the owner's listing, and the claimant is the one making it.
         const stored = firstCome
-          ? await repos.listings.save({ ...listing, status: 'CLAIMED', updatedAt: now })
+          ? await asCrossOwner(() =>
+              repos.listings.save({ ...listing, status: 'CLAIMED', updatedAt: now }),
+            )
           : listing;
 
         const afterClaims = await repos.listings.claimsFor(listing.id);

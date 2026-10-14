@@ -19,7 +19,7 @@ technically.
 | **Who wants what** | That someone asked for an item is a social signal about them, not about the item. | `Claim.claimantId`, `.message` |
 | **Reporter identity** | Learning who reported you is the precondition for retaliating against them. The single most dangerous field in the moderation model. | `Report.reporterId`, `.detail` |
 | **Event content** | Titles and locations: "oncology appointment", "AA meeting". | `CalendarEvent.title`, `.location` |
-| **Credentials/session** | Account takeover yields everything above. | Credential store (not yet built) |
+| **Credentials/session** | Account takeover yields everything above. | `AuthIdentity.secretHash`, `Session.tokenHash` ([ADR 0024](../adr/0024-authentication.md)) |
 
 The recurring theme: this product's worst-case failure is not financial. It is
 enabling someone to physically locate a person who is avoiding them.
@@ -52,7 +52,7 @@ an auditor can read the whole security kernel in one sitting.
 | **I** | **Login reveals whether an account exists** | Identical body, status, *and* timing: a dummy scrypt hash is computed for unknown emails | ✅ tested |
 | **I** | Registration reveals whether an email is in use | One message for email and handle collisions, and the tightest rate-limit class. **Not closed** - the fix is a verification email, which needs mail delivery | ⚠️ known gap |
 | **I** | **Restricted data is at rest in the database** | Passwords are scrypt hashes and session tokens SHA-256, so it is not a plaintext credential dump. **Encryption at rest is the deployment's job**, and field-level encryption of 🟠 Sensitive columns is still outstanding ([ADR 0004](../adr/0004-persistence.md)) | ⚠️ partial |
-| **E** | A handler bug writes to another user's rows | RLS policies express ownership; `app.actor_id` is set per transaction. Sanctioned cross-owner writes must opt in with `app.cross_owner` | ✅ tested |
+| **E** | A handler bug writes to another user's rows | RLS write policies express ownership; `app.actor_id` is applied to every statement from the request scope. Sanctioned cross-owner writes opt in with `asCrossOwner`, which is the complete list. The whole API runs in a suite as a `NOBYPASSRLS` table owner. Reads are open by design - the lattice is the read control. **Not in effect in production:** until [ADR 0031](../adr/0031-rls-request-scope.md) the actor was never set and this row was marked tested, and production connects as the Aurora master user, which bypasses RLS. Effective once requests use a restricted login role ([road to GA](../product/road-to-ga.md)) | ⚠️ tested, not yet effective |
 | **S** | Spoofed `X-Forwarded-For` mints a fresh rate-limit bucket per request | `trustProxy` is a bounded hop count, never `true`; defaults to 0, which over-limits rather than allowing a bypass ([ADR 0027](../adr/0027-deploy-on-aws.md)) | ✅ |
 | **E** | Injected script executes in the app origin | Content-Security-Policy on every response: `default-src 'self'`, no `unsafe-eval`, `object-src 'none'`, `frame-ancestors 'none'` | ✅ |
 | **I** | A CDN caches one viewer's projection and serves it to another | Every response carries `cache-control: no-store`, and the `/api/*` CloudFront behaviour disables caching explicitly | ✅ |
@@ -190,12 +190,33 @@ answered it. `message:send` is deliberately absent from `BLOCK_EXEMPT_ACTIONS`,
 so a block ends it in both directions, and the refusal is byte-identical to
 messaging an account that does not exist. Blocking also removes the
 conversation from both mailboxes rather than leaving a row that cannot be
-opened. Every message route draws from the `WRITE` bucket, and the existing
-report flow covers message content.
+opened. Every message route draws from the `WRITE` bucket, and the sender can
+be reported as a `USER`.
 
 **Gaps.** A friend can still send unwanted messages until they are unfriended
-or blocked, and moderation is reactive. This is a genuine new surface: the
-mitigations reduce it, they do not remove it.
+or blocked, and moderation is reactive. **A report cannot carry the messages
+themselves**: there is no `MESSAGE` subject, so a `USER` report freezes no
+evidence and a moderator has only the reporter's account of what was said. A
+message subject with an evidence snapshot is the fix and is not built. This is
+a genuine new surface: the mitigations reduce it, they do not remove it.
+
+### Mapping someone's quiet hours
+
+**Attack.** Learn when someone sleeps, or when their home is empty, from a
+window they did not show you - by proposing times and watching which are
+refused.
+
+**Mitigation.** A proposal is refused for landing in quiet hours only when the
+proposer is shown that window, which is the owner and accepted friends
+([ADR 0032](../adr/0032-quiet-hours-bind-every-proposal.md)). For anyone else
+the window does not exist, in the projection or in a refusal. The one
+asymmetry is deliberate: a non-friend handoff counterparty - possible only
+after an unfriend - can propose a time inside the window, and still cannot book
+it without acceptance.
+
+**Gaps.** A friend is shown the window by design, so a friend learns a rough
+daily rhythm. That is the stated cost of the feature, and why it is off by
+default.
 
 ### Learning that someone read your message
 

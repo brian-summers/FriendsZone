@@ -21,11 +21,17 @@ it asks the server via `/v1/me/calendar/preview`, which runs the real engine.
 
 ```
 src/
-  App.tsx                  shell: nav, sidebar, identity switcher, theme, routing
+  App.tsx                  shell: nav, sidebar, theme, routing
   screens/
+    SignInScreen.tsx       register and sign in
     WeekScreen.tsx         your week and a friend's week (same component)
     InboxScreen.tsx        hangout requests: received + sent, respond/withdraw
-    SettingsScreen.tsx     theme, sharing defaults (read-only), honest status
+    PeopleScreen.tsx       search, friend requests, unfriend, block
+    MessagesScreen.tsx     the mailbox: conversations and a thread, no receipts
+    ThingsScreen.tsx       offer, browse, claim, draw, choose
+    ModerationScreen.tsx   the report queue, for allowlisted moderators only
+    SettingsScreen.tsx     theme, sharing defaults, unavailable hours,
+                           findability, circles, export and deletion
   components/
     WeekGrid.tsx           the calendar grid
     EventDrawer.tsx        one event's details; edit / share / delete your own
@@ -35,15 +41,24 @@ src/
     HoldDrawer.tsx         accept / decline / withdraw a tentative hold
     NewEventDialog.tsx     create an event via POST /v1/events
     RequestTimeDialog.tsx  propose fixed or floating times via POST /v1/hangouts
+    SlotFinder.tsx         "when are we all free?"
     SharingCheckup.tsx     "what does Bob see of my week?"
-    Placeholder.tsx        honest stubs (Things, not-found)
+    Handoff.tsx            propose, accept and complete a handoff
+    ReportDialog.tsx       report a listing or a person
+    Circles.tsx            manage your circles (owner-only)
+    TimeField.tsx          hour + minute fields
+    Explainer.tsx          the popover for orientation text
+    Placeholder.tsx        honest stubs (not-found)
+    DevActorSwitcher.tsx   dev server only; compiled out of production
   lib/
     api.ts                 typed client, same-origin via the Vite proxy
     router.ts              tiny History-API router (no dependency)
     time.ts                calendar geometry; the only place UTC becomes local
     visibility.ts          the four render channels; category hue
     sharePresets.ts        user-language sharing choices for the create form
-    theme.ts               light / dark / system
+    useSavedSetting.ts     save-as-you-change, never showing an unaccepted value
+    theme.ts               palette x mode
+    dev.ts                 development-only affordances, gated at build time
   styles/
     tokens.css             mirrors @friendszone/design-tokens (drift-tested)
     app.css                component styles

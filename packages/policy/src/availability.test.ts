@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { localMinuteOfDay, overlapsQuietHours } from './availability.js';
-import { inQuietHours } from '@friendszone/contracts';
+import { localMinuteOfDay, overlapsQuietHours, visibleQuietHours } from './availability.js';
+import { inQuietHours, type RelationshipKind, type UserId } from '@friendszone/contracts';
 
 /**
  * Quiet hours, where the two things that go wrong are midnight and timezones.
@@ -113,9 +113,59 @@ describe('overlapsQuietHours', () => {
     ).toBe(true);
   });
 
+  it('catches a short window that falls between two samples of a longer slot', () => {
+    // Minutes are pickable in fives (ADR 0030), so a five-minute window is a
+    // real setting. Sampled every 15 minutes from 12:50, the samples land at
+    // 12:50 and 13:05 and step straight over 13:00-13:05.
+    const fiveMinutes = { startMinute: 13 * 60, endMinute: 13 * 60 + 5, timeZone: LISBON };
+    expect(
+      overlapsQuietHours(range('2026-01-15T12:50:00.000Z', '2026-01-15T14:00:00.000Z'), fiveMinutes),
+    ).toBe(true);
+    // A one-minute window, off any round boundary, stepped over the same way.
+    const oneMinute = { startMinute: 13 * 60 + 7, endMinute: 13 * 60 + 8, timeZone: LISBON };
+    expect(
+      overlapsQuietHours(range('2026-01-15T12:59:30.000Z', '2026-01-15T14:00:00.000Z'), oneMinute),
+    ).toBe(true);
+    expect(
+      overlapsQuietHours(range('2026-01-15T13:08:00.000Z', '2026-01-15T14:00:00.000Z'), oneMinute),
+    ).toBe(false);
+  });
+
   it('is false for a zero-length or inverted range', () => {
     expect(
       overlapsQuietHours(range('2026-01-15T02:00:00.000Z', '2026-01-15T02:00:00.000Z'), NIGHT),
     ).toBe(false);
+  });
+});
+
+describe('visibleQuietHours', () => {
+  const OWNER = '11111111-1111-4111-8111-111111111111' as UserId;
+  const OTHER = '22222222-2222-4222-8222-222222222222' as UserId;
+  const as = (viewerId: UserId | null, relationship: RelationshipKind) => ({
+    viewerId,
+    relationship,
+  });
+
+  it('shows the window to its owner and to accepted friends', () => {
+    expect(visibleQuietHours(as(OWNER, 'SELF'), OWNER, NIGHT)).toEqual(NIGHT);
+    expect(visibleQuietHours(as(OTHER, 'FRIEND'), OWNER, NIGHT)).toEqual(NIGHT);
+  });
+
+  it('withholds it from a pending request, a stranger, a blocked viewer and an anonymous caller alike', () => {
+    // Identical `null` for all four, so the field is no oracle for which one
+    // you are - and a pending request is not yet a friendship.
+    for (const viewer of [
+      as(OTHER, 'PENDING'),
+      as(OTHER, 'NONE'),
+      as(OTHER, 'BLOCKED'),
+      as(null, 'NONE'),
+    ]) {
+      expect(visibleQuietHours(viewer, OWNER, NIGHT)).toBeNull();
+    }
+  });
+
+  it('is null when there is no window, whoever asks', () => {
+    expect(visibleQuietHours(as(OWNER, 'SELF'), OWNER, null)).toBeNull();
+    expect(visibleQuietHours(as(OTHER, 'FRIEND'), OWNER, undefined)).toBeNull();
   });
 });

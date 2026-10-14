@@ -11,7 +11,8 @@ A friends' zone - private by design, but about connection. Ships at
   expire on their own so nothing becomes a guilt pile.
 - **One pane of glass.** Propose, accept, decline, withdraw, and create - all
   from the calendar. Firm plans are solid; tentative ones are pencilled in.
-- **RSVPs** for confirmed plans.
+- **RSVPs** for confirmed plans - *planned, not built yet*
+  ([roadmap](docs/product/roadmap.md)).
 - **Secondhand exchanges** - offer an item to friends, they claim it, you
   schedule a handoff that books itself into both calendars.
 
@@ -20,8 +21,11 @@ No presence indicators. No typing indicators. No read receipts. Ever - see
 
 ## Status
 
-**Running, on in-memory data.** The domain model, the privacy engine, the HTTP
-edge, authentication, and the client all work end to end.
+**Running end to end, on PostgreSQL.** The domain model, the privacy engine,
+the HTTP edge, authentication, and the client all work, and the whole API is
+also tested as a database role that row-level security binds
+([ADR 0031](docs/adr/0031-rls-request-scope.md)). `memory://` remains for a
+throwaway local run.
 
 **The API now starts in production.** It refused to, deliberately, until a real
 authenticator existed ([ADR 0006](docs/adr/0006-authentication-deferred.md));
@@ -80,7 +84,7 @@ the schema, GiST index, constraints, and RLS policies are tested directly.
 
 ```bash
 npm install
-npm run verify        # typecheck + 511 tests
+npm run verify        # typecheck + 790 tests
 ```
 
 Run it. Two terminals:

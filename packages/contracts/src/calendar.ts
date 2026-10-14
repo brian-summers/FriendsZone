@@ -262,7 +262,7 @@ export type HangoutHold = z.infer<typeof HangoutHold>;
  * **The window wraps when `startMinute > endMinute`.** That is the common case,
  * not the edge case: most people are unavailable across midnight rather than
  * inside a single day. Anything that reasons about this must handle the wrap,
- * which is why `quietMinutes()` below exists rather than each caller comparing
+ * which is why `inQuietHours()` below exists rather than each caller comparing
  * bounds itself.
  *
  * These are deliberately **not** calendar events. They carry no title, no id,

@@ -31,6 +31,7 @@ import {
 import { can } from './actions.js';
 import { assertNever, isSelf, type ViewerContext } from './viewer.js';
 import { resolveEventVisibility, widestSharedLevel } from './visibility.js';
+import { visibleQuietHours } from './availability.js';
 
 /**
  * The result of narrowing one stored event down to what one viewer may see.
@@ -232,8 +233,7 @@ export function projectCalendar(args: {
      * ask", not "I am occupied", so folding it into busy would overstate how
      * full a week is and would publish a sleeping pattern as a commitment.
      */
-    quietHours:
-      isOwner || viewer.relationship === 'FRIEND' ? (ownerQuietHours ?? null) : null,
+    quietHours: visibleQuietHours(viewer, ownerId, ownerQuietHours),
     busy: mergeBusyBlocks(busyRanges),
     openBlocks: mergeBusyBlocks(openRanges),
     details,

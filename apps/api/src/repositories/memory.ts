@@ -53,6 +53,7 @@ import type {
   Repositories,
   SocialGraphPort,
 } from './ports.js';
+import { assertMayWrite } from './scope.js';
 
 /**
  * In-memory adapter for local development and tests.
@@ -373,12 +374,15 @@ export class MemoryCircles implements CirclePort {
   }
 
   async create(circle: Circle): Promise<Circle> {
+    assertMayWrite(circle.ownerId, 'circles');
     this.#circles.push(circle);
     return circle;
   }
 
   async save(circle: Circle): Promise<Circle> {
     const index = this.#circles.findIndex((c) => c.id === circle.id);
+    if (index !== -1) assertMayWrite(this.#circles[index]!.ownerId, 'circles');
+    assertMayWrite(circle.ownerId, 'circles');
     if (index === -1) this.#circles.push(circle);
     else this.#circles[index] = circle;
     return circle;
@@ -386,7 +390,9 @@ export class MemoryCircles implements CirclePort {
 
   async remove(id: CircleId): Promise<void> {
     const index = this.#circles.findIndex((c) => c.id === id);
-    if (index !== -1) this.#circles.splice(index, 1);
+    if (index === -1) return;
+    assertMayWrite(this.#circles[index]!.ownerId, 'circles');
+    this.#circles.splice(index, 1);
   }
 }
 
@@ -417,12 +423,15 @@ export class MemoryCalendar implements CalendarPort {
   }
 
   async create(event: CalendarEvent): Promise<CalendarEvent> {
+    assertMayWrite(event.ownerId, 'events');
     this.#events.push(event);
     return event;
   }
 
   async update(event: CalendarEvent): Promise<CalendarEvent> {
     const index = this.#events.findIndex((e) => e.id === event.id);
+    if (index !== -1) assertMayWrite(this.#events[index]!.ownerId, 'events');
+    assertMayWrite(event.ownerId, 'events');
     if (index === -1) this.#events.push(event);
     else this.#events[index] = event;
     return event;
@@ -430,7 +439,9 @@ export class MemoryCalendar implements CalendarPort {
 
   async remove(eventId: EventId): Promise<void> {
     const index = this.#events.findIndex((e) => e.id === eventId);
-    if (index !== -1) this.#events.splice(index, 1);
+    if (index === -1) return;
+    assertMayWrite(this.#events[index]!.ownerId, 'events');
+    this.#events.splice(index, 1);
   }
 
   async scrubCircleRules(ownerId: UserId, circleId: CircleId): Promise<void> {
@@ -442,6 +453,7 @@ export class MemoryCalendar implements CalendarPort {
       if (event.ownerId !== ownerId) continue;
       const kept = drops(event.shareRules);
       if (kept.length !== event.shareRules.length) {
+        assertMayWrite(event.ownerId, 'events');
         this.#events[i] = { ...event, shareRules: kept };
       }
     }
@@ -456,12 +468,14 @@ export class MemoryCalendar implements CalendarPort {
     for (let i = this.#events.length - 1; i >= 0; i -= 1) {
       const event = this.#events[i]!;
       if (event.ownerId === ownerId) {
+        assertMayWrite(event.ownerId, 'events');
         this.#events.splice(i, 1);
         continue;
       }
       // Someone else's event that named this user as an attendee stays - it is
       // their record of their own week - but stops naming them.
       if (event.attendeeIds.includes(ownerId)) {
+        assertMayWrite(event.ownerId, 'events');
         this.#events[i] = {
           ...event,
           attendeeIds: event.attendeeIds.filter((id) => id !== ownerId),
@@ -478,6 +492,7 @@ export class MemoryCalendar implements CalendarPort {
   }
 
   async setSharingDefaults(ownerId: UserId, defaults: SharingDefaults): Promise<SharingDefaults> {
+    assertMayWrite(ownerId, 'sharing_defaults');
     this.#defaults.set(ownerId, defaults);
     return defaults;
   }
@@ -491,6 +506,7 @@ export class MemoryCalendar implements CalendarPort {
   }
 
   async setQuietHours(ownerId: UserId, quiet: QuietHours | null): Promise<void> {
+    assertMayWrite(ownerId, 'quiet_hours');
     if (quiet === null) this.#quietHours.delete(ownerId);
     else this.#quietHours.set(ownerId, quiet);
   }
@@ -780,6 +796,7 @@ export class MemoryListings implements ListingPort {
   }
 
   async create(listing: Listing): Promise<Listing> {
+    assertMayWrite(listing.ownerId, 'listings');
     this.#listings.push(listing);
     return listing;
   }
@@ -794,6 +811,8 @@ export class MemoryListings implements ListingPort {
 
   async save(listing: Listing): Promise<Listing> {
     const index = this.#listings.findIndex((l) => l.id === listing.id);
+    if (index !== -1) assertMayWrite(this.#listings[index]!.ownerId, 'listings');
+    assertMayWrite(listing.ownerId, 'listings');
     if (index === -1) this.#listings.push(listing);
     else this.#listings[index] = listing;
     return listing;
@@ -837,6 +856,7 @@ export class MemoryListings implements ListingPort {
     for (let i = this.#listings.length - 1; i >= 0; i -= 1) {
       const listing = this.#listings[i]!;
       if (listing.ownerId !== userId) continue;
+      assertMayWrite(listing.ownerId, 'listings');
       photoKeys.push(...listing.photoKeys);
       goneListingIds.add(listing.id);
       this.#listings.splice(i, 1);

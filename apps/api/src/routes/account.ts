@@ -21,6 +21,7 @@ import {
 import { z } from 'zod';
 import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
+import { asCrossOwner } from '../repositories/scope.js';
 
 /**
  * Getting your data out, and making it stop existing.
@@ -215,7 +216,9 @@ export function buildAccountRoutes(repos: Repositories) {
 
         await repos.exchanges.eraseUser(actorId);
         await repos.hangouts.eraseUser(actorId);
-        await repos.calendar.eraseUser(actorId);
+        // Sanctioned cross-owner write (ADR 0022): other people's copies of a
+        // shared plan survive, but stop naming the person who left.
+        await asCrossOwner(() => repos.calendar.eraseUser(actorId));
         await repos.notifications.eraseUser(actorId);
         await repos.reports.eraseUser(actorId);
         await repos.social.eraseUser(actorId);

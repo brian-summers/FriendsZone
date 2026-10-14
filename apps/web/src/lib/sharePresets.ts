@@ -6,8 +6,8 @@ import type { ShareRule, VisibilityLevel } from '@friendszone/contracts';
  * The domain model lets you compose arbitrary per-audience rules, but a
  * creation form that exposed the full lattice would be a privacy footgun - the
  * most important control in the product should be a short list of understood
- * choices, not a rule builder. The per-event editor (not yet built) is where
- * finer control will live; here we offer the safe, legible options.
+ * choices, not a rule builder. The per-event editor (SharingEditor) is where
+ * finer control lives; here we offer the safe, legible options.
  *
  * Every preset states its consequence in the second person, and the list is
  * ordered from most private to most open so that scanning down it reads as

@@ -32,6 +32,7 @@ import { z } from 'zod';
 import { ValidationError } from '../http/errors.js';
 import { defineRoute, rawResponse, type RawResponse } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
+import { asCrossOwner } from '../repositories/scope.js';
 
 /**
  * Reporting and moderation.
@@ -461,7 +462,12 @@ export function buildReportRoutes(repos: Repositories) {
         if (ctx.body.takeDown && report.subject.kind === 'LISTING') {
           const listing = await repos.listings.byId(report.subject.listingId);
           if (listing !== null) {
-            await repos.listings.save({ ...listing, status: 'WITHDRAWN', updatedAt: now });
+            // Sanctioned cross-owner write (ADR 0018): the takedown. The kernel
+            // has already cleared `moderation:dispose`; this admits only the one
+            // write that disposition makes, and is not a master key.
+            await asCrossOwner(() =>
+              repos.listings.save({ ...listing, status: 'WITHDRAWN', updatedAt: now }),
+            );
             for (const claim of await repos.listings.claimsFor(listing.id)) {
               if (claim.status !== 'PENDING') continue;
               await repos.listings.saveClaim({ ...claim, status: 'CANCELLED', updatedAt: now });

@@ -1,6 +1,7 @@
 # 0026. Raw SQL behind a two-method client, tested against real Postgres
 
-**Status:** Accepted
+**Status:** Accepted - amended by [0031](0031-rls-request-scope.md), which wires the actor
+through to the policies below and opens reads
 **Date:** 2026-08-02
 **Answers:** the question [ADR 0004](0004-persistence.md) deferred - *"Query
 builder: Drizzle preferred over an ORM. Not yet decided - that is a separate ADR

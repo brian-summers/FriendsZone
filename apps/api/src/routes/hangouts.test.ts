@@ -142,6 +142,93 @@ describe('hangout requests', () => {
       });
       expect(res.statusCode).toBe(200);
     });
+
+    /*
+     * The same rule on every other route that puts a time in front of the
+     * invitee. Enforcing it on the first proposal alone left the window one
+     * reschedule away.
+     */
+    const NIGHTS = { quietHours: { startMinute: 23 * 60, endMinute: 9 * 60, timeZone: 'UTC' } };
+
+    const proposeLunch = () =>
+      app
+        .inject({
+          method: 'POST',
+          url: '/v1/hangouts',
+          headers: as(ALICE),
+          payload: { inviteeId: BOB, title: 'Lunch', proposedSlots: [slotAtUtcHour(12)] },
+        })
+        .then((r) => r.json());
+
+    const reschedule = (id: string, hour: number) =>
+      app.inject({
+        method: 'POST',
+        url: `/v1/hangouts/${id}/reschedule`,
+        headers: as(ALICE),
+        payload: { proposedSlots: [slotAtUtcHour(hour)] },
+      });
+
+    it('refuses a re-ask that moves a pending request into them', async () => {
+      await setQuiet(BOB, NIGHTS);
+      const req = await proposeLunch();
+      expect((await reschedule(req.id, 2)).statusCode).toBe(400);
+      expect((await reschedule(req.id, 13)).statusCode).toBe(200);
+    });
+
+    it('refuses moving a confirmed hangout into them, and leaves both copies where they were', async () => {
+      const req = await proposeLunch();
+      await app.inject({
+        method: 'POST',
+        url: `/v1/hangouts/${req.id}/respond`,
+        headers: as(BOB),
+        payload: { decision: 'ACCEPT', slotIndex: 0 },
+      });
+      // Set after acceptance: the rule applies to the move, whenever it was set.
+      await setQuiet(BOB, NIGHTS);
+
+      expect((await reschedule(req.id, 2)).statusCode).toBe(400);
+
+      const day = `start=${encodeURIComponent(slotAtUtcHour(0).start)}&end=${encodeURIComponent(slotAtUtcHour(23).end)}`;
+      for (const owner of [ALICE, BOB]) {
+        const view = await app
+          .inject({ method: 'GET', url: `/v1/users/${owner}/calendar?${day}`, headers: as(owner) })
+          .then((r) => r.json());
+        const lunch = view.details.find((e: { title?: string }) => e.title === 'Lunch');
+        expect(lunch?.timeRange).toEqual(slotAtUtcHour(12));
+      }
+    });
+
+    it('refuses booking a floating occurrence into the other party’s window, not the booker’s', async () => {
+      const period = { start: slotAtUtcHour(0).start, end: slotAtUtcHour(23).end };
+      const req = await app
+        .inject({
+          method: 'POST',
+          url: '/v1/hangouts',
+          headers: as(ALICE),
+          payload: {
+            inviteeId: BOB,
+            kind: 'FLOATING',
+            title: 'Dog walks',
+            period,
+            occurrenceMinutes: 60,
+          },
+        })
+        .then((r) => r.json());
+
+      const book = (actor: string, hour: number) =>
+        app.inject({
+          method: 'POST',
+          url: `/v1/hangouts/${req.id}/book`,
+          headers: as(actor),
+          payload: { start: slotAtUtcHour(hour).start },
+        });
+
+      await setQuiet(BOB, NIGHTS);
+      // Alice booking into Bob's night writes onto Bob's calendar unasked.
+      expect((await book(ALICE, 2)).statusCode).toBe(400);
+      // Bob booking his own night is his business: his window binds others.
+      expect((await book(BOB, 2)).statusCode).toBe(200);
+    });
   });
 
   describe('sending', () => {

@@ -316,6 +316,38 @@ requests / overlappable* rather than as a wall - see
 **`openBlocks` must never be folded into `busy`.** Doing so would let anyone
 mark your overlappable time as unavailable. A route test enforces this.
 
+## 7b. Quiet hours - a region, and a rule about proposals
+
+An owner may set one recurring daily window, `QuietHours`, in which nobody may
+propose a plan to them ([ADR 0030](../adr/0030-full-day-grid-and-quiet-hours.md)).
+It is configuration, not content: no id, no title, never in `busy` or
+`openBlocks`, and it says nothing about what the owner is doing.
+
+**Who is shown it.** `visibleQuietHours(viewer, ownerId, window)` decides, and
+`projectCalendar` emits its answer as `CalendarView.quietHours`:
+
+| Viewer | `quietHours` |
+|---|---|
+| The owner | the window |
+| An accepted friend (`FRIEND`) | the window |
+| `PENDING`, a stranger, a blocked viewer, an anonymous caller | `null`, identically |
+
+`PENDING` is not `FRIEND`: asking to be someone's friend does not show you when
+they sleep. The four `null` cases are byte-identical, so the field cannot tell
+them apart.
+
+**Enforcement follows visibility.** A proposed time - a hangout proposal, a
+re-ask or move, a floating booking, a handoff time - is refused when it
+overlaps the window *as the proposer is shown it*, and never otherwise
+([ADR 0032](../adr/0032-quiet-hours-bind-every-proposal.md)). A refusal is a
+disclosure; enforcing a window the proposer is not shown would let them map it
+one rejected hour at a time. Only the other parties' windows are checked: an
+owner's own quiet hours never bind the owner.
+
+**Overlap** is evaluated on the owner's wall clock, in the zone stored with the
+window, by sampling the range at a step no longer than the window itself
+(capped at 15 minutes), so a window of any length cannot fall between samples.
+
 ## 8. Known gaps
 
 Honest accounting of what this model does **not** yet defend against:
@@ -325,8 +357,8 @@ Honest accounting of what this model does **not** yet defend against:
   window they cannot see. Mitigation deferred; would require constant-time
   projection or padding.
 - **Longitudinal correlation.** Repeated polling of merged busy blocks can
-  reveal boundaries that any single response conceals. Rate limiting is the
-  intended mitigation and is not yet implemented.
+  reveal boundaries that any single response conceals. Rate limiting
+  ([ADR 0020](../adr/0020-rate-limiting.md)) slows it; it does not prevent it.
 - **Attendee inference.** If Alice and Bob both share `BUSY` with you at exactly
   the same interval, you can guess they are together. Inherent to publishing
   free/busy at all; documented rather than solved.

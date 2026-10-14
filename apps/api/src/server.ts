@@ -10,6 +10,7 @@ import { createRateLimiter, UNLIMITED } from './http/rate-limit.js';
 import { primeDummyHash } from './auth/password.js';
 import { buildRoutes } from './routes/index.js';
 import type { Repositories } from './repositories/ports.js';
+import { runAsActor } from './repositories/scope.js';
 
 /** 256 KiB. Nothing this API accepts is legitimately larger. */
 const BODY_LIMIT_BYTES = 256 * 1024;
@@ -166,14 +167,22 @@ export async function createServer(opts: {
           const cookieHeader =
             typeof request.headers['cookie'] === 'string' ? request.headers['cookie'] : undefined;
 
-          const result = await route.handler({
-            params,
-            query,
-            body,
-            actorId,
-            viewerFor,
-            cookieHeader,
-          });
+          /**
+           * Everything the handler does to storage happens as this actor, so
+           * the RLS backstop can tell an owner's write from anyone else's
+           * (ADR 0031). Authentication above runs outside it on purpose: the
+           * session lookup happens before there is anyone to be.
+           */
+          const result = await runAsActor(actorId, () =>
+            route.handler({
+              params,
+              query,
+              body,
+              actorId,
+              viewerFor,
+              cookieHeader,
+            }),
+          );
 
           // Auth routes answer with a cookie attached. The `onSend` hook still
           // runs, so nosniff and no-store apply exactly as they do to JSON.

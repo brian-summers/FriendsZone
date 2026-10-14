@@ -17,14 +17,13 @@ import {
   type TimeRange,
   type UserId,
 } from '@friendszone/contracts';
-import { assertAllowed, can, PolicyDeniedError,
-  overlapsQuietHours,
-} from '@friendszone/policy';
+import { assertAllowed, can, PolicyDeniedError } from '@friendszone/policy';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { ValidationError } from '../http/errors.js';
 import { defineRoute } from '../http/route.js';
 import type { Repositories } from '../repositories/ports.js';
+import { asCrossOwner } from '../repositories/scope.js';
+import { refuseQuietHours } from './quiet-hours.js';
 
 const empty = z.object({});
 
@@ -149,21 +148,16 @@ export const buildHangoutRoutes = (repos: Repositories) => [
       const viewer = await ctx.viewerFor(recipientId);
       assertAllowed(can(viewer, { action: 'hangout:send', recipientId }));
 
-      /**
-       * Refuse anything inside the invitee's quiet hours.
-       *
-       * The client shades these, but shading is presentation and this is the
-       * control: a request built by hand, or by an older client, must be
-       * refused just the same. `ValidationError` rather than a policy denial
-       * because it is a malformed proposal, not a permission problem - and the
-       * proposer can already see the shaded region, so naming the reason
-       * discloses nothing new.
-       */
-      const inviteeQuiet = await repos.calendar.quietHours(recipientId);
-      const offending = ctx.body.proposedSlots.filter((slot) =>
-        overlapsQuietHours(slot, inviteeQuiet),
-      );
-      if (offending.length > 0) throw new ValidationError(['proposedSlots']);
+      // The client shades the invitee's quiet hours, but shading is
+      // presentation and this is the control: a request built by hand, or by
+      // an older client, is refused just the same.
+      await refuseQuietHours({
+        repos,
+        viewerFor: ctx.viewerFor,
+        recipientIds: [recipientId],
+        ranges: ctx.body.proposedSlots,
+        field: 'proposedSlots',
+      });
 
       const now = new Date().toISOString();
       // A FLOATING invitation expires at the end of its period; a FIXED one uses
@@ -280,9 +274,12 @@ export const buildHangoutRoutes = (repos: Repositories) => [
       if (slot === undefined) throw new PolicyDeniedError('hangout:respond', 'WRONG_STATE');
 
       const participants = participantsOf(request);
-      const created = await Promise.all(
-        participants.map((ownerId) =>
-          repos.calendar.create(participantEvent(ownerId, participants, request, slot, now)),
+      // Sanctioned cross-owner write (ADR 0010): one copy on each calendar.
+      const created = await asCrossOwner(() =>
+        Promise.all(
+          participants.map((ownerId) =>
+            repos.calendar.create(participantEvent(ownerId, participants, request, slot, now)),
+          ),
         ),
       );
 
@@ -384,18 +381,21 @@ export const buildHangoutRoutes = (repos: Repositories) => [
       };
 
       // Mirror onto any booked events so the calendar copies stay accurate.
-      await Promise.all(
-        request.resultingEventIds.map(async (eventId) => {
-          const ev = await repos.calendar.eventById(eventId);
-          if (ev === null) return;
-          await repos.calendar.update({
-            ...ev,
-            title: updated.title,
-            updatedAt: now,
-            ...(updated.note !== undefined ? { description: updated.note } : {}),
-            ...(updated.location !== undefined ? { location: updated.location } : {}),
-          });
-        }),
+      // Sanctioned cross-owner write (ADR 0012): the invitee's copy too.
+      await asCrossOwner(() =>
+        Promise.all(
+          request.resultingEventIds.map(async (eventId) => {
+            const ev = await repos.calendar.eventById(eventId);
+            if (ev === null) return;
+            await repos.calendar.update({
+              ...ev,
+              title: updated.title,
+              updatedAt: now,
+              ...(updated.note !== undefined ? { description: updated.note } : {}),
+              ...(updated.location !== undefined ? { location: updated.location } : {}),
+            });
+          }),
+        ),
       );
 
       if (ctx.body.notify) {
@@ -448,6 +448,15 @@ export const buildHangoutRoutes = (repos: Repositories) => [
         throw new PolicyDeniedError('hangout:reschedule', 'WRONG_STATE');
       }
 
+      // A re-ask and a move are both new times put in front of the invitee.
+      await refuseQuietHours({
+        repos,
+        viewerFor: ctx.viewerFor,
+        recipientIds: othersThan(request, ctx.actorId),
+        ranges: ctx.body.proposedSlots,
+        field: 'proposedSlots',
+      });
+
       if (request.status === 'PENDING') {
         // Re-ask: swap the candidate slots, stay pending.
         return repos.hangouts.save({
@@ -459,12 +468,15 @@ export const buildHangoutRoutes = (repos: Repositories) => [
 
       // Confirmed: re-book both copies to the new time.
       const newSlot = ctx.body.proposedSlots[0]!;
-      await Promise.all(
-        request.resultingEventIds.map(async (eventId) => {
-          const ev = await repos.calendar.eventById(eventId);
-          if (ev === null) return;
-          await repos.calendar.update({ ...ev, timeRange: newSlot, updatedAt: now });
-        }),
+      // Sanctioned cross-owner write (ADR 0012).
+      await asCrossOwner(() =>
+        Promise.all(
+          request.resultingEventIds.map(async (eventId) => {
+            const ev = await repos.calendar.eventById(eventId);
+            if (ev === null) return;
+            await repos.calendar.update({ ...ev, timeRange: newSlot, updatedAt: now });
+          }),
+        ),
       );
 
       const moved = { ...request, updatedAt: now };
@@ -516,12 +528,15 @@ export const buildHangoutRoutes = (repos: Repositories) => [
         }),
       );
 
-      await Promise.all(
-        request.resultingEventIds.map(async (eventId) => {
-          const ev = await repos.calendar.eventById(eventId);
-          if (ev === null) return;
-          await repos.calendar.update({ ...ev, status: 'CANCELLED', updatedAt: now });
-        }),
+      // Sanctioned cross-owner write (ADR 0012): either party cancels both.
+      await asCrossOwner(() =>
+        Promise.all(
+          request.resultingEventIds.map(async (eventId) => {
+            const ev = await repos.calendar.eventById(eventId);
+            if (ev === null) return;
+            await repos.calendar.update({ ...ev, status: 'CANCELLED', updatedAt: now });
+          }),
+        ),
       );
 
       const cancelled = { ...request, status: 'CANCELLED' as const, updatedAt: now };
@@ -593,10 +608,23 @@ export const buildHangoutRoutes = (repos: Repositories) => [
         start: new Date(start).toISOString(),
         end: new Date(end).toISOString(),
       };
+
+      // Booking writes straight onto the other party's calendar, so their
+      // quiet hours apply here more than anywhere.
+      await refuseQuietHours({
+        repos,
+        viewerFor: ctx.viewerFor,
+        recipientIds: othersThan(request, ctx.actorId),
+        ranges: [slot],
+        field: 'start',
+      });
       const participants = participantsOf(request);
-      const created = await Promise.all(
-        participants.map((ownerId) =>
-          repos.calendar.create(participantEvent(ownerId, participants, request, slot, now)),
+      // Sanctioned cross-owner write (ADR 0013): either party books both.
+      const created = await asCrossOwner(() =>
+        Promise.all(
+          participants.map((ownerId) =>
+            repos.calendar.create(participantEvent(ownerId, participants, request, slot, now)),
+          ),
         ),
       );
 

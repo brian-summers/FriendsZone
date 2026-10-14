@@ -192,6 +192,77 @@ describe('the handoff', () => {
     });
   });
 
+  // ── Quiet hours ────────────────────────────────────────────────────
+  describe('quiet hours', () => {
+    const atUtcHour = (hour: number) => {
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() + 3);
+      start.setUTCHours(hour, 0, 0, 0);
+      const end = new Date(start);
+      end.setUTCHours(hour + 1);
+      return { start: start.toISOString(), end: end.toISOString() };
+    };
+    const nights = (who: string) =>
+      app.inject({
+        method: 'PUT',
+        url: '/v1/me/quiet-hours',
+        headers: as(who),
+        payload: { quietHours: { startMinute: 23 * 60, endMinute: 9 * 60, timeZone: 'UTC' } },
+      });
+
+    /** `owner` offers a PUBLIC first-come item and `claimant` takes it. */
+    async function claimedBy(owner: string, claimant: string): Promise<string> {
+      const listing = await app
+        .inject({
+          method: 'POST',
+          url: '/v1/listings',
+          headers: as(owner),
+          payload: {
+            title: 'Bike pump',
+            condition: 'GOOD',
+            audience: { kind: 'PUBLIC' },
+            claimMode: 'FIRST_COME',
+          },
+        })
+        .then((r) => r.json());
+      const claimed = await app.inject({
+        method: 'POST',
+        url: `/v1/listings/${listing.id}/claims`,
+        headers: as(claimant),
+        payload: {},
+      });
+      expect(claimed.statusCode).toBe(200);
+      const asOwner = await app
+        .inject({ method: 'GET', url: `/v1/listings/${listing.id}`, headers: as(owner) })
+        .then((r) => r.json());
+      return asOwner.claims[0].id;
+    }
+
+    it('refuses a handoff time inside the other party’s window', async () => {
+      const claimId = await claimedBy(ALICE, BOB);
+      await nights(ALICE);
+      expect((await propose(claimId, BOB, { timeRange: atUtcHour(2) })).statusCode).toBe(400);
+      expect((await propose(claimId, BOB, { timeRange: atUtcHour(15) })).statusCode).toBe(200);
+    });
+
+    it('does not enforce a window on someone who is no longer shown it', async () => {
+      // Claiming needs a friendship, but the handoff outlives one: Carol claims,
+      // then the two unfriend. Carol is no longer shown Alice's quiet hours, and
+      // refusing her time for landing in them would let her map the window by
+      // proposing hour after hour - the projection's `null` undone by a 400.
+      const claimId = await claimedBy(ALICE, CAROL);
+      await nights(ALICE);
+      const unfriended = await app.inject({
+        method: 'DELETE',
+        url: `/v1/people/${ALICE}/friendship`,
+        headers: as(CAROL),
+        payload: {},
+      });
+      expect(unfriended.statusCode).toBe(200);
+      expect((await propose(claimId, CAROL, { timeRange: atUtcHour(2) })).statusCode).toBe(200);
+    });
+  });
+
   // ── Accepting ──────────────────────────────────────────────────────
   describe('accepting', () => {
     it('books both calendars, and only on acceptance', async () => {

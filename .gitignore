@@ -3,7 +3,7 @@ dist/
 coverage/
 *.tsbuildinfo
 
-# Secrets - never commit. See docs/security/secrets.md
+# Secrets - never commit. See docs/security/data-classification.md (Restricted tier).
 .env
 .env.*
 !.env.example

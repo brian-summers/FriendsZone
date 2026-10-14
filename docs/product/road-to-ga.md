@@ -15,7 +15,16 @@ integration test → docs - because work done below that bar comes back.
 Built, tested, and documented: the privacy kernel, the calendar, hangouts,
 Things with claim modes and the handoff, reporting and moderation, the slot
 finder, rate limiting, sharing presets, circles, export and deletion, real
-authentication, and PostgreSQL with row-level security. **511 tests.**
+authentication, and PostgreSQL with row-level security. **790 tests.**
+
+> **Correction, 2026-10-13.** "PostgreSQL with row-level security" overstated
+> it. The adapter never told Postgres who was asking, so under any role the
+> policies bind they would have refused everything; the tests ran as a
+> superuser and could not see that. Production kept working only because its
+> connection bypasses RLS - so RLS has never been a backstop there.
+> [ADR 0031](../adr/0031-rls-request-scope.md) wires the actor through and
+> tests the whole API as a role RLS binds; the **restricted login role** below
+> is what makes it count in production.
 
 That is a complete product for a small group of friends. It is not yet something
 to put in front of strangers, and the gap is smaller than it looks - but it is
@@ -52,6 +61,7 @@ suppression is reviewable rather than invisible.
 | **WAF on the distribution** | Every route already declares a token-bucket rate-limit class ([ADR 0020](../adr/0020-rate-limiting.md)) and the origin scales to one small instance. Real, but not yet worth the monthly floor | ~$8/mo + 0.25d |
 | **Stop using the account root user** | An IAM admin (`friendszone-deploy`) now exists and is what deploys. Root still has no MFA, which is the remaining gap | 10 min, console only |
 | **IAM database authentication** | Already **enabled** on the cluster; the application still connects with the password from Secrets Manager. Moving to short-lived tokens is now an application change, not a migration | 0.5d |
+| **A restricted database login role** | **The highest-value item on this list.** The API connects as the Aurora master user, which bypasses row-level security, so the policies bind nothing in production ([ADR 0031](../adr/0031-rls-request-scope.md)). Request traffic needs a role that owns nothing and lacks `BYPASSRLS`; DDL stays with the owner, so migration and request handling get separate credentials. IAM auth above suits the restricted role | 0.5–1d |
 
 **CloudFront access logging is deliberately off and is not on this list.** An
 access log records the concrete request URI, and this API's URIs carry the
@@ -64,7 +74,7 @@ control would breach the rule it appears to serve.
 
 ---
 
-## Phase 1 - The things that make it safe to invite strangers (5–8 days)
+## Phase 1 - The things that make it safe to invite strangers (6–10 days)
 
 Everything here is a real gap, and each has been named in an ADR or a threat
 model row rather than discovered late.
@@ -80,6 +90,18 @@ between a demo and a product.
   Until it exists, a forgotten password is an unrecoverable account.
 - Registration verification, which closes the enumeration gap the same ADR
   records as open.
+- **Report alerts.** Today `NotifierPort` is a logging adapter, so a new report
+  alerts nobody and the moderation queue has to be checked by hand
+  ([ADR 0018](../adr/0018-reporting-and-moderation.md)). For strangers, that is
+  not acceptable.
+
+### Reporting messages (1 day)
+
+A person can be reported, but a message cannot: there is no `MESSAGE` subject,
+so a `USER` report freezes no evidence and a moderator sees only the reporter's
+account of what was said. Direct messages are the newest harassment surface in
+the product ([the threat model](../security/threat-model.md) says so), and the
+existing `EvidenceSnapshot` machinery is most of the work.
 
 ### Photos to S3 (1.5 days)
 
@@ -165,12 +187,12 @@ minutes.
 | | Days | Cumulative |
 |---|---|---|
 | Phase 0 - cloud | 3 | 3 |
-| Phase 1 - safe for strangers | 8 | 11 |
-| Phase 2 - product gaps | 7 | 18 |
-| Phase 3 - release | 3 | 21 |
-| **Incidentals at 30%** | 6 | **27** |
+| Phase 1 - safe for strangers | 9.5 | 12.5 |
+| Phase 2 - product gaps (what remains) | 2.5 | 15 |
+| Phase 3 - release | 3 | 18 |
+| **Incidentals at 30%** | 5.5 | **23.5** |
 
-**≈ 27 focused days.** Calendar time depends entirely on how many of those days
+**≈ 24 focused days**, from the start; Phase 0 and most of Phase 2 are done. Calendar time depends entirely on how many of those days
 a week you get.
 
 ### About that 30%

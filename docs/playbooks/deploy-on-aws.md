@@ -105,7 +105,7 @@ would hide the cycle rather than resolve it.
 ## 0. Before anything
 
 ```bash
-npm run verify        # typecheck + 665 tests
+npm run verify        # typecheck + 790 tests
 npm run build:web     # → apps/web/dist
 ```
 
@@ -255,11 +255,22 @@ curl -sI https://friends-zone.app/api/v1/me | grep -i \
   -e content-security-policy -e strict-transport -e cache-control
 ```
 
+Then the scripted smoke test, which **writes**. Health checks and a
+registration never touch a table with row-level security, so they cannot tell
+a working deploy from one that cannot save a calendar
+([ADR 0031](../adr/0031-rls-request-scope.md)). The script registers two
+throwaway accounts, befriends them, writes and reads across them - including a
+cross-owner write - and deletes both:
+
+```bash
+node infra/scripts/smoke.mjs https://<distribution>
+```
+
 Then, by hand, the things a smoke test cannot assert:
 
 - [ ] Register an account; confirm the session cookie is `Secure` and `HttpOnly`
 - [ ] Sign out, sign back in
-- [ ] Create an event; hard-refresh a deep link and confirm the SPA fallback works
+- [ ] Hard-refresh a deep link and confirm the SPA fallback works
 - [ ] Restart the App Runner service and confirm you are **still signed in** -
       sessions are in Postgres, not memory
 - [ ] Two accounts: confirm one cannot see the other's private event

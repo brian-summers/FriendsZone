@@ -15,6 +15,7 @@ import { api, ApiError } from '../lib/api.js';
 import { Circles } from '../components/Circles.js';
 import { Explainer } from '../components/Explainer.js';
 import { TimeField } from '../components/TimeField.js';
+import { useSavedSetting } from '../lib/useSavedSetting.js';
 import type { ThemeChoice, ThemeSelection } from '../lib/theme.js';
 import { encodingFor } from '../lib/visibility.js';
 
@@ -85,29 +86,44 @@ const DISCOVERABILITY_CHOICES: Array<{
 ];
 
 export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphChanged }: Props) {
-  const [discoverability, setDiscoverability] = useState<Discoverability>(
-    me?.discoverability ?? 'EVERYONE',
+  // Both of these are privacy controls, so neither may show a value the
+  // server did not accept - see useSavedSetting.
+  const findable = useSavedSetting<Discoverability>(me?.discoverability ?? 'EVERYONE', (value) =>
+    api.setDiscoverability(value, actorId).then((r) => r.discoverability),
   );
-  const [quiet, setQuiet] = useState<QuietHours | null>(null);
+  const quietHours = useSavedSetting<QuietHours | null>(null, (value) =>
+    api.setQuietHours(value, actorId).then((r) => r.quietHours),
+  );
+  const discoverability = findable.value;
+  const quiet = quietHours.value;
+  const saveQuiet = quietHours.change;
+  /**
+   * Until the stored window has loaded, the toggle is disabled. Otherwise a
+   * failed load would read as "no window set", and switching it on would
+   * overwrite whatever the server actually has.
+   */
+  const [quietLoad, setQuietLoad] = useState<'loading' | 'loaded' | 'failed'>('loading');
 
-  const saveQuiet = (next: QuietHours) => {
-    setQuiet(next);
-    void api.setQuietHours(next, actorId).catch(() => undefined);
-  };
-
+  const { load: loadQuiet } = quietHours;
   useEffect(() => {
     const controller = new AbortController();
+    setQuietLoad('loading');
     api
       .quietHours(actorId, controller.signal)
       .then((r) => {
-        if (!controller.signal.aborted) setQuiet(r.quietHours);
+        if (controller.signal.aborted) return;
+        loadQuiet(r.quietHours);
+        setQuietLoad('loaded');
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!controller.signal.aborted) setQuietLoad('failed');
+      });
     return () => controller.abort();
-  }, [actorId]);
+  }, [actorId, loadQuiet]);
+  const { load: loadFindable } = findable;
   useEffect(() => {
-    if (me) setDiscoverability(me.discoverability);
-  }, [me]);
+    if (me) loadFindable(me.discoverability);
+  }, [me, loadFindable]);
 
   const [friends, setFriends] = useState<VisibilityLevel>('BUSY');
   const [everyone, setEveryone] = useState<VisibilityLevel>('HIDDEN');
@@ -314,10 +330,22 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
           </Explainer>
         </h2>
 
+        {quietLoad === 'failed' && (
+          <p className="field-error" role="alert">
+            Your unavailable hours could not be loaded, so they cannot be changed right now.
+          </p>
+        )}
+        {quietHours.failed && (
+          <p className="field-error" role="alert">
+            That change was not saved. What is shown is what friends see.
+          </p>
+        )}
+
         <label className="field quiet-toggle">
           <input
             type="checkbox"
             checked={quiet !== null}
+            disabled={quietLoad !== 'loaded'}
             onChange={(e) => {
               const next = e.target.checked
                 ? {
@@ -328,14 +356,13 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
                     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                   }
                 : null;
-              setQuiet(next);
-              void api.setQuietHours(next, actorId).catch(() => undefined);
+              saveQuiet(next);
             }}
           />
           <span>Set daily unavailable hours</span>
         </label>
 
-        {quiet !== null && (
+        {quiet !== null && quietLoad === 'loaded' && (
           <>
             <div className="quiet-row">
               <span className="field-label">From</span>
@@ -373,6 +400,11 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
             nobody is ever told what you chose - including someone who cannot find you.
           </Explainer>
         </h2>
+        {findable.failed && (
+          <p className="field-error" role="alert">
+            That change was not saved. Who can find you is still what is marked in use.
+          </p>
+        )}
         <div className="palette-list">
           {DISCOVERABILITY_CHOICES.map(({ value, label, blurb }) => {
             const on = discoverability === value;
@@ -382,10 +414,7 @@ export function SettingsScreen({ me, people, actorId, theme, onTheme, onGraphCha
                 type="button"
                 className={`palette-option${on ? ' palette-on' : ''}`}
                 aria-pressed={on}
-                onClick={() => {
-                  setDiscoverability(value);
-                  void api.setDiscoverability(value, actorId).catch(() => undefined);
-                }}
+                onClick={() => findable.change(value)}
               >
                 <span className="palette-head">
                   <strong>{label}</strong>
