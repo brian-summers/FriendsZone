@@ -59,6 +59,7 @@
 · [0030](adr/0030-full-day-grid-and-quiet-hours.md)
 · [0031](adr/0031-rls-request-scope.md)
 · [0032](adr/0032-quiet-hours-bind-every-proposal.md)
+· [0033](adr/0033-restricted-request-role.md)
 
 ## Conventions for these documents
 

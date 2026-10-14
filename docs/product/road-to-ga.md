@@ -15,7 +15,7 @@ integration test → docs - because work done below that bar comes back.
 Built, tested, and documented: the privacy kernel, the calendar, hangouts,
 Things with claim modes and the handoff, reporting and moderation, the slot
 finder, rate limiting, sharing presets, circles, export and deletion, real
-authentication, and PostgreSQL with row-level security. **790 tests.**
+authentication, and PostgreSQL with row-level security. **806 tests.**
 
 > **Correction, 2026-10-13.** "PostgreSQL with row-level security" overstated
 > it. The adapter never told Postgres who was asking, so under any role the
@@ -23,8 +23,9 @@ authentication, and PostgreSQL with row-level security. **790 tests.**
 > superuser and could not see that. Production kept working only because its
 > connection bypasses RLS - so RLS has never been a backstop there.
 > [ADR 0031](../adr/0031-rls-request-scope.md) wires the actor through and
-> tests the whole API as a role RLS binds; the **restricted login role** below
-> is what makes it count in production.
+> tests the whole API as a role RLS binds; [ADR 0033](../adr/0033-restricted-request-role.md)
+> serves requests as a **restricted login role**, which is what makes it count
+> in production.
 
 That is a complete product for a small group of friends. It is not yet something
 to put in front of strangers, and the gap is smaller than it looks - but it is
@@ -60,8 +61,8 @@ suppression is reviewable rather than invisible.
 | **Secrets Manager rotation** | Rotating the Aurora credential needs a Lambda inside the VPC, and this VPC has no NAT by design - so it also needs a Secrets Manager interface endpoint at ~$7/mo, more than the database costs at rest | ~$7/mo + 0.5d |
 | **WAF on the distribution** | Every route already declares a token-bucket rate-limit class ([ADR 0020](../adr/0020-rate-limiting.md)) and the origin scales to one small instance. Real, but not yet worth the monthly floor | ~$8/mo + 0.25d |
 | **Stop using the account root user** | An IAM admin (`friendszone-deploy`) now exists and is what deploys. Root still has no MFA, which is the remaining gap | 10 min, console only |
-| **IAM database authentication** | Already **enabled** on the cluster; the application still connects with the password from Secrets Manager. Moving to short-lived tokens is now an application change, not a migration | 0.5d |
-| **A restricted database login role** | **The highest-value item on this list.** The API connects as the Aurora master user, which bypasses row-level security, so the policies bind nothing in production ([ADR 0031](../adr/0031-rls-request-scope.md)). Request traffic needs a role that owns nothing and lacks `BYPASSRLS`; DDL stays with the owner, so migration and request handling get separate credentials. IAM auth above suits the restricted role | 0.5–1d |
+| **IAM database authentication** | Already **enabled** on the cluster; both roles still use passwords from Secrets Manager. [ADR 0033](../adr/0033-restricted-request-role.md) explains why: signing a token needs instance-role credentials, which a service with no route out of the VPC may not get. Revisit with the move off App Runner | 0.5d |
+| **A restricted database login role** | **Built** ([ADR 0033](../adr/0033-restricted-request-role.md)): requests run as `friendszone_app`, which owns nothing, cannot bypass row-level security, and is checked for both at boot. What remains is that the API still migrates itself, so the owner credential sits in its environment; a separate migration job removes that, and wants the move off App Runner, which has no pre-deploy hook | Migration job: 0.5d |
 
 **CloudFront access logging is deliberately off and is not on this list.** An
 access log records the concrete request URI, and this API's URIs carry the

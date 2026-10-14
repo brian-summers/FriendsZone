@@ -24,6 +24,27 @@ const ConfigSchema = z.object({
    *                                      failure in production
    */
   DATABASE_URL: z.string().url(),
+  /**
+   * The restricted login role that serves requests, as a `postgres://` URL on
+   * the same database (docs/adr/0033-restricted-request-role.md).
+   *
+   * When set, `DATABASE_URL` is the schema *owner*: it applies the schema,
+   * creates and grants this role, and disconnects, and every request runs as
+   * this role instead. The split exists because row-level security binds
+   * neither a superuser nor a `BYPASSRLS` role, and an owner can switch it off.
+   *
+   * `DATABASE_URL` keeps its meaning rather than being renamed, so rolling back
+   * to an image that predates this still boots: it ignores this variable and
+   * connects as the owner, exactly as before.
+   *
+   * Unset, `DATABASE_URL` does everything, which is right for `pglite://` and
+   * a local server, and a boot failure in production.
+   */
+  DATABASE_APP_URL: z
+    .string()
+    .url()
+    .refine((url) => /^postgres(ql)?:\/\//.test(url), 'DATABASE_APP_URL must be a postgres:// URL')
+    .optional(),
   /** 32 bytes minimum. Short secrets are a real, exploitable weakness. */
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   PUBLIC_ORIGIN: z.string().url(),
@@ -115,6 +136,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // Losing every account on restart is not a state to discover in production.
   if (config.NODE_ENV === 'production' && config.DATABASE_URL.startsWith('memory:')) {
     throw new Error('Refusing to start in production with DATABASE_URL=memory: data would be lost');
+  }
+
+  // Serving requests as the schema owner is how row-level security went
+  // unenforced in production without anyone noticing (ADR 0031, ADR 0033).
+  if (
+    config.NODE_ENV === 'production' &&
+    /^postgres(ql)?:\/\//.test(config.DATABASE_URL) &&
+    config.DATABASE_APP_URL === undefined
+  ) {
+    throw new Error(
+      'Refusing to start in production without DATABASE_APP_URL: requests would run as the schema owner',
+    );
   }
 
   return config;

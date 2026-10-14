@@ -23,7 +23,10 @@ export interface ServiceStackProps extends StackProps {
   /** Created in the data stack - see the cycle note there. */
   readonly connectorSecurityGroup: ec2.ISecurityGroup;
   readonly repository: ecr.IRepository;
+  /** The schema owner. Used at boot only, to migrate and provision the request role. */
   readonly databaseUrl: secretsmanager.ISecret;
+  /** The restricted role every request runs as (ADR 0033). */
+  readonly databaseAppUrl: secretsmanager.ISecret;
   readonly sessionSecret: secretsmanager.ISecret;
   /**
    * The origin the browser actually talks to.
@@ -111,6 +114,7 @@ export class ServiceStack extends Stack {
       assumedBy: new iam.ServicePrincipal('tasks.apprunner.amazonaws.com'),
     });
     props.databaseUrl.grantRead(instanceRole);
+    props.databaseAppUrl.grantRead(instanceRole);
     props.sessionSecret.grantRead(instanceRole);
 
     const service = new apprunner.CfnService(this, 'ApiService', {
@@ -137,6 +141,7 @@ export class ServiceStack extends Stack {
             ],
             runtimeEnvironmentSecrets: [
               { name: 'DATABASE_URL', value: props.databaseUrl.secretArn },
+              { name: 'DATABASE_APP_URL', value: props.databaseAppUrl.secretArn },
               { name: 'SESSION_SECRET', value: props.sessionSecret.secretArn },
             ],
           },

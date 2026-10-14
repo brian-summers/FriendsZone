@@ -1,11 +1,6 @@
 import { loadConfig } from './config.js';
 import { createMemoryRepositories } from './repositories/memory.js';
-import {
-  applySchema,
-  createPgClient,
-  createPgliteClient,
-  type SqlClient,
-} from './repositories/sql/client.js';
+import { openDatabase } from './repositories/sql/open.js';
 import { createSqlRepositories } from './repositories/sql/postgres.js';
 import { createDemoSeed } from './seed.js';
 import { createServer } from './server.js';
@@ -26,17 +21,11 @@ async function main(): Promise<void> {
    * The demo seed is only ever loaded into a *fresh in-memory* run. Seeding a
    * real database would overwrite live data with fixtures on every start, which
    * is a spectacular way to lose a production system.
+   *
+   * With `DATABASE_APP_URL`, requests run as a restricted role and the owner
+   * credential is used only here, before listening (ADR 0033).
    */
-  const url = config.DATABASE_URL;
-  let db: SqlClient | null = null;
-
-  if (url.startsWith('postgres://') || url.startsWith('postgresql://')) {
-    db = await createPgClient(url);
-  } else if (url.startsWith('pglite://')) {
-    db = await createPgliteClient(url.slice('pglite://'.length) || undefined);
-  }
-
-  if (db !== null) await applySchema(db);
+  const db = await openDatabase(config);
   const repos = db === null ? createMemoryRepositories(createDemoSeed()) : createSqlRepositories(db);
 
   const app = await createServer({ config, repos });

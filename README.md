@@ -36,7 +36,9 @@ identity header is inert outside development.
 [ADR 0026](docs/adr/0026-sql-layer.md)). `DATABASE_URL` picks the store:
 `postgres://…` for a server, `pglite://<dir>` for Postgres 18 running in-process
 with nothing to install, or `memory://` for a throwaway run - which production
-refuses.
+refuses. In production `DATABASE_URL` is the schema owner and only migrates;
+requests run as the restricted role in `DATABASE_APP_URL`
+([ADR 0033](docs/adr/0033-restricted-request-role.md)).
 
 The SQL is exercised by the real engine on every `npm test`: the same
 conformance suite runs against both the in-memory and the Postgres adapters, and
@@ -84,7 +86,7 @@ the schema, GiST index, constraints, and RLS policies are tested directly.
 
 ```bash
 npm install
-npm run verify        # typecheck + 790 tests
+npm run verify        # typecheck + 806 tests
 ```
 
 Run it. Two terminals:

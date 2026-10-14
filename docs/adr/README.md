@@ -42,8 +42,9 @@ someone will inevitably re-propose.
 | [0028](0028-friend-requests-and-blocking.md) | A request is a pending friendship; blocks are directed, so unblocking cannot lift theirs | Accepted |
 | [0029](0029-direct-messages-and-discoverability.md) | Messages are a mailbox with no read receipts; discoverability has no friends-of-friends | Accepted |
 | [0030](0030-full-day-grid-and-quiet-hours.md) | The grid covers 00:00-24:00; quiet hours are a shaded region, never an event | Accepted - amended by [0032](0032-quiet-hours-bind-every-proposal.md) |
-| [0031](0031-rls-request-scope.md) | RLS sees the actor through a request scope; reads are open, writes are owned | Accepted |
+| [0031](0031-rls-request-scope.md) | RLS sees the actor through a request scope; reads are open, writes are owned | Accepted - amended by [0033](0033-restricted-request-role.md) |
 | [0032](0032-quiet-hours-bind-every-proposal.md) | Quiet hours bind every route that proposes a time, and only where they are shown | Accepted |
+| [0033](0033-restricted-request-role.md) | Requests run as a restricted login role; the owner only migrates | Accepted |
 
 ## Template
 

@@ -171,6 +171,17 @@ anything in this list, read the comment next to it - each has one:
 - `rls-binding.test.ts` builds its own Postgres role instead of using
   PGlite's default → the default is a superuser, which bypasses RLS, and that
   difference is how an adapter that never set the actor passed every test.
+- `DATABASE_URL` is the schema **owner** and `DATABASE_APP_URL` the request
+  role, the less obvious naming → an image older than ADR 0033 ignores the
+  new variable and still boots as the owner, so rollback keeps working.
+  Swapping the names makes the previous image an outage.
+- The request role's password is sent as a **SCRAM verifier computed in
+  `roles.ts`**, not as plaintext → `ALTER ROLE` takes no bind parameters, so
+  the password would be statement text, one logging setting from CloudWatch.
+- Role attributes are written only in `CREATE ROLE`, and every later boot sets
+  just the password → the Aurora master is not a superuser and may not name
+  `SUPERUSER` in `ALTER ROLE`. `assertRestrictedRole` is what keeps the role
+  narrow, by refusing to serve if it was widened.
 - A proposal is refused for landing in quiet hours only when the proposer is
   *shown* that window → refusing on a window they cannot see makes the
   proposal routes a way to map it.
@@ -234,7 +245,7 @@ three named **presets**. Accounts **export and delete**, and **circles** are man
 `HttpOnly` cookie, and everything is stored in **PostgreSQL**. The **social
 graph is now buildable from inside the product**: search for someone, send a
 friend request, accept or decline it, unfriend, and **block** - with blocks
-stored as *directed* rows so lifting yours never lifts theirs. 790 tests.
+stored as *directed* rows so lifting yours never lifts theirs. 806 tests.
 
 Decisions worth knowing before touching hangouts or the calendar:
 - [ADR 0010](docs/adr/0010-hangout-resolution.md): accepting a hangout is a
@@ -277,9 +288,11 @@ Decisions worth knowing before touching hangouts or the calendar:
   request scope, the SQL client applies `app.actor_id` per statement, reads
   are open (circles excepted) and writes are owned. A sanctioned cross-owner
   write goes through `asCrossOwner(...)`, so `grep asCrossOwner` is the
-  complete list. **Production does not yet benefit:** it connects as the
-  Aurora master user, which bypasses RLS. A restricted login role is the next
-  step ([road to GA](docs/product/road-to-ga.md)).
+  complete list. **[ADR 0033](docs/adr/0033-restricted-request-role.md)
+  makes it bind production:** `DATABASE_URL` is the owner and only migrates;
+  requests run as the role in `DATABASE_APP_URL`, which boot creates, grants
+  data access only, and refuses to serve as if it is a superuser, has
+  `BYPASSRLS` or owns anything. Production will not start without it.
 - [ADR 0024](docs/adr/0024-authentication.md): sessions are opaque tokens
   **stored hashed** - a dump of the session store yields nothing presentable.
   Passwords use **scrypt from `node:crypto`, not Argon2id**, a deliberate

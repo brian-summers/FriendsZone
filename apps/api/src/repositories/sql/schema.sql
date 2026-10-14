@@ -328,9 +328,9 @@ $$;
 -- connection, because a pooled connection leaks session state between
 -- requests. Outside a request there is no actor and every write below fails.
 --
--- None of this binds a role with BYPASSRLS, and the Aurora master user that
--- production connects as today is one: these policies are tested, and inert in
--- production until request traffic uses a restricted role (ADR 0031).
+-- None of this binds a role with BYPASSRLS, and the Aurora master user is one.
+-- So the master only migrates: requests run as a restricted role that owns
+-- nothing and is checked at boot for exactly these escapes (ADR 0033).
 --
 -- `app.cross_owner` admits the sanctioned cross-owner writes the product is
 -- built around - both copies of a hangout or a handoff, a claimed listing, a

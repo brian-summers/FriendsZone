@@ -86,6 +86,32 @@ describe('config', () => {
     ).toThrow(/RATE_LIMIT_ENABLED/);
   });
 
+  // ADR 0033: serving requests as the schema owner leaves RLS unenforced.
+  const production = {
+    NODE_ENV: 'production',
+    DATABASE_URL: 'postgres://owner:x@db:5432/x',
+    SESSION_SECRET: 'y'.repeat(48),
+    PUBLIC_ORIGIN: 'https://friends-zone.app',
+  };
+
+  it('refuses to start in production without a request role', () => {
+    expect(() => loadConfig(production as NodeJS.ProcessEnv)).toThrow(/DATABASE_APP_URL/);
+  });
+
+  it('starts in production with one', () => {
+    const config = loadConfig({
+      ...production,
+      DATABASE_APP_URL: `postgres://friendszone_app:${'z'.repeat(32)}@db:5432/x`,
+    } as NodeJS.ProcessEnv);
+    expect(config.DATABASE_APP_URL).toMatch(/^postgres:\/\/friendszone_app:/);
+  });
+
+  it('refuses a request role that is not a postgres URL', () => {
+    expect(() =>
+      loadConfig({ ...production, DATABASE_APP_URL: 'pglite://./x' } as NodeJS.ProcessEnv),
+    ).toThrow(/postgres:\/\/ URL/);
+  });
+
   it('is on by default', () => {
     const config = loadConfig({
       DATABASE_URL: 'postgres://localhost:5432/x',

@@ -4,6 +4,8 @@
 **Date:** 2026-10-13
 **Amends:** [ADR 0026](0026-sql-layer.md), which designed the policies and the
 `SET LOCAL` mechanism but never connected the two
+**Amended by:** [ADR 0033](0033-restricted-request-role.md), which moves
+request traffic onto a role these policies bind
 
 ## Context
 
@@ -125,6 +127,10 @@ circles, the hangout lifecycle, a claim through a completed handoff, and
 account deletion. With the scope disabled, 9 of its 11 tests fail.
 
 ### The connection role is unchanged, for now - so production is not yet protected
+
+> **Superseded, 2026-10-14:** [ADR 0033](0033-restricted-request-role.md)
+> provisions a restricted request role at boot and serves every request as
+> it. What follows describes production before that change.
 
 The API still connects as the master user, which bypasses RLS. **Until that
 changes, everything above is correct, tested, and inert in production.** The

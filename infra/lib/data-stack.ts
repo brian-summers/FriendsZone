@@ -28,6 +28,7 @@ export class DataStack extends Stack {
   readonly vpc: ec2.Vpc;
   readonly cluster: rds.DatabaseCluster;
   readonly databaseUrl: secretsmanager.ISecret;
+  readonly databaseAppUrl: secretsmanager.ISecret;
   readonly sessionSecret: secretsmanager.ISecret;
   readonly dbSecurityGroup: ec2.SecurityGroup;
   readonly connectorSecurityGroup: ec2.SecurityGroup;
@@ -182,6 +183,43 @@ export class DataStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    /**
+     * `DATABASE_APP_URL`: the restricted role that serves requests
+     * (docs/adr/0033-restricted-request-role.md).
+     *
+     * `DATABASE_URL` above stays the master and is now used only at boot, to
+     * apply the schema and to create this role, set its password and grant it
+     * data access. Requests then run as `friendszone_app`, which row-level
+     * security binds - the master has BYPASSRLS, so it never did.
+     *
+     * A password rather than IAM database authentication, although the
+     * cluster has IAM auth on: generating a token needs the instance role's
+     * credentials, and this service has no route to anything but Aurora. App
+     * Runner's secret injection is the path already proven here. The ADR has
+     * the full comparison.
+     */
+    const appPassword = new secretsmanager.Secret(this, 'AppDatabasePassword', {
+      description: 'Friendszone request-role password (friendszone_app)',
+      generateSecretString: {
+        secretStringTemplate: '{}',
+        generateStringKey: 'password',
+        passwordLength: 48,
+        // It travels inside a URL and into a SCRAM verifier, which the API
+        // only computes for printable ASCII; alphanumerics need no escaping.
+        excludePunctuation: true,
+      },
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+    this.databaseAppUrl = new secretsmanager.Secret(this, 'DatabaseAppUrl', {
+      description: 'Friendszone DATABASE_APP_URL (request role, composed from AppDatabasePassword)',
+      secretStringValue: SecretValue.unsafePlainText(
+        `postgresql://friendszone_app:{{resolve:secretsmanager:${appPassword.secretArn}:SecretString:password}}` +
+          `@${this.cluster.clusterEndpoint.hostname}:${this.cluster.clusterEndpoint.port}/friendszone` +
+          `?sslmode=verify-full&sslrootcert=/app/rds-ca.pem`,
+      ),
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
     // Exactly one rule, one port, one direction, between two named groups.
     // Aurora's port is a token until deploy time, hence reading it off the
     // cluster rather than hard-coding 5432.
@@ -206,7 +244,7 @@ export class DataStack extends Stack {
      * named pre-GA item in docs/product/road-to-ga.md.
      */
     NagSuppressions.addResourceSuppressions(
-      [this.cluster, this.sessionSecret, this.databaseUrl],
+      [this.cluster, this.sessionSecret, this.databaseUrl, appPassword, this.databaseAppUrl],
       [
         {
           id: 'AwsSolutions-SMG4',
@@ -214,7 +252,9 @@ export class DataStack extends Stack {
             'Rotation requires a VPC-attached Lambda and a Secrets Manager interface endpoint, ' +
             'which costs more per month than the database at rest. Tracked as a pre-GA item. ' +
             'DATABASE_URL is additionally derived from the cluster secret, so rotating it ' +
-            'independently would only desynchronise the two.',
+            'independently would only desynchronise the two. The same holds for the request ' +
+            'role: the API sets its password from DATABASE_APP_URL on every boot, so rotating ' +
+            'it is a redeploy, which needs no Lambda.',
         },
       ],
       true,
@@ -240,6 +280,7 @@ export class DataStack extends Stack {
     new CfnOutput(this, 'EcrRepositoryUri', { value: this.repository.repositoryUri });
     new CfnOutput(this, 'ClusterEndpoint', { value: this.cluster.clusterEndpoint.hostname });
     new CfnOutput(this, 'DatabaseUrlSecretArn', { value: this.databaseUrl.secretArn });
+    new CfnOutput(this, 'DatabaseAppUrlSecretArn', { value: this.databaseAppUrl.secretArn });
     new CfnOutput(this, 'SessionSecretArn', { value: this.sessionSecret.secretArn });
   }
 }

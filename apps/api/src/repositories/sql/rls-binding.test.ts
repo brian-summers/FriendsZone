@@ -7,6 +7,7 @@ import type { Repositories } from '../ports.js';
 import { asCrossOwner, runAsActor } from '../scope.js';
 import { applySchema, createPgliteClient, type SqlClient } from './client.js';
 import { createSqlRepositories } from './postgres.js';
+import { assertRestrictedRole, provisionRequestRole } from './roles.js';
 
 /**
  * The whole API, on Postgres, as a role that row-level security binds.
@@ -18,12 +19,13 @@ import { createSqlRepositories } from './postgres.js';
  * actually bind can neither write nor read an owned row. Production did not
  * notice either, because its connection is not bound by them (ADR 0031).
  *
- * This suite builds the posture the RLS design assumes - a non-superuser,
- * NOBYPASSRLS role that owns the schema, under FORCE ROW LEVEL SECURITY - and
- * walks the product's main flows over HTTP with real sessions. If a handler
- * writes across owners without `asCrossOwner`, or a read policy is narrowed so
- * a friend can no longer read what the projection needs, it fails here - not
- * on the day production moves to a role RLS binds.
+ * This suite builds production's posture (ADR 0033): the owner applies the
+ * schema and provisions the request role exactly as boot does, and every
+ * request then runs as that role - no attributes, no ownership, data grants
+ * only - and walks the product's main flows over HTTP with real sessions. If a
+ * handler writes across owners without `asCrossOwner`, a read policy is
+ * narrowed so a friend can no longer read what the projection needs, or a new
+ * table is missing a grant, it fails here rather than in production.
  */
 
 const config: Config = {
@@ -39,13 +41,17 @@ const config: Config = {
   TRUSTED_PROXY_HOPS: 0,
 };
 
-/** A non-superuser that owns the schema and cannot bypass RLS. */
+/**
+ * Boot's two steps on one PGlite connection: migrate as the owner, then serve
+ * as the request role. `set role` stands in for the second login, which an
+ * in-process engine cannot make; the boot check runs against it all the same.
+ */
 async function rlsBoundDb(): Promise<SqlClient> {
   const db = await createPgliteClient();
-  await db.query(`create role app_owner nosuperuser nobypassrls`);
-  await db.query(`grant create, usage on schema public to app_owner`);
-  await db.query(`set role app_owner`);
   await applySchema(db);
+  await provisionRequestRole(db, { user: 'friendszone_app', password: 'p'.repeat(24) });
+  await db.query(`set role friendszone_app`);
+  await assertRestrictedRole(db);
   return db;
 }
 

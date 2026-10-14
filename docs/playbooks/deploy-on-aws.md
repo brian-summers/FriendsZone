@@ -38,6 +38,29 @@ Two stacks, split on **state**. `FriendszoneData` holds the only copy of every
 user's calendar and carries `terminationProtection`; `FriendszoneService` is
 rebuildable from this repository in minutes.
 
+### Two database credentials, and the order they ship in
+
+Requests run as `friendszone_app`, a role that owns nothing and cannot bypass
+row-level security; the master user in `DATABASE_URL` is used only at boot, to
+migrate and to provision that role ([ADR 0033](../adr/0033-restricted-request-role.md)).
+The data stack generates its password and composes `DATABASE_APP_URL`.
+
+- **Deploy `FriendszoneData` first.** The service imports the new secret, so the
+  service stack cannot deploy until it exists. `cdk deploy --all` gets the
+  order right.
+- **Pin the region.** `npx cdk ...` takes the profile's default region, and a
+  `diff` against an empty region reports every resource as new. Export
+  `CDK_DEFAULT_REGION=us-east-2` (and `AWS_REGION`) first.
+- **The boot is the check.** An image that cannot provision the role, or
+  finds it superuser, `BYPASSRLS` or owning a table, exits before listening, so
+  App Runner keeps the previous version. A deploy that reaches `RUNNING` is
+  serving as the restricted role.
+- **Rolling back is safe.** An older image ignores `DATABASE_APP_URL` and
+  connects as the owner, as it always did. The role and its grants stay
+  behind, unused.
+- **Rotating its password** is: put a new value in `AppDatabasePassword`,
+  redeploy. Boot sets the role's password from the URL every time.
+
 ### Three things that bit during the first real deploy
 
 - **Pin an engine version the region actually has.** `VER_16_6` exists in the
@@ -105,7 +128,7 @@ would hide the cycle rather than resolve it.
 ## 0. Before anything
 
 ```bash
-npm run verify        # typecheck + 790 tests
+npm run verify        # typecheck + 806 tests
 npm run build:web     # → apps/web/dist
 ```
 
@@ -148,6 +171,9 @@ aws ssm put-parameter --name /friendszone/SESSION_SECRET --type SecureString \
   --value "$(openssl rand -base64 48)"
 aws ssm put-parameter --name /friendszone/DATABASE_URL --type SecureString \
   --value "postgres://USER:PASS@ENDPOINT:5432/friendszone"
+# The role requests run as - created and granted by the API on boot (ADR 0033)
+aws ssm put-parameter --name /friendszone/DATABASE_APP_URL --type SecureString \
+  --value "postgres://friendszone_app:$(openssl rand -hex 24)@ENDPOINT:5432/friendszone"
 ```
 
 Never in the task definition, never in the image, never in git.
@@ -172,7 +198,7 @@ App Runner → Create service → from ECR.
 | CPU / memory | 0.25 vCPU / 0.5 GB to start |
 | VPC connector | The database's VPC and subnets |
 | Environment | `NODE_ENV=production`, `PUBLIC_ORIGIN=https://friends-zone.app`, `TRUSTED_PROXY_HOPS=1`, `MODERATOR_IDS=<your user id>` |
-| Secrets | `SESSION_SECRET`, `DATABASE_URL` from SSM |
+| Secrets | `SESSION_SECRET`, `DATABASE_URL` (owner), `DATABASE_APP_URL` (request role) from SSM |
 
 **`TRUSTED_PROXY_HOPS=1` matters.** `request.ip` feeds the anonymous rate-limit
 bucket. Left at 0 behind CloudFront, every anonymous caller shares one bucket and

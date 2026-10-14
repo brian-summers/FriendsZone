@@ -45,6 +45,7 @@ const service = new ServiceStack(app, 'FriendszoneService', {
   connectorSecurityGroup: data.connectorSecurityGroup,
   repository: data.repository,
   databaseUrl: data.databaseUrl,
+  databaseAppUrl: data.databaseAppUrl,
   sessionSecret: data.sessionSecret,
   publicOrigin,
   imageTag,
